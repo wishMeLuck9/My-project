@@ -11,15 +11,21 @@ public class PlayerAttackController : MonoBehaviour
     private readonly Collider[] hitBuffer = new Collider[16];
     private float nextAttackTime;
     private bool canAttack = true;
+    [SerializeField] private bool attackEnabledByScene = true;
 
     public void SetCanAttack(bool state)
     {
         canAttack = state;
     }
 
+    public void SetSceneAttackEnabled(bool state)
+    {
+        attackEnabledByScene = state;
+    }
+
     private void Update()
     {
-        if (!canAttack || Mouse.current == null) return;
+        if (!attackEnabledByScene || !canAttack || Mouse.current == null) return;
         if (!Mouse.current.leftButton.wasPressedThisFrame) return;
         if (Time.time < nextAttackTime) return;
         if (DialogueController.Instance != null && DialogueController.Instance.IsDialogueOpen) return;

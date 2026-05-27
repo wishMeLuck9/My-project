@@ -20,6 +20,9 @@ public class PrototypeShadowActor : MonoBehaviour
     private float fearUntil = -1f;
     private bool defeated;
 
+    public bool IsDefeated => defeated;
+    public bool WasAttacked { get; private set; }
+
     public void Configure(ShadowRole newRole, int newHealth)
     {
         role = newRole;
@@ -48,6 +51,7 @@ public class PrototypeShadowActor : MonoBehaviour
     {
         if (defeated) return;
 
+        WasAttacked = true;
         health -= 1;
         fearUntil = Time.time + fearDuration;
 
@@ -65,6 +69,15 @@ public class PrototypeShadowActor : MonoBehaviour
 
         ApplyRoleColor();
         ShowReaction(nowDefeated);
+    }
+
+    public void RestoreForEvent()
+    {
+        defeated = false;
+        WasAttacked = false;
+        ApplyRoleColor();
+        Collider collider = GetComponent<Collider>();
+        if (collider != null) collider.enabled = true;
     }
 
     private void ApplyRoleColor()

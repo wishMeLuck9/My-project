@@ -1,13 +1,34 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 public class GuardianController : Interactable
 {
     [SerializeField] private string guardianName;
     [SerializeField] private bool isForceGuardian;
+    [SerializeField] private string[] customLines;
+    [SerializeField] private int maxHealth = 3;
+    [SerializeField] private float chaseSpeed = 3.8f;
+    [SerializeField] private float catchDistance = 1.45f;
+
+    private FinalGateOutcomeController arena;
+    private Transform player;
+    private NavMeshAgent agent;
+    private int health;
+    private Vector3 spawnPosition;
+    private Quaternion spawnRotation;
+    private bool battling;
+    private bool defeated;
 
     public string GuardianName => string.IsNullOrWhiteSpace(guardianName) ? name : guardianName;
+    public bool IsDefeated => defeated;
 
-    [SerializeField] private string[] customLines;
+    private void Awake()
+    {
+        spawnPosition = transform.position;
+        spawnRotation = transform.rotation;
+        health = maxHealth;
+        agent = GetComponent<NavMeshAgent>();
+    }
 
     public void Configure(string newName, bool forceGuardian, string[] lines = null)
     {
@@ -18,32 +39,75 @@ public class GuardianController : Interactable
 
     public override void Interact()
     {
-        EvaluatePlayer();
+        if (!battling && DialogueController.Instance != null)
+        {
+            DialogueController.Instance.ShowDialogue(GuardianName, BuildEvaluationMessage());
+        }
     }
 
-    public void EvaluatePlayer()
+    public void BeginBattle(FinalGateOutcomeController controller, Transform target)
     {
-        if (DialogueController.Instance == null) return;
-        DialogueController.Instance.ShowDialogue(GuardianName, BuildEvaluationMessage());
+        arena = controller;
+        player = target;
+        battling = true;
+        ResetBattleState();
+    }
+
+    public void ResetBattleState()
+    {
+        defeated = false;
+        health = maxHealth;
+        transform.SetPositionAndRotation(spawnPosition, spawnRotation);
+        SetColliderEnabled(true);
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            agent.Warp(spawnPosition);
+            agent.speed = chaseSpeed;
+            agent.isStopped = false;
+        }
+    }
+
+    private void Update()
+    {
+        if (!battling || defeated || player == null || arena == null) return;
+        if (DialogueController.Instance != null && DialogueController.Instance.IsDialogueOpen) return;
+
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            agent.SetDestination(player.position);
+        }
+        else
+        {
+            Vector3 direction = player.position - transform.position;
+            direction.y = 0f;
+            if (direction.sqrMagnitude > 0.01f)
+            {
+                transform.position += direction.normalized * chaseSpeed * Time.deltaTime;
+            }
+        }
+
+        Vector3 distance = player.position - transform.position;
+        distance.y = 0f;
+        if (distance.sqrMagnitude <= catchDistance * catchDistance)
+        {
+            arena.ResetArenaAfterPlayerHit();
+        }
     }
 
     public void ReceiveAttack()
     {
-        if (WorldState.Instance != null)
+        if (!battling || defeated) return;
+
+        health -= 1;
+        if (health <= 0)
         {
-            WorldState.Instance.aggressionChoice += 1;
-            WorldState.Instance.pursuitLevel += 15;
+            defeated = true;
+            SetColliderEnabled(false);
+            arena?.NotifyGuardianDefeated();
+            return;
         }
 
-        if (TryGetComponent(out Renderer renderer))
-        {
-            renderer.material.color = isForceGuardian ? Color.red : new Color(0.45f, 0.15f, 0.65f, 1f);
-        }
-
-        if (DialogueController.Instance != null)
-        {
-            DialogueController.Instance.ShowDialogue(GuardianName, "Суд не прерывается ударом. Удар только добавляет строку.");
-        }
+        DialogueController.Instance?.ShowDialogue(GuardianName, "Удар принят. Врата все еще закрыты.");
     }
 
     public string BuildEvaluationMessage()
@@ -54,28 +118,18 @@ public class GuardianController : Interactable
         }
 
         WorldState state = WorldState.Instance;
-if (state == null) return "Состояние не найдено. Проверка отложена.";
+        if (state == null) return "Состояние не найдено. Проверка отложена.";
+        if (state.enemyShadowsDefeated > 0) return "Ты принес убийство. Теперь проход придется отнять.";
+        return isForceGuardian
+            ? "Ты удержал руку. Сила отступит, если ты отдашь все добровольно."
+            : "Два фрагмента, память и жизнь. Иначе врата не откроются.";
+    }
 
-        if (isForceGuardian)
+    private void SetColliderEnabled(bool state)
+    {
+        foreach (Collider collider in GetComponents<Collider>())
         {
-            if (state.pursuitLevel > 30 || state.aggressionChoice > 0 || state.shadowViolence > 0)
-            {
-                if (TryGetComponent(out Renderer renderer)) renderer.material.color = Color.red;
-                return "Ты пришел с движением. Движение похоже на угрозу. Угроза должна быть остановлена.";
-            }
-
-            return "Твоё присутствие тихое. Это не оправдание, но это... приемлемо.";
+            collider.enabled = state;
         }
-
-        if (state.paidMemory)
-            return "Ты уже платил. Но я не вижу, кем ты был до оплаты. Это удобно. Для нас.";
-
-        if (state.helpedShadow)
-            return "В тебе есть отголосок чужой тени. Это ошибка, но она была настоящей.";
-
-        if (state.paidEntryFragment)
-            return "Ты отдал свет, чтобы пройти внутрь. Теперь ворота проверят, что осталось.";
-
-        return "Твой след пуст. Ты сохранил всё, но не принес ничего.";
     }
 }

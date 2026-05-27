@@ -2,6 +2,20 @@ using UnityEngine;
 
 public class WorldState : MonoBehaviour
 {
+    public enum NightFragmentRoute
+    {
+        None,
+        Mercy,
+        Violence
+    }
+
+    public enum EndingOutcome
+    {
+        None,
+        Sacrifice,
+        Force
+    }
+
     public static WorldState Instance { get; private set; }
 
     [Header("Core Variables")]
@@ -35,6 +49,14 @@ public class WorldState : MonoBehaviour
     public int shadowViolence = 0;
     public int enemyShadowsDefeated = 0;
     public int playerDeaths = 0;
+
+    [Header("Story Route")]
+    public bool hasExteriorFragment = false;
+    public bool hasInnerNightFragment = false;
+    public int exteriorCaptureCount = 0;
+    public bool nightViolenceAttempted = false;
+    public NightFragmentRoute nightFragmentRoute = NightFragmentRoute.None;
+    public EndingOutcome endingOutcome = EndingOutcome.None;
 
     private void Awake()
     {
@@ -76,6 +98,7 @@ public class WorldState : MonoBehaviour
 
     public void RecordShadowAttack(bool defeated)
     {
+        nightViolenceAttempted = true;
         shadowViolence += 1;
         aggressionChoice += 1;
         pursuitLevel += 8;
@@ -86,5 +109,94 @@ public class WorldState : MonoBehaviour
             enemyShadowsDefeated += 1;
             nightDebt += 1;
         }
+    }
+
+    public bool HasFragment(LightFragmentPickup.FragmentKind fragmentKind)
+    {
+        return fragmentKind == LightFragmentPickup.FragmentKind.Exterior
+            ? hasExteriorFragment
+            : hasInnerNightFragment;
+    }
+
+    public void AcquireFragment(LightFragmentPickup.FragmentKind fragmentKind)
+    {
+        if (fragmentKind == LightFragmentPickup.FragmentKind.Exterior)
+        {
+            hasExteriorFragment = true;
+        }
+        else
+        {
+            hasInnerNightFragment = true;
+        }
+
+        AddLight(1);
+        foundTraceCount += 1;
+    }
+
+    public void RegisterExteriorCapture()
+    {
+        exteriorCaptureCount += 1;
+    }
+
+    public void ResetExteriorAttempt()
+    {
+        hasExteriorFragment = false;
+        exteriorCaptureCount = 0;
+        lightLevel = Mathf.Max(0, lightLevel - 1);
+    }
+
+    public void GrantNightFragmentRoute(NightFragmentRoute route)
+    {
+        nightFragmentRoute = route;
+    }
+
+    public void CompleteSacrificeEnding()
+    {
+        hasExteriorFragment = false;
+        hasInnerNightFragment = false;
+        lightLevel = 0;
+        paidMemory = true;
+        paidName = true;
+        paidJoy = true;
+        endingOutcome = EndingOutcome.Sacrifice;
+    }
+
+    public void CompleteForceEnding()
+    {
+        endingOutcome = EndingOutcome.Force;
+    }
+
+    public void ResetRun()
+    {
+        recognition = 0;
+        pursuitLevel = 0;
+        apathyTimer = 0;
+        lightLevel = 0;
+        cycleCount = 0;
+        nonStepBias = 0;
+        hasHeart = false;
+        hasShadow = false;
+        helpedShadow = false;
+        ignoredShadow = false;
+        resistedSystem = false;
+        paidEntryFragment = false;
+        shadowsFearedPlayer = false;
+        purgatoryMarked = false;
+        paidMemory = false;
+        paidName = false;
+        paidJoy = false;
+        aggressionChoice = 0;
+        mercyChoice = 0;
+        nightDebt = 0;
+        foundTraceCount = 0;
+        shadowViolence = 0;
+        enemyShadowsDefeated = 0;
+        playerDeaths = 0;
+        hasExteriorFragment = false;
+        hasInnerNightFragment = false;
+        exteriorCaptureCount = 0;
+        nightViolenceAttempted = false;
+        nightFragmentRoute = NightFragmentRoute.None;
+        endingOutcome = EndingOutcome.None;
     }
 }

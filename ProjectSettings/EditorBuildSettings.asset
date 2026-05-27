@@ -9,7 +9,7 @@ EditorBuildSettings:
     path: Assets/Scenes/LOCATION_01_EXTERIOR_DAY.unity
     guid: d9e5a8f7bf3b2b1498fae654e57581e1
   - enabled: 1
-    path: Assets/Scenes/LOcate2.unity
+    path: Assets/Scenes/LOCATION_02_PROTECTED_ALLEYS_NIGHT.unity
     guid: 01de1c3c0125656498bda2f47b1535fc
   - enabled: 1
     path: Assets/Scenes/LOCATION_03_GATE_FINAL.unity

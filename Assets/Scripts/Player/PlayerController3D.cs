@@ -14,8 +14,12 @@ public class PlayerController3D : MonoBehaviour
     private Collider playerCollider;
     private Vector2 moveInput;
     private bool canMove = true;
+    private float movementMultiplier = 1f;
+    private float movementModifierEndsAt = -1f;
 
     public bool CanMove => canMove;
+    public Vector3 PlanarVelocity => rb == null ? Vector3.zero : new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+    public float MovementAmount => canMove ? moveInput.magnitude : 0f;
 
     private void Awake()
     {
@@ -29,6 +33,12 @@ public class PlayerController3D : MonoBehaviour
 
     private void Update()
     {
+        if (movementModifierEndsAt >= 0f && Time.time >= movementModifierEndsAt)
+        {
+            movementMultiplier = 1f;
+            movementModifierEndsAt = -1f;
+        }
+
         if (!canMove || Keyboard.current == null)
         {
             moveInput = Vector2.zero;
@@ -68,7 +78,7 @@ public class PlayerController3D : MonoBehaviour
 
         Vector3 direction = (forward * moveInput.y + right * moveInput.x).normalized;
 
-        rb.MovePosition(rb.position + direction * moveSpeed * Time.fixedDeltaTime);
+        rb.MovePosition(rb.position + direction * moveSpeed * movementMultiplier * Time.fixedDeltaTime);
         Quaternion targetRotation = Quaternion.LookRotation(direction);
         rb.MoveRotation(Quaternion.Slerp(rb.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime));
     }
@@ -77,6 +87,25 @@ public class PlayerController3D : MonoBehaviour
     {
         canMove = state;
         if (!state && rb != null) rb.linearVelocity = Vector3.zero;
+    }
+
+    public void ApplyTimedSpeedMultiplier(float multiplier, float duration)
+    {
+        movementMultiplier = Mathf.Clamp(multiplier, 0.1f, 1f);
+        movementModifierEndsAt = Time.time + Mathf.Max(0f, duration);
+    }
+
+    public void Teleport(Vector3 position, Quaternion rotation)
+    {
+        if (rb != null)
+        {
+            rb.position = position;
+            rb.rotation = rotation;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        transform.SetPositionAndRotation(position, rotation);
     }
 
     private void TryJump()
