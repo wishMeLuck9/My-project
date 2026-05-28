@@ -13,6 +13,7 @@ public class GuardianController : Interactable
     private FinalGateOutcomeController arena;
     private Transform player;
     private NavMeshAgent agent;
+    private EnemyJumpController jumper;
     private int health;
     private Vector3 spawnPosition;
     private Quaternion spawnRotation;
@@ -28,6 +29,7 @@ public class GuardianController : Interactable
         spawnRotation = transform.rotation;
         health = maxHealth;
         agent = GetComponent<NavMeshAgent>();
+        jumper = GetComponent<EnemyJumpController>();
     }
 
     public void Configure(string newName, bool forceGuardian, string[] lines = null)
@@ -88,6 +90,8 @@ public class GuardianController : Interactable
 
         Vector3 distance = player.position - transform.position;
         distance.y = 0f;
+        jumper?.TickAutoJump(player, true, true);
+
         if (distance.sqrMagnitude <= catchDistance * catchDistance)
         {
             arena.ResetArenaAfterPlayerHit();

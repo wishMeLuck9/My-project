@@ -9,6 +9,7 @@ public class ExteriorPursuer : MonoBehaviour
     private Transform player;
     private NavMeshAgent agent;
     private ShadowNPC dialogue;
+    private EnemyJumpController jumper;
     private ExteriorHuntController hunt;
     private bool isHunting;
 
@@ -16,6 +17,7 @@ public class ExteriorPursuer : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         dialogue = GetComponent<ShadowNPC>();
+        jumper = GetComponent<EnemyJumpController>();
     }
 
     public void SetHunting(bool state, ExteriorHuntController controller)
@@ -55,6 +57,8 @@ public class ExteriorPursuer : MonoBehaviour
 
         Vector3 separation = target - transform.position;
         separation.y = 0f;
+        jumper?.TickAutoJump(player, true, true);
+
         if (separation.sqrMagnitude <= catchDistance * catchDistance)
         {
             hunt.CapturePlayer();

@@ -9,6 +9,7 @@ public class PlayerController3D : MonoBehaviour
     [SerializeField] private float groundCheckDistance = 0.15f;
     [SerializeField] private LayerMask groundMask = ~0;
     [SerializeField] private Transform cameraTransform;
+    [SerializeField] private bool allowJump;
 
     private Rigidbody rb;
     private Collider playerCollider;
@@ -18,6 +19,9 @@ public class PlayerController3D : MonoBehaviour
     private float movementModifierEndsAt = -1f;
 
     public bool CanMove => canMove;
+    public bool JumpEnabled => allowJump;
+    public float MoveSpeed => moveSpeed;
+    public float RotationSpeed => rotationSpeed;
     public Vector3 PlanarVelocity => rb == null ? Vector3.zero : new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
     public float MovementAmount => canMove ? moveInput.magnitude : 0f;
 
@@ -55,7 +59,7 @@ public class PlayerController3D : MonoBehaviour
 
         moveInput = new Vector2(horizontal, vertical);
 
-        if (Keyboard.current.spaceKey.wasPressedThisFrame)
+        if (allowJump && Keyboard.current.spaceKey.wasPressedThisFrame)
         {
             TryJump();
         }
@@ -93,6 +97,17 @@ public class PlayerController3D : MonoBehaviour
     {
         movementMultiplier = Mathf.Clamp(multiplier, 0.1f, 1f);
         movementModifierEndsAt = Time.time + Mathf.Max(0f, duration);
+    }
+
+    public void ConfigureTraversal(bool jumpEnabled)
+    {
+        allowJump = jumpEnabled;
+    }
+
+    public void ConfigureLocomotion(float newMoveSpeed, float newRotationSpeed)
+    {
+        moveSpeed = Mathf.Max(0f, newMoveSpeed);
+        rotationSpeed = Mathf.Max(0f, newRotationSpeed);
     }
 
     public void Teleport(Vector3 position, Quaternion rotation)

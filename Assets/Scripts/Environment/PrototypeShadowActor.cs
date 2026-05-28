@@ -17,6 +17,7 @@ public class PrototypeShadowActor : MonoBehaviour
     [SerializeField] private float fearDuration = 2f;
 
     private Transform player;
+    private EnemyJumpController jumper;
     private float fearUntil = -1f;
     private bool defeated;
 
@@ -33,12 +34,17 @@ public class PrototypeShadowActor : MonoBehaviour
     {
         GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
         if (playerObject != null) player = playerObject.transform;
+        jumper = GetComponent<EnemyJumpController>();
         ApplyRoleColor();
     }
 
     private void Update()
     {
-        if (defeated || player == null || Time.time > fearUntil) return;
+        if (defeated || player == null) return;
+
+        jumper?.TickAutoJump(player, role == ShadowRole.Enemy, false);
+
+        if (Time.time > fearUntil) return;
 
         Vector3 away = transform.position - player.position;
         away.y = 0f;

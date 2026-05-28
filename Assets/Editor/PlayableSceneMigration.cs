@@ -24,6 +24,12 @@ public static class PlayableSceneMigration
     private const string PlayerFolder = "Assets/Art/Characters/Player";
     private const string PlayerFbx = PlayerFolder + "/Fragmento_Walk.fbx";
     private const string PlayerController = PlayerFolder + "/PlayerLocomotion.controller";
+    private static readonly Vector3 SharedCameraOffset = new Vector3(0f, 5.8f, -8.5f);
+    private const float SharedCameraLookAtHeight = 1.1f;
+    private const float SharedCameraFieldOfView = 52f;
+    private const float SharedPlayerMoveSpeed = 5f;
+    private const float SharedPlayerRotationSpeed = 10f;
+    private const bool SharedPlayerJumpEnabled = true;
 
     [MenuItem("Tools/Virus 9/Apply Playable Scene Migration")]
     public static void Apply()
@@ -90,8 +96,9 @@ public static class PlayableSceneMigration
     {
         Scene scene = EditorSceneManager.OpenScene(ExteriorScene, OpenSceneMode.Single);
         GameObject player = EnsurePlayer(new Vector3(-1.4f, 1f, -18f), false, visualPrefab, animatorController);
-        EnsureCamera(player.transform, new Vector3(0f, 10f, -15f), 1.4f, 58f);
-        EnsureFloor("FloorCollider", Vector3.zero, new Vector3(80f, 1f, 80f));
+        EnsureCamera(player.transform, SharedCameraOffset, SharedCameraLookAtHeight, SharedCameraFieldOfView);
+        EnsureFloor("FloorCollider", new Vector3(0f, -0.5f, 0f), new Vector3(80f, 1f, 80f));
+        EnsureSolidEnvironmentColliders();
 
         LightFragmentPickup fragment = RequireComponent<LightFragmentPickup>("LIGHT_Fragment_01");
         fragment.Configure(LightFragmentPickup.FragmentKind.Exterior);
@@ -108,7 +115,8 @@ public static class PlayableSceneMigration
 
         EnsurePursuer("SHADOW_Queue_01");
         EnsurePursuer("SHADOW_Witness_01");
-        EnsureNavigation("ExteriorNavigation", new Vector3(0f, -0.55f, -4f), new Vector3(10f, 0.1f, 30f));
+        SnapActorsToFloor<ExteriorPursuer>();
+        EnsureNavigation("ExteriorNavigation", new Vector3(0f, -0.05f, -4f), new Vector3(10f, 0.1f, 30f));
         EditorSceneManager.SaveScene(scene);
     }
 
@@ -121,13 +129,15 @@ public static class PlayableSceneMigration
         if (environment != null) environment.name = "Location02_ProtectedAlleysNight";
 
         GameObject player = EnsurePlayer(new Vector3(-11.46f, -0.17f, 1.5f), true, visualPrefab, animatorController);
-        EnsureCamera(player.transform, new Vector3(0f, 5.8f, -8.5f), 1.1f, 52f);
+        EnsureCamera(player.transform, SharedCameraOffset, SharedCameraLookAtHeight, SharedCameraFieldOfView);
         EnsureFloor("FloorCollider", new Vector3(-13.55f, -1.67f, 19.81f), new Vector3(41.5f, 1f, 47.5f));
-        EnsureBox("COL_L2_BackBoundary", new Vector3(-11.46f, 0.83f, -5.25f), new Vector3(62f, 4f, 1f));
-        EnsureBox("COL_L2_FrontBoundary", new Vector3(-11.46f, 0.83f, 44.25f), new Vector3(62f, 4f, 1f));
-        EnsureBox("COL_L2_LeftBoundary", new Vector3(-40.75f, 0.83f, 19.5f), new Vector3(1f, 4f, 50f));
-        EnsureBox("COL_L2_RightBoundary", new Vector3(17.85f, 0.83f, 19.5f), new Vector3(1f, 4f, 50f));
-        EnsureNightArchitectureColliders();
+        EnsureBox("COL_L2_BackBoundary", new Vector3(-11.46f, 3.33f, -5.25f), new Vector3(62f, 9f, 1f));
+        EnsureBox("COL_L2_FrontBoundary", new Vector3(-11.46f, 3.33f, 44.25f), new Vector3(62f, 9f, 1f));
+        EnsureBox("COL_L2_LeftBoundary", new Vector3(-40.75f, 3.33f, 19.5f), new Vector3(1f, 9f, 50f));
+        EnsureBox("COL_L2_RightBoundary", new Vector3(17.85f, 3.33f, 19.5f), new Vector3(1f, 9f, 50f));
+        EnsureSolidEnvironmentColliders();
+        SnapActorsToFloor<PrototypeShadowActor>();
+        EnsureShadowJumpers();
 
         DestroyIfPresent("PRICE_Altar");
         EnsureComponent<NightPhaseController>(EnsureMarker("NightPhaseController", Vector3.zero));
@@ -168,25 +178,27 @@ public static class PlayableSceneMigration
     private static void ConfigureFinalScene(GameObject visualPrefab, RuntimeAnimatorController animatorController)
     {
         Scene scene = EditorSceneManager.OpenScene(FinalScene, OpenSceneMode.Single);
-        GameObject player = EnsurePlayer(new Vector3(0f, 1f, -12f), true, visualPrefab, animatorController);
-        EnsureCamera(player.transform, new Vector3(0f, 6f, -12f), 1.5f, 55f);
-        EnsureFloor("FloorCollider", new Vector3(0f, -0.5f, 0f), new Vector3(42f, 1f, 42f));
-        EnsureBox("COL_L3_BackBoundary", new Vector3(0f, 2f, -19f), new Vector3(22f, 4f, 1f));
-        EnsureBox("COL_L3_GateBackstop", new Vector3(0f, 2f, 14f), new Vector3(14f, 4f, 1f));
-        EnsureBox("COL_L3_LeftBoundary", new Vector3(-11f, 2f, -2.5f), new Vector3(1f, 4f, 33f));
-        EnsureBox("COL_L3_RightBoundary", new Vector3(11f, 2f, -2.5f), new Vector3(1f, 4f, 33f));
+        GameObject player = EnsurePlayer(new Vector3(0f, 1.2f, -12f), true, visualPrefab, animatorController);
+        EnsureCamera(player.transform, SharedCameraOffset, SharedCameraLookAtHeight, SharedCameraFieldOfView);
+        EnsureFloor("FloorCollider", new Vector3(0f, -0.3f, 0f), new Vector3(42f, 1f, 42f));
+        EnsureBox("COL_L3_BackBoundary", new Vector3(0f, 4f, -19f), new Vector3(22f, 8f, 1f));
+        EnsureBox("COL_L3_GateBackstop", new Vector3(0f, 4f, 14f), new Vector3(14f, 8f, 1f));
+        EnsureBox("COL_L3_LeftBoundary", new Vector3(-11f, 4f, -2.5f), new Vector3(1f, 8f, 33f));
+        EnsureBox("COL_L3_RightBoundary", new Vector3(11f, 4f, -2.5f), new Vector3(1f, 8f, 33f));
+        EnsureSolidEnvironmentColliders();
 
         GameObject evaluatorObject = RequireObject("FinalEvaluator");
         FinalStateEvaluator previousEvaluator = evaluatorObject.GetComponent<FinalStateEvaluator>();
         if (previousEvaluator != null) UnityEngine.Object.DestroyImmediate(previousEvaluator);
         FinalGateOutcomeController outcome = EnsureComponent<FinalGateOutcomeController>(evaluatorObject);
 
-        GameObject respawn = EnsureMarker("FinalArenaRespawn", new Vector3(0f, 1f, -12f));
+        GameObject respawn = EnsureMarker("FinalArenaRespawn", new Vector3(0f, 1.2f, -12f));
         SetReference(outcome, "arenaRespawnPoint", respawn.transform);
 
         EnsureGuardian("GUARDIAN_Force", "GUARDIAN_FORCE", true);
         EnsureGuardian("GUARDIAN_Memory", "GUARDIAN_MEMORY", false);
-        EnsureNavigation("FinalNavigation", new Vector3(0f, -0.55f, -2f), new Vector3(20f, 0.1f, 30f));
+        SnapActorsToFloor<GuardianController>();
+        EnsureNavigation("FinalNavigation", new Vector3(0f, 0.15f, -2f), new Vector3(20f, 0.1f, 30f));
         EditorSceneManager.SaveScene(scene);
     }
 
@@ -205,7 +217,9 @@ public static class PlayableSceneMigration
         body.freezeRotation = true;
         body.interpolation = RigidbodyInterpolation.Interpolate;
         EnsureComponent<CapsuleCollider>(player);
-        EnsureComponent<PlayerController3D>(player);
+        PlayerController3D movement = EnsureComponent<PlayerController3D>(player);
+        movement.ConfigureLocomotion(SharedPlayerMoveSpeed, SharedPlayerRotationSpeed);
+        movement.ConfigureTraversal(SharedPlayerJumpEnabled);
         PlayerAttackController attack = EnsureComponent<PlayerAttackController>(player);
         attack.SetSceneAttackEnabled(canAttack);
         EnsureComponent<InteractionController>(player);
@@ -227,6 +241,7 @@ public static class PlayableSceneMigration
 
         visual.transform.localPosition = new Vector3(0f, -1f, 0f);
         visual.transform.localRotation = Quaternion.identity;
+        CenterVisualOverPlayer(player, visual);
         Animator animator = EnsureComponent<Animator>(visual);
         animator.runtimeAnimatorController = animatorController;
         animator.applyRootMotion = false;
@@ -236,15 +251,29 @@ public static class PlayableSceneMigration
 
     private static void EnsureCamera(Transform player, Vector3 offset, float lookAtHeight, float fov)
     {
-        Camera camera = Camera.main;
+        Camera camera = Camera.main ?? UnityEngine.Object.FindObjectsByType<Camera>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate.transform.parent == null);
+        if (camera != null && camera.transform.parent != null && PrefabUtility.IsPartOfPrefabInstance(camera.gameObject))
+        {
+            camera.enabled = false;
+            AudioListener embeddedListener = camera.GetComponent<AudioListener>();
+            if (embeddedListener != null) embeddedListener.enabled = false;
+            camera.gameObject.tag = "Untagged";
+            camera.gameObject.name = "Embedded_Camera_Disabled";
+            camera = null;
+        }
+
         if (camera == null)
         {
             GameObject cameraObject = new GameObject("Main Camera");
-            cameraObject.tag = "MainCamera";
             camera = cameraObject.AddComponent<Camera>();
             cameraObject.AddComponent<AudioListener>();
         }
 
+        camera.gameObject.name = "Main Camera";
+        camera.gameObject.tag = "MainCamera";
+        if (camera.transform.parent != null) camera.transform.SetParent(null, true);
+        if (camera.GetComponent<AudioListener>() == null) camera.gameObject.AddComponent<AudioListener>();
         camera.fieldOfView = fov;
         EnsureComponent<PrototypeCameraFollow>(camera.gameObject).Configure(player, offset, lookAtHeight);
     }
@@ -257,6 +286,7 @@ public static class PlayableSceneMigration
         agent.radius = 0.35f;
         agent.height = 1.5f;
         agent.baseOffset = 0f;
+        EnsureComponent<EnemyJumpController>(shadow).Configure(true);
     }
 
     private static void EnsureGuardian(string objectName, string displayName, bool isForce)
@@ -268,6 +298,15 @@ public static class PlayableSceneMigration
         agent.radius = 0.4f;
         agent.height = 2f;
         agent.baseOffset = 0f;
+        EnsureComponent<EnemyJumpController>(guardian).Configure(true);
+    }
+
+    private static void EnsureShadowJumpers()
+    {
+        foreach (PrototypeShadowActor shadow in UnityEngine.Object.FindObjectsByType<PrototypeShadowActor>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            EnsureComponent<EnemyJumpController>(shadow.gameObject).Configure(true);
+        }
     }
 
     private static void EnsureNavigation(string name, Vector3 walkableCenter, Vector3 walkableSize)
@@ -286,24 +325,93 @@ public static class PlayableSceneMigration
         surface.BuildNavMesh();
     }
 
-    private static void EnsureNightArchitectureColliders()
+    private static void EnsureSolidEnvironmentColliders()
     {
         foreach (MeshFilter meshFilter in UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
-            string objectName = meshFilter.name;
-            bool isArchitecture = objectName.StartsWith("ARCH_", StringComparison.Ordinal) &&
-                (objectName.Contains("_OldStoneBody", StringComparison.Ordinal) ||
-                 objectName.Contains("_StoneThreshold", StringComparison.Ordinal) ||
-                 objectName.Contains("_Door_Heavy", StringComparison.Ordinal));
-            bool isSolidProp = objectName.Contains("_TinySanctuary", StringComparison.Ordinal) ||
-                objectName.Contains("_TinyFountain_Basin", StringComparison.Ordinal);
-            if ((!isArchitecture && !isSolidProp) || meshFilter.sharedMesh == null) continue;
+            if (!IsSolidEnvironmentMesh(meshFilter.name) || meshFilter.sharedMesh == null) continue;
 
             MeshCollider collider = EnsureComponent<MeshCollider>(meshFilter.gameObject);
             collider.sharedMesh = meshFilter.sharedMesh;
             collider.convex = false;
+            collider.isTrigger = false;
             meshFilter.gameObject.isStatic = true;
         }
+    }
+
+    private static bool IsSolidEnvironmentMesh(string objectName)
+    {
+        if (IsVisualOnlyEnvironmentMesh(objectName)) return false;
+
+        return objectName.StartsWith("BUILDING_", StringComparison.Ordinal) ||
+               objectName.StartsWith("ARCH_", StringComparison.Ordinal) ||
+               objectName.StartsWith("GATE_", StringComparison.Ordinal) ||
+               objectName.StartsWith("Gate_", StringComparison.Ordinal) ||
+               objectName.StartsWith("Fence_", StringComparison.Ordinal) ||
+               objectName.StartsWith("FBar_", StringComparison.Ordinal) ||
+               objectName.StartsWith("Barrel_", StringComparison.Ordinal) ||
+               objectName.StartsWith("BarrelL_", StringComparison.Ordinal) ||
+               objectName.StartsWith("Fount_", StringComparison.Ordinal) ||
+               objectName.StartsWith("BALCONY_", StringComparison.Ordinal) ||
+               objectName.StartsWith("Atmos_Frame", StringComparison.Ordinal) ||
+               objectName.StartsWith("Atmos_Door", StringComparison.Ordinal) ||
+               objectName.StartsWith("Broken_Pillar", StringComparison.Ordinal) ||
+               objectName.StartsWith("Obelisk_Base", StringComparison.Ordinal) ||
+               objectName.StartsWith("Obelisk_Shaft", StringComparison.Ordinal) ||
+               objectName.StartsWith("Guardian_Cloak", StringComparison.Ordinal) ||
+               objectName.StartsWith("Guardian_Head", StringComparison.Ordinal) ||
+               objectName.StartsWith("Guardian_Chest", StringComparison.Ordinal) ||
+               objectName.Contains("TreeTrunk", StringComparison.Ordinal) ||
+               objectName.Contains("_TinySanctuary", StringComparison.Ordinal) ||
+               objectName.Contains("_TinyFountain_Basin", StringComparison.Ordinal);
+    }
+
+    private static bool IsVisualOnlyEnvironmentMesh(string objectName)
+    {
+        return objectName.Contains("Glow", StringComparison.OrdinalIgnoreCase) ||
+               objectName.Contains("Glass", StringComparison.OrdinalIgnoreCase) ||
+               objectName.Contains("Window", StringComparison.OrdinalIgnoreCase) ||
+               objectName.Contains("Moss", StringComparison.OrdinalIgnoreCase) ||
+               objectName.Contains("Wet", StringComparison.OrdinalIgnoreCase) ||
+               objectName.Contains("Reflect", StringComparison.OrdinalIgnoreCase) ||
+               objectName.Contains("Translucent", StringComparison.OrdinalIgnoreCase) ||
+               objectName.Contains("ProtectionVolume", StringComparison.OrdinalIgnoreCase) ||
+               objectName.Contains("InnerColorFloor", StringComparison.OrdinalIgnoreCase) ||
+               objectName.Contains("Cobblestone", StringComparison.OrdinalIgnoreCase) ||
+               objectName.Contains("Pavers", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void SnapActorsToFloor<T>() where T : Component
+    {
+        Physics.SyncTransforms();
+        Collider floor = FindObject("FloorCollider")?.GetComponent<Collider>();
+        if (floor == null) return;
+
+        float floorTop = floor.bounds.max.y;
+        foreach (T actor in UnityEngine.Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            Renderer renderer = actor.GetComponent<Renderer>();
+            if (renderer == null) continue;
+
+            Vector3 position = actor.transform.position;
+            position.y += floorTop - renderer.bounds.min.y;
+            actor.transform.position = position;
+        }
+    }
+
+    private static void CenterVisualOverPlayer(GameObject player, GameObject visual)
+    {
+        Renderer[] renderers = visual.GetComponentsInChildren<Renderer>(true);
+        if (renderers.Length == 0) return;
+
+        Bounds bounds = renderers[0].bounds;
+        for (int i = 1; i < renderers.Length; i++)
+        {
+            bounds.Encapsulate(renderers[i].bounds);
+        }
+
+        Vector3 offset = bounds.center - player.transform.position;
+        visual.transform.position -= new Vector3(offset.x, 0f, offset.z);
     }
 
     private static void UpdateBuildRoute()
@@ -365,6 +473,8 @@ public static class PlayableSceneMigration
         importer.clipAnimations = clips;
         // The imported rig has duplicate humanoid bone names; its native generic clip is valid.
         importer.animationType = ModelImporterAnimationType.Generic;
+        importer.importCameras = false;
+        importer.importLights = false;
         importer.SaveAndReimport();
     }
 
@@ -406,15 +516,153 @@ public static class PlayableSceneMigration
             issues.Add(Path.GetFileName(path) + " has no animated player visual.");
         }
 
-        if (path == NightScene)
+        if (player != null)
         {
-            int architectureColliders = UnityEngine.Object.FindObjectsByType<MeshCollider>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-                .Count(collider => collider.name.StartsWith("ARCH_", StringComparison.Ordinal));
-            if (architectureColliders < 5)
+            PlayerController3D movement = player.GetComponent<PlayerController3D>();
+            if (movement != null && movement.JumpEnabled != SharedPlayerJumpEnabled)
             {
-                issues.Add(Path.GetFileName(path) + " lacks collision on night architecture.");
+                issues.Add(Path.GetFileName(path) + " does not use the shared player jump profile.");
+            }
+
+            if (movement != null &&
+                (Mathf.Abs(movement.MoveSpeed - SharedPlayerMoveSpeed) > 0.01f ||
+                 Mathf.Abs(movement.RotationSpeed - SharedPlayerRotationSpeed) > 0.01f))
+            {
+                issues.Add(Path.GetFileName(path) + " does not use the shared player movement profile.");
+            }
+
+            Collider floor = FindObject("FloorCollider")?.GetComponent<Collider>();
+            Collider playerCollider = player.GetComponent<Collider>();
+            if (floor != null && playerCollider != null &&
+                Mathf.Abs(playerCollider.bounds.min.y - floor.bounds.max.y) > 0.08f)
+            {
+                issues.Add(Path.GetFileName(path) + " has player collider above or below the floor.");
+            }
+
+            Renderer visual = player.GetComponentsInChildren<Renderer>(true)
+                .FirstOrDefault(renderer => renderer.gameObject != player);
+            if (visual != null)
+            {
+                Vector3 centerOffset = visual.bounds.center - player.transform.position;
+                centerOffset.y = 0f;
+                if (centerOffset.magnitude > 0.08f)
+                {
+                    issues.Add(Path.GetFileName(path) + " has off-center player visual.");
+                }
+
+                if (floor != null && Mathf.Abs(visual.bounds.min.y - floor.bounds.max.y) > 0.08f)
+                {
+                    issues.Add(Path.GetFileName(path) + " has player visual above or below the floor.");
+                }
             }
         }
+
+        Camera mainCamera = Camera.main;
+        PrototypeCameraFollow cameraFollow = mainCamera == null ? null : mainCamera.GetComponent<PrototypeCameraFollow>();
+        if (mainCamera == null || cameraFollow == null)
+        {
+            issues.Add(Path.GetFileName(path) + " has no configured shared gameplay camera.");
+        }
+        else
+        {
+            Vector3 cameraOffset = GetSerializedVector3(cameraFollow, "offset");
+            float lookAtHeight = GetSerializedFloat(cameraFollow, "lookAtHeight");
+            if (Vector3.Distance(cameraOffset, SharedCameraOffset) > 0.01f ||
+                Mathf.Abs(lookAtHeight - SharedCameraLookAtHeight) > 0.01f ||
+                Mathf.Abs(mainCamera.fieldOfView - SharedCameraFieldOfView) > 0.01f)
+            {
+                issues.Add(Path.GetFileName(path) + " does not use the shared gameplay camera profile.");
+            }
+        }
+
+        Collider sceneFloor = FindObject("FloorCollider")?.GetComponent<Collider>();
+        Collider walkable = FindObject("NAV_Walkable")?.GetComponent<Collider>();
+        if (sceneFloor != null && walkable != null &&
+            Mathf.Abs(walkable.bounds.max.y - sceneFloor.bounds.max.y) > 0.08f)
+        {
+            issues.Add(Path.GetFileName(path) + " has navigation below or above the floor.");
+        }
+
+        ValidateSolidEnvironmentColliders(path, issues);
+
+        if (path == ExteriorScene)
+        {
+            ValidateActorPlacement<ExteriorPursuer>(path, issues, 0.08f);
+            ValidateEnemyJumpers<ExteriorPursuer>(path, issues);
+        }
+
+        if (path == NightScene)
+        {
+            ValidateActorPlacement<PrototypeShadowActor>(path, issues, 0.08f);
+            ValidateEnemyJumpers<PrototypeShadowActor>(path, issues);
+        }
+
+        if (path == FinalScene)
+        {
+            ValidateActorPlacement<GuardianController>(path, issues, 0.08f);
+            ValidateEnemyJumpers<GuardianController>(path, issues);
+        }
+    }
+
+    private static void ValidateSolidEnvironmentColliders(string path, List<string> issues)
+    {
+        List<string> missing = UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .Where(meshFilter => IsSolidEnvironmentMesh(meshFilter.name) &&
+                                 meshFilter.sharedMesh != null &&
+                                 meshFilter.GetComponent<Collider>() == null &&
+                                 meshFilter.GetComponentInParent<Collider>() == null &&
+                                 meshFilter.GetComponentInChildren<Collider>(true) == null)
+            .Select(meshFilter => meshFilter.name)
+            .Take(8)
+            .ToList();
+
+        if (missing.Count > 0)
+        {
+            issues.Add(Path.GetFileName(path) + " has solid environment meshes without colliders: " + string.Join(", ", missing));
+        }
+    }
+
+    private static void ValidateEnemyJumpers<T>(string path, List<string> issues) where T : Component
+    {
+        foreach (T enemy in UnityEngine.Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            EnemyJumpController jumper = enemy.GetComponent<EnemyJumpController>();
+            if (jumper == null || !jumper.JumpEnabled)
+            {
+                issues.Add(Path.GetFileName(path) + " has enemy without jump ability: " + enemy.name);
+            }
+        }
+    }
+
+    private static void ValidateActorPlacement<T>(string path, List<string> issues, float tolerance) where T : Component
+    {
+        Collider floor = FindObject("FloorCollider")?.GetComponent<Collider>();
+        if (floor == null) return;
+
+        float floorTop = floor.bounds.max.y;
+        foreach (T actor in UnityEngine.Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            Renderer renderer = actor.GetComponent<Renderer>();
+            if (renderer == null) continue;
+
+            float distance = Mathf.Abs(renderer.bounds.min.y - floorTop);
+            if (distance > tolerance)
+            {
+                issues.Add(Path.GetFileName(path) + " has misplaced actor " + actor.name + ".");
+            }
+        }
+    }
+
+    private static Vector3 GetSerializedVector3(UnityEngine.Object target, string propertyName)
+    {
+        SerializedProperty property = new SerializedObject(target).FindProperty(propertyName);
+        return property == null ? Vector3.zero : property.vector3Value;
+    }
+
+    private static float GetSerializedFloat(UnityEngine.Object target, string propertyName)
+    {
+        SerializedProperty property = new SerializedObject(target).FindProperty(propertyName);
+        return property == null ? 0f : property.floatValue;
     }
 
     private static void EnsureFolders()
