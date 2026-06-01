@@ -8,6 +8,7 @@ using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 public static class PlayableSceneMigration
@@ -20,10 +21,16 @@ public static class PlayableSceneMigration
     private const string SourceEnvironment = "Assets/Scenes/Virus9_OldTown_ProtectedAlleys_Blockout2_before_origin_to_geometry_20260526_162356.fbx";
     private const string NightArtFolder = "Assets/Art/Locations/Location02_ProtectedAlleysNight";
     private const string NightEnvironment = NightArtFolder + "/Location02_ProtectedAlleysNight.fbx";
-    private const string SourcePlayerFbx = "Assets/Scripts/Player/Fragmento_Walk.fbx";
     private const string PlayerFolder = "Assets/Art/Characters/Player";
-    private const string PlayerFbx = PlayerFolder + "/Fragmento_Walk.fbx";
-    private const string PlayerController = PlayerFolder + "/PlayerLocomotion.controller";
+    private const string PlayerFbx = PlayerFolder + "/DEAD2.fbx";
+    private const string PlayerStaticAnimationsFbx = PlayerFolder + "/Animations_Static.fbx";
+    private const string CourseAnimationsFbx = "Assets/Course Library/_Source_Files/FBX/Animations.fbx";
+    private const string PlayerController = PlayerFolder + "/PlayerHumanoid.controller";
+    private const string MoveSpeedParameter = "MoveSpeed";
+    private const string GroundedParameter = "Grounded";
+    private const string JumpParameter = "Jump";
+    private const string AttackParameter = "Attack";
+    private const string InputActionsAsset = "Assets/InputSystem_Actions.inputactions";
     private static readonly Vector3 SharedCameraOffset = new Vector3(0f, 5.8f, -8.5f);
     private const float SharedCameraLookAtHeight = 1.1f;
     private const float SharedCameraFieldOfView = 52f;
@@ -37,10 +44,8 @@ public static class PlayableSceneMigration
         EnsureFolders();
         MoveAssetIfNeeded(SourceNightScene, NightScene);
         MoveAssetIfNeeded(SourceEnvironment, NightEnvironment);
-        MoveAssetIfNeeded(SourcePlayerFbx, PlayerFbx);
         AssetDatabase.Refresh();
 
-        ConfigureWalkImport();
         RuntimeAnimatorController animatorController = EnsureAnimatorController();
         GameObject playerVisual = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerFbx);
         if (playerVisual == null) throw new InvalidOperationException("Player FBX could not be loaded after migration.");
@@ -48,6 +53,7 @@ public static class PlayableSceneMigration
         ConfigureExteriorScene(playerVisual, animatorController);
         ConfigureNightScene(playerVisual, animatorController);
         ConfigureFinalScene(playerVisual, animatorController);
+        DeleteUnusedPlayerSetupAssets();
         DeleteLegacyNightAssetsWhenUnused();
         UpdateBuildRoute();
 
@@ -83,6 +89,8 @@ public static class PlayableSceneMigration
         {
             issues.Add("Legacy night scene still exists after migration.");
         }
+
+        ValidateAnimatorController(issues);
 
         if (issues.Count > 0)
         {
@@ -144,26 +152,32 @@ public static class PlayableSceneMigration
 
         ShadowNPC pleading = RequireComponent<ShadowNPC>("SHADOW_Pleading_01");
         pleading.Configure("SHADOW_PLEADING", new[] { "Не гонись за мной ради удара. Смотри, что случится дальше." }, false);
-        EnsureComponent<ShadowNPC>(RequireObject("SHADOW_Afraid_01")).ConfigureNightReaction(
+        PrototypeShadowActor afraidActor = RequireComponent<PrototypeShadowActor>("SHADOW_Afraid_01");
+        PrototypeShadowActor helperActor = RequireComponent<PrototypeShadowActor>("SHADOW_Ally_01");
+        afraidActor.transform.position = new Vector3(-6.8f, -0.42f, 20.8f);
+        helperActor.transform.position = new Vector3(-4.9f, -0.42f, 22.1f);
+        EnsureComponent<ShadowNPC>(afraidActor.gameObject).ConfigureNightReaction(
             "SHADOW_AFRAID",
             "Не подходи резко. Я все еще пытаюсь встать.",
             "Ты не ударил. Значит, здесь еще можно подняться.",
             "Я видел, что ты сделал. Не называй это выходом.");
-        EnsureComponent<ShadowNPC>(RequireObject("SHADOW_Ally_01")).ConfigureNightReaction(
+        EnsureComponent<ShadowNPC>(helperActor.gameObject).ConfigureNightReaction(
             "SHADOW_ALLY",
             "К воротам ведет улица, но выбор идет рядом с тобой.",
             "Фрагмент появился не из смерти. Сохрани это до ворот.",
             "Врата узнают, сколько теней ты оставил лежать.");
 
-        GameObject fragmentObject = EnsureSphere("FRAGMENT_InnerNight", new Vector3(-5.8f, -0.2f, 29f), 0.55f);
+        GameObject fragmentObject = EnsureSphere("FRAGMENT_InnerNight", new Vector3(-6.8f, -0.2f, 20.8f), 0.55f);
         LightFragmentPickup fragment = EnsureComponent<LightFragmentPickup>(fragmentObject);
         fragment.Configure(LightFragmentPickup.FragmentKind.InnerNight);
         EnsureTrigger(fragmentObject, Vector3.one * 1.35f);
         fragmentObject.SetActive(false);
 
-        GameObject witness = EnsureMarker("MERCY_WITNESS_Trigger", new Vector3(-9f, -0.17f, 19f));
-        EnsureTrigger(witness, new Vector3(9f, 2.5f, 5f));
+        GameObject witness = EnsureMarker("MERCY_WITNESS_Trigger", new Vector3(-9f, -0.17f, 17.8f));
+        EnsureTrigger(witness, new Vector3(9f, 2.5f, 4.2f));
         NightFragmentEncounter encounter = EnsureComponent<NightFragmentEncounter>(witness);
+        SetReference(encounter, "helper", helperActor);
+        SetReference(encounter, "afraid", afraidActor);
         SetReference(encounter, "innerNightFragment", fragment);
         SetReference(encounter, "mercyDropPoint", fragmentObject.transform);
 
@@ -194,9 +208,13 @@ public static class PlayableSceneMigration
 
         GameObject respawn = EnsureMarker("FinalArenaRespawn", new Vector3(0f, 1.2f, -12f));
         SetReference(outcome, "arenaRespawnPoint", respawn.transform);
+        SetReference(outcome, "leftGateDoor", RequireObject("Atmos_Door_Left").transform);
+        SetReference(outcome, "rightGateDoor", RequireObject("Atmos_Door_Right").transform);
+        SetReference(outcome, "finalEntryTrigger", RequireObject("GATE_FinalEntryTrigger").GetComponent<Collider>());
 
-        EnsureGuardian("GUARDIAN_Force", "GUARDIAN_FORCE", true);
-        EnsureGuardian("GUARDIAN_Memory", "GUARDIAN_MEMORY", false);
+        GuardianController forceGuardian = EnsureGuardian("GUARDIAN_Force", "GUARDIAN_FORCE", true);
+        GuardianController memoryGuardian = EnsureGuardian("GUARDIAN_Memory", "GUARDIAN_MEMORY", false);
+        SetReferenceArray(outcome, "guardians", forceGuardian, memoryGuardian);
         SnapActorsToFloor<GuardianController>();
         EnsureNavigation("FinalNavigation", new Vector3(0f, 0.15f, -2f), new Vector3(20f, 0.1f, 30f));
         EditorSceneManager.SaveScene(scene);
@@ -217,6 +235,8 @@ public static class PlayableSceneMigration
         body.freezeRotation = true;
         body.interpolation = RigidbodyInterpolation.Interpolate;
         EnsureComponent<CapsuleCollider>(player);
+        PlayerInputReader input = EnsureComponent<PlayerInputReader>(player);
+        input.Configure(LoadInputActionsAsset());
         PlayerController3D movement = EnsureComponent<PlayerController3D>(player);
         movement.ConfigureLocomotion(SharedPlayerMoveSpeed, SharedPlayerRotationSpeed);
         movement.ConfigureTraversal(SharedPlayerJumpEnabled);
@@ -227,22 +247,24 @@ public static class PlayableSceneMigration
         Renderer placeholder = player.GetComponent<Renderer>();
         if (placeholder != null) placeholder.enabled = false;
 
-        GameObject visual = FindObject("Fragmento_Walk");
-        if (visual == null || visual.transform.parent == null || visual.transform.parent.gameObject != player)
-        {
-            if (visual == null)
-            {
-                visual = (GameObject)PrefabUtility.InstantiatePrefab(visualPrefab);
-                visual.name = "Fragmento_Walk";
-            }
+        DestroyLegacyPlayerVisuals(player);
+        DestroyLooseDead2Roots();
 
+        Transform visualTransform = player.transform.Find("PlayerVisual_DEAD2");
+        GameObject visual = visualTransform == null ? null : visualTransform.gameObject;
+        if (visual == null)
+        {
+            visual = (GameObject)PrefabUtility.InstantiatePrefab(visualPrefab);
+            visual.name = "PlayerVisual_DEAD2";
             visual.transform.SetParent(player.transform, false);
         }
 
-        visual.transform.localPosition = new Vector3(0f, -1f, 0f);
+        visual.transform.localPosition = Vector3.zero;
         visual.transform.localRotation = Quaternion.identity;
-        CenterVisualOverPlayer(player, visual);
+        visual.transform.localScale = Vector3.one;
+        AlignVisualToPlayer(player, visual);
         Animator animator = EnsureComponent<Animator>(visual);
+        animator.avatar = LoadPlayerAvatar();
         animator.runtimeAnimatorController = animatorController;
         animator.applyRootMotion = false;
         EnsureComponent<PlayerVisualAnimator>(visual);
@@ -289,7 +311,7 @@ public static class PlayableSceneMigration
         EnsureComponent<EnemyJumpController>(shadow).Configure(true);
     }
 
-    private static void EnsureGuardian(string objectName, string displayName, bool isForce)
+    private static GuardianController EnsureGuardian(string objectName, string displayName, bool isForce)
     {
         GameObject guardian = RequireObject(objectName);
         GuardianController controller = EnsureComponent<GuardianController>(guardian);
@@ -299,6 +321,7 @@ public static class PlayableSceneMigration
         agent.height = 2f;
         agent.baseOffset = 0f;
         EnsureComponent<EnemyJumpController>(guardian).Configure(true);
+        return controller;
     }
 
     private static void EnsureShadowJumpers()
@@ -399,7 +422,7 @@ public static class PlayableSceneMigration
         }
     }
 
-    private static void CenterVisualOverPlayer(GameObject player, GameObject visual)
+    private static void AlignVisualToPlayer(GameObject player, GameObject visual)
     {
         Renderer[] renderers = visual.GetComponentsInChildren<Renderer>(true);
         if (renderers.Length == 0) return;
@@ -410,8 +433,10 @@ public static class PlayableSceneMigration
             bounds.Encapsulate(renderers[i].bounds);
         }
 
-        Vector3 offset = bounds.center - player.transform.position;
-        visual.transform.position -= new Vector3(offset.x, 0f, offset.z);
+        Collider playerCollider = player.GetComponent<Collider>();
+        float targetBottom = playerCollider == null ? player.transform.position.y : playerCollider.bounds.min.y;
+        Vector3 centerOffset = bounds.center - player.transform.position;
+        visual.transform.position -= new Vector3(centerOffset.x, bounds.min.y - targetBottom, centerOffset.z);
     }
 
     private static void UpdateBuildRoute()
@@ -426,56 +451,152 @@ public static class PlayableSceneMigration
 
     private static RuntimeAnimatorController EnsureAnimatorController()
     {
-        AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(PlayerController);
-        if (controller != null && controller.layers.Length == 0)
-        {
+        if (AssetDatabase.LoadAssetAtPath<AnimatorController>(PlayerController) != null)
             AssetDatabase.DeleteAsset(PlayerController);
-            controller = null;
-        }
 
-        if (controller == null)
-        {
-            controller = AnimatorController.CreateAnimatorControllerAtPath(PlayerController);
-        }
+        AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(PlayerController);
+        controller.AddParameter(MoveSpeedParameter, AnimatorControllerParameterType.Float);
+        controller.AddParameter(GroundedParameter, AnimatorControllerParameterType.Bool);
+        controller.AddParameter(JumpParameter, AnimatorControllerParameterType.Trigger);
+        controller.AddParameter(AttackParameter, AnimatorControllerParameterType.Trigger);
 
-        AnimationClip clip = AssetDatabase.LoadAllAssetsAtPath(PlayerFbx)
-            .OfType<AnimationClip>()
-            .FirstOrDefault(candidate => !candidate.name.StartsWith("__preview__", StringComparison.OrdinalIgnoreCase));
-        if (clip == null) throw new InvalidOperationException("Fragmento_Walk has no importable animation clip.");
-
+        AnimationClip idle = LoadAnimationClip(CourseAnimationsFbx, "Idle");
+        AnimationClip walk = LoadAnimationClip(PlayerStaticAnimationsFbx, "Walk_Static");
+        AnimationClip run = LoadAnimationClip(PlayerStaticAnimationsFbx, "Run_Static");
+        AnimationClip jump = LoadAnimationClip(CourseAnimationsFbx, "Standing_Jump");
+        AnimationClip attack = LoadAnimationClip(CourseAnimationsFbx, "GrenadeThrow");
         AnimatorStateMachine machine = controller.layers[0].stateMachine;
-        foreach (ChildAnimatorState child in machine.states)
+        AnimatorState locomotion = machine.AddState("Locomotion");
+        BlendTree locomotionTree = new BlendTree
         {
-            machine.RemoveState(child.state);
-        }
+            name = "LocomotionBlend",
+            blendType = BlendTreeType.Simple1D,
+            blendParameter = MoveSpeedParameter,
+            useAutomaticThresholds = false
+        };
+        AssetDatabase.AddObjectToAsset(locomotionTree, controller);
+        locomotionTree.AddChild(idle, 0f);
+        locomotionTree.AddChild(walk, 0.4f);
+        locomotionTree.AddChild(run, 1f);
+        locomotion.motion = locomotionTree;
+        locomotion.writeDefaultValues = false;
+        machine.defaultState = locomotion;
 
-        AnimatorState state = machine.AddState("Walk");
-        state.motion = clip;
-        machine.defaultState = state;
+        AnimatorState jumpState = machine.AddState("Jump");
+        jumpState.motion = jump;
+        jumpState.writeDefaultValues = false;
+        AnimatorStateTransition jumpTransition = machine.AddAnyStateTransition(jumpState);
+        jumpTransition.AddCondition(AnimatorConditionMode.If, 0f, JumpParameter);
+        jumpTransition.hasExitTime = false;
+        jumpTransition.duration = 0.08f;
+        jumpTransition.canTransitionToSelf = false;
+        AnimatorStateTransition jumpReturn = jumpState.AddTransition(locomotion);
+        jumpReturn.hasExitTime = true;
+        jumpReturn.exitTime = 0.92f;
+        jumpReturn.duration = 0.12f;
+
+        AnimatorState attackState = machine.AddState("Attack");
+        attackState.motion = attack;
+        attackState.speed = 1.8f;
+        attackState.writeDefaultValues = false;
+        AnimatorStateTransition attackTransition = machine.AddAnyStateTransition(attackState);
+        attackTransition.AddCondition(AnimatorConditionMode.If, 0f, AttackParameter);
+        attackTransition.hasExitTime = false;
+        attackTransition.duration = 0.05f;
+        attackTransition.canTransitionToSelf = false;
+        AnimatorStateTransition attackReturn = attackState.AddTransition(locomotion);
+        attackReturn.hasExitTime = true;
+        attackReturn.exitTime = 0.88f;
+        attackReturn.duration = 0.1f;
+
         EditorUtility.SetDirty(controller);
+        AssetDatabase.SaveAssets();
         return controller;
     }
 
-    private static void ConfigureWalkImport()
+    private static AnimationClip LoadAnimationClip(string path, string clipName)
     {
-        ModelImporter importer = AssetImporter.GetAtPath(PlayerFbx) as ModelImporter;
-        if (importer == null) return;
+        AnimationClip clip = AssetDatabase.LoadAllAssetsAtPath(path)
+            .OfType<AnimationClip>()
+            .FirstOrDefault(candidate => candidate.name == clipName);
+        if (clip == null) throw new InvalidOperationException("Animation clip not found: " + path + " :: " + clipName);
+        return clip;
+    }
 
-        ModelImporterClipAnimation[] clips = importer.clipAnimations;
-        if (clips.Length == 0) clips = importer.defaultClipAnimations;
-        foreach (ModelImporterClipAnimation clip in clips)
+    private static Avatar LoadPlayerAvatar()
+    {
+        Avatar avatar = AssetDatabase.LoadAllAssetsAtPath(PlayerFbx).OfType<Avatar>().FirstOrDefault();
+        if (avatar == null || !avatar.isValid || !avatar.isHuman)
+            throw new InvalidOperationException("Player FBX does not provide a valid humanoid Avatar: " + PlayerFbx);
+        return avatar;
+    }
+
+    private static void DestroyLegacyPlayerVisuals(GameObject player)
+    {
+        foreach (Transform child in player.transform.Cast<Transform>().Where(IsLegacyPlayerVisual).ToArray())
         {
-            clip.name = "Walk";
-            clip.loopTime = true;
-            clip.loopPose = true;
+            UnityEngine.Object.DestroyImmediate(child.gameObject);
+        }
+    }
+
+    private static bool IsLegacyPlayerVisual(Transform child)
+    {
+        return child.name.StartsWith("Fragmento_Walk", StringComparison.Ordinal) ||
+               child.name.StartsWith("Embedded_Camera_Disabled", StringComparison.Ordinal) ||
+               child.name.Contains("Missing Prefab", StringComparison.Ordinal);
+    }
+
+    private static void DestroyLooseDead2Roots()
+    {
+        foreach (GameObject root in SceneManager.GetActiveScene().GetRootGameObjects().Where(candidate => candidate.name == "DEAD2").ToArray())
+        {
+            UnityEngine.Object.DestroyImmediate(root);
+        }
+    }
+
+    private static void DeleteUnusedPlayerSetupAssets()
+    {
+        DeleteAssetWhenUnused(PlayerFolder + "/PlayerLocomotion.controller");
+        DeleteAssetWhenUnused(PlayerFolder + "/DEAD2.controller");
+        DeleteAssetWhenUnused(PlayerFolder + "/SimpleCharacter_5.0.controller");
+    }
+
+    private static void DeleteAssetWhenUnused(string assetPath)
+    {
+        if (AssetDatabase.LoadMainAssetAtPath(assetPath) == null) return;
+
+        bool referenced = AssetDatabase.GetAllAssetPaths()
+            .Where(path => !string.Equals(path, assetPath, StringComparison.OrdinalIgnoreCase))
+            .Any(path => AssetDatabase.GetDependencies(path, false).Contains(assetPath));
+        if (!referenced) AssetDatabase.DeleteAsset(assetPath);
+    }
+
+    private static void ValidateAnimatorController(List<string> issues)
+    {
+        AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(PlayerController);
+        if (controller == null)
+        {
+            issues.Add("Shared humanoid Animator Controller is missing.");
+            return;
         }
 
-        importer.clipAnimations = clips;
-        // The imported rig has duplicate humanoid bone names; its native generic clip is valid.
-        importer.animationType = ModelImporterAnimationType.Generic;
-        importer.importCameras = false;
-        importer.importLights = false;
-        importer.SaveAndReimport();
+        HashSet<string> parameters = controller.parameters.Select(parameter => parameter.name).ToHashSet();
+        foreach (string parameter in new[] { MoveSpeedParameter, GroundedParameter, JumpParameter, AttackParameter })
+        {
+            if (!parameters.Contains(parameter)) issues.Add("Animator Controller misses parameter: " + parameter);
+        }
+
+        if (controller.layers.Length == 0)
+        {
+            issues.Add("Animator Controller has no layers.");
+            return;
+        }
+
+        HashSet<string> states = controller.layers[0].stateMachine.states.Select(child => child.state.name).ToHashSet();
+        foreach (string state in new[] { "Locomotion", "Jump", "Attack" })
+        {
+            if (!states.Contains(state)) issues.Add("Animator Controller misses state: " + state);
+        }
     }
 
     private static void DeleteLegacyNightAssetsWhenUnused()
@@ -518,7 +639,37 @@ public static class PlayableSceneMigration
 
         if (player != null)
         {
+            GameObject visual = player.transform.Find("PlayerVisual_DEAD2")?.gameObject;
+            if (visual == null)
+            {
+                issues.Add(Path.GetFileName(path) + " has no clean DEAD2 player visual.");
+            }
+            else
+            {
+                Animator animator = visual.GetComponent<Animator>();
+                if (animator == null || animator.avatar == null || !animator.avatar.isValid || !animator.avatar.isHuman)
+                {
+                    issues.Add(Path.GetFileName(path) + " has no valid humanoid player Avatar.");
+                }
+
+                if (animator == null || AssetDatabase.GetAssetPath(animator.runtimeAnimatorController) != PlayerController)
+                {
+                    issues.Add(Path.GetFileName(path) + " does not use the shared humanoid Animator Controller.");
+                }
+            }
+
+            if (player.transform.Cast<Transform>().Any(IsLegacyPlayerVisual))
+            {
+                issues.Add(Path.GetFileName(path) + " still has a legacy or missing player visual.");
+            }
+
             PlayerController3D movement = player.GetComponent<PlayerController3D>();
+            PlayerInputReader input = player.GetComponent<PlayerInputReader>();
+            if (input == null)
+            {
+                issues.Add(Path.GetFileName(path) + " has no player input reader.");
+            }
+
             if (movement != null && movement.JumpEnabled != SharedPlayerJumpEnabled)
             {
                 issues.Add(Path.GetFileName(path) + " does not use the shared player jump profile.");
@@ -539,22 +690,27 @@ public static class PlayableSceneMigration
                 issues.Add(Path.GetFileName(path) + " has player collider above or below the floor.");
             }
 
-            Renderer visual = player.GetComponentsInChildren<Renderer>(true)
+            Renderer visualRenderer = player.GetComponentsInChildren<Renderer>(true)
                 .FirstOrDefault(renderer => renderer.gameObject != player);
-            if (visual != null)
+            if (visualRenderer != null)
             {
-                Vector3 centerOffset = visual.bounds.center - player.transform.position;
+                Vector3 centerOffset = visualRenderer.bounds.center - player.transform.position;
                 centerOffset.y = 0f;
                 if (centerOffset.magnitude > 0.08f)
                 {
                     issues.Add(Path.GetFileName(path) + " has off-center player visual.");
                 }
 
-                if (floor != null && Mathf.Abs(visual.bounds.min.y - floor.bounds.max.y) > 0.08f)
+                if (floor != null && Mathf.Abs(visualRenderer.bounds.min.y - floor.bounds.max.y) > 0.08f)
                 {
                     issues.Add(Path.GetFileName(path) + " has player visual above or below the floor.");
                 }
             }
+        }
+
+        if (SceneManager.GetActiveScene().GetRootGameObjects().Any(root => root.name == "DEAD2"))
+        {
+            issues.Add(Path.GetFileName(path) + " still has a loose DEAD2 scene root.");
         }
 
         Camera mainCamera = Camera.main;
@@ -599,6 +755,15 @@ public static class PlayableSceneMigration
 
         if (path == FinalScene)
         {
+            FinalGateOutcomeController outcome = FindObject("FinalEvaluator")?.GetComponent<FinalGateOutcomeController>();
+            if (outcome == null ||
+                !HasSerializedReference(outcome, "leftGateDoor") ||
+                !HasSerializedReference(outcome, "rightGateDoor") ||
+                !HasSerializedReference(outcome, "finalEntryTrigger"))
+            {
+                issues.Add(Path.GetFileName(path) + " has unassigned final gate references.");
+            }
+
             ValidateActorPlacement<GuardianController>(path, issues, 0.08f);
             ValidateEnemyJumpers<GuardianController>(path, issues);
         }
@@ -663,6 +828,12 @@ public static class PlayableSceneMigration
     {
         SerializedProperty property = new SerializedObject(target).FindProperty(propertyName);
         return property == null ? 0f : property.floatValue;
+    }
+
+    private static bool HasSerializedReference(UnityEngine.Object target, string propertyName)
+    {
+        SerializedProperty property = new SerializedObject(target).FindProperty(propertyName);
+        return property != null && property.objectReferenceValue != null;
     }
 
     private static void EnsureFolders()
@@ -770,12 +941,34 @@ public static class PlayableSceneMigration
         return component != null ? component : obj.AddComponent<T>();
     }
 
+    private static InputActionAsset LoadInputActionsAsset()
+    {
+        InputActionAsset actions = AssetDatabase.LoadAssetAtPath<InputActionAsset>(InputActionsAsset);
+        if (actions == null) throw new InvalidOperationException("Input actions asset not found: " + InputActionsAsset);
+        return actions;
+    }
+
     private static void SetReference(UnityEngine.Object target, string propertyName, UnityEngine.Object reference)
     {
         SerializedObject serialized = new SerializedObject(target);
         SerializedProperty property = serialized.FindProperty(propertyName);
         if (property == null) throw new InvalidOperationException("Serialized field missing: " + propertyName);
         property.objectReferenceValue = reference;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void SetReferenceArray(UnityEngine.Object target, string propertyName, params UnityEngine.Object[] references)
+    {
+        SerializedObject serialized = new SerializedObject(target);
+        SerializedProperty property = serialized.FindProperty(propertyName);
+        if (property == null || !property.isArray) throw new InvalidOperationException("Serialized array field missing: " + propertyName);
+
+        property.arraySize = references.Length;
+        for (int i = 0; i < references.Length; i++)
+        {
+            property.GetArrayElementAtIndex(i).objectReferenceValue = references[i];
+        }
+
         serialized.ApplyModifiedPropertiesWithoutUndo();
     }
 

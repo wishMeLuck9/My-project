@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class PlayerAttackController : MonoBehaviour
 {
@@ -11,7 +10,26 @@ public class PlayerAttackController : MonoBehaviour
     private readonly Collider[] hitBuffer = new Collider[16];
     private float nextAttackTime;
     private bool canAttack = true;
+    private PlayerInputReader inputReader;
+    private PlayerVisualAnimator visualAnimator;
     [SerializeField] private bool attackEnabledByScene = true;
+
+    private void Awake()
+    {
+        inputReader = GetComponent<PlayerInputReader>();
+        visualAnimator = GetComponentInChildren<PlayerVisualAnimator>(true);
+    }
+
+    private void OnEnable()
+    {
+        if (inputReader == null) inputReader = GetComponent<PlayerInputReader>();
+        if (inputReader != null) inputReader.AttackPressed += TryAttack;
+    }
+
+    private void OnDisable()
+    {
+        if (inputReader != null) inputReader.AttackPressed -= TryAttack;
+    }
 
     public void SetCanAttack(bool state)
     {
@@ -23,10 +41,9 @@ public class PlayerAttackController : MonoBehaviour
         attackEnabledByScene = state;
     }
 
-    private void Update()
+    private void TryAttack()
     {
-        if (!attackEnabledByScene || !canAttack || Mouse.current == null) return;
-        if (!Mouse.current.leftButton.wasPressedThisFrame) return;
+        if (!attackEnabledByScene || !canAttack) return;
         if (Time.time < nextAttackTime) return;
         if (DialogueController.Instance != null && DialogueController.Instance.IsDialogueOpen) return;
 
@@ -36,6 +53,8 @@ public class PlayerAttackController : MonoBehaviour
 
     private void PerformAttack()
     {
+        ResolveVisualAnimator()?.PlayAttack();
+
         int mask = hitMask.value == 0 ? Physics.DefaultRaycastLayers : hitMask.value;
         Vector3 center = transform.position + Vector3.up * 0.8f + transform.forward * attackRange;
         int hitCount = Physics.OverlapSphereNonAlloc(center, attackRadius, hitBuffer, mask, QueryTriggerInteraction.Collide);
@@ -66,5 +85,11 @@ public class PlayerAttackController : MonoBehaviour
         {
             WorldState.Instance.pursuitLevel += 1;
         }
+    }
+
+    private PlayerVisualAnimator ResolveVisualAnimator()
+    {
+        if (visualAnimator == null) visualAnimator = GetComponentInChildren<PlayerVisualAnimator>(true);
+        return visualAnimator;
     }
 }

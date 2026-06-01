@@ -1,9 +1,10 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class NightFragmentEncounter : MonoBehaviour
 {
-    [SerializeField] private PrototypeShadowActor pleading;
+    [SerializeField, FormerlySerializedAs("pleading")] private PrototypeShadowActor helper;
     [SerializeField] private PrototypeShadowActor afraid;
     [SerializeField] private PrototypeShadowActor[] allShadows;
     [SerializeField] private LightFragmentPickup innerNightFragment;
@@ -60,7 +61,7 @@ public class NightFragmentEncounter : MonoBehaviour
 
     private IEnumerator PlayMercyWitnessEvent()
     {
-        if (pleading == null || afraid == null)
+        if (helper == null || afraid == null)
         {
             mercyStarted = false;
             yield break;
@@ -72,7 +73,7 @@ public class NightFragmentEncounter : MonoBehaviour
         afraid.transform.localScale = new Vector3(afraidOriginalScale.x, afraidOriginalScale.y * 0.65f, afraidOriginalScale.z);
 
         Vector3 target = afraid.transform.position + Vector3.back * 1.2f;
-        while ((pleading.transform.position - target).sqrMagnitude > 0.04f)
+        while ((helper.transform.position - target).sqrMagnitude > 0.04f)
         {
             if (WorldState.Instance == null || WorldState.Instance.nightViolenceAttempted)
             {
@@ -80,7 +81,7 @@ public class NightFragmentEncounter : MonoBehaviour
                 yield break;
             }
 
-            pleading.transform.position = Vector3.MoveTowards(pleading.transform.position, target, runSpeed * Time.deltaTime);
+            helper.transform.position = Vector3.MoveTowards(helper.transform.position, target, runSpeed * Time.deltaTime);
             yield return null;
         }
 
@@ -94,7 +95,7 @@ public class NightFragmentEncounter : MonoBehaviour
         afraid.transform.rotation = afraidOriginalRotation;
         afraid.transform.localScale = afraidOriginalScale;
         CompleteRoute(WorldState.NightFragmentRoute.Mercy);
-        DialogueController.Instance?.ShowDialogue("SHADOW_PLEADING", "Она встала. Забери то, что осталось на земле, и не делай из этого охоту.");
+        DialogueController.Instance?.ShowDialogue(GetHelperSpeakerName(), "Она встала. Забери то, что осталось на земле, и не делай из этого охоту.");
     }
 
     private void CompleteRoute(WorldState.NightFragmentRoute route)
@@ -132,10 +133,15 @@ public class NightFragmentEncounter : MonoBehaviour
 
     private void ResolveReferences()
     {
-        if (pleading == null) pleading = FindActor("SHADOW_Pleading_01");
+        if (helper == null) helper = FindActor("SHADOW_Ally_01") ?? FindActor("SHADOW_Pleading_01");
         if (afraid == null) afraid = FindActor("SHADOW_Afraid_01");
         if (innerNightFragment == null) innerNightFragment = FindFirstObjectByType<LightFragmentPickup>(FindObjectsInactive.Include);
         if (allShadows == null || allShadows.Length == 0) allShadows = FindObjectsByType<PrototypeShadowActor>(FindObjectsSortMode.None);
+    }
+
+    private string GetHelperSpeakerName()
+    {
+        return helper != null && helper.name.Contains("Ally") ? "SHADOW_ALLY" : "SHADOW_PLEADING";
     }
 
     private static PrototypeShadowActor FindActor(string objectName)

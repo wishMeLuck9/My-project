@@ -2,10 +2,14 @@ using UnityEngine;
 
 public class PlayerVisualAnimator : MonoBehaviour
 {
+    private static readonly int MoveSpeedHash = Animator.StringToHash("MoveSpeed");
+    private static readonly int GroundedHash = Animator.StringToHash("Grounded");
+    private static readonly int JumpHash = Animator.StringToHash("Jump");
+    private static readonly int AttackHash = Animator.StringToHash("Attack");
+
     [SerializeField] private Animator animator;
     [SerializeField] private PlayerController3D player;
-
-    private bool wasMoving;
+    [SerializeField] private float movementDampTime = 0.1f;
 
     private void Awake()
     {
@@ -17,19 +21,17 @@ public class PlayerVisualAnimator : MonoBehaviour
     {
         if (animator == null || player == null) return;
 
-        float normalizedSpeed = Mathf.Clamp01(player.MovementAmount);
-        bool isMoving = normalizedSpeed > 0.02f;
-        if (isMoving)
-        {
-            if (!wasMoving) animator.Play("Walk", 0, 0f);
-            animator.speed = Mathf.Lerp(0.65f, 1.15f, normalizedSpeed);
-        }
-        else
-        {
-            if (wasMoving) animator.Play("Walk", 0, 0f);
-            animator.speed = 0f;
-        }
+        animator.SetFloat(MoveSpeedHash, Mathf.Clamp01(player.MovementAmount), movementDampTime, Time.deltaTime);
+        animator.SetBool(GroundedHash, player.IsGrounded);
+    }
 
-        wasMoving = isMoving;
+    public void PlayJump()
+    {
+        if (animator != null) animator.SetTrigger(JumpHash);
+    }
+
+    public void PlayAttack()
+    {
+        if (animator != null) animator.SetTrigger(AttackHash);
     }
 }

@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class PlayerController3D : MonoBehaviour
 {
@@ -13,6 +12,8 @@ public class PlayerController3D : MonoBehaviour
 
     private Rigidbody rb;
     private Collider playerCollider;
+    private PlayerInputReader inputReader;
+    private PlayerVisualAnimator visualAnimator;
     private Vector2 moveInput;
     private bool canMove = true;
     private float movementMultiplier = 1f;
@@ -24,6 +25,7 @@ public class PlayerController3D : MonoBehaviour
     public float RotationSpeed => rotationSpeed;
     public Vector3 PlanarVelocity => rb == null ? Vector3.zero : new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
     public float MovementAmount => canMove ? moveInput.magnitude : 0f;
+    public bool IsGrounded => CheckGrounded();
 
     private void Awake()
     {
@@ -31,8 +33,21 @@ public class PlayerController3D : MonoBehaviour
         if (rb != null) rb.freezeRotation = true;
 
         playerCollider = GetComponent<Collider>();
+        inputReader = GetComponent<PlayerInputReader>();
+        visualAnimator = GetComponentInChildren<PlayerVisualAnimator>(true);
         if (cameraTransform == null && Camera.main != null)
             cameraTransform = Camera.main.transform;
+    }
+
+    private void OnEnable()
+    {
+        if (inputReader == null) inputReader = GetComponent<PlayerInputReader>();
+        if (inputReader != null) inputReader.JumpPressed += HandleJumpPressed;
+    }
+
+    private void OnDisable()
+    {
+        if (inputReader != null) inputReader.JumpPressed -= HandleJumpPressed;
     }
 
     private void Update()
@@ -43,26 +58,13 @@ public class PlayerController3D : MonoBehaviour
             movementModifierEndsAt = -1f;
         }
 
-        if (!canMove || Keyboard.current == null)
+        if (!canMove || inputReader == null)
         {
             moveInput = Vector2.zero;
             return;
         }
 
-        float horizontal = 0;
-        float vertical = 0;
-
-        if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed) vertical += 1;
-        if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed) vertical -= 1;
-        if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) horizontal -= 1;
-        if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) horizontal += 1;
-
-        moveInput = new Vector2(horizontal, vertical);
-
-        if (allowJump && Keyboard.current.spaceKey.wasPressedThisFrame)
-        {
-            TryJump();
-        }
+        moveInput = inputReader.MoveInput;
     }
 
     private void FixedUpdate()
@@ -125,15 +127,16 @@ public class PlayerController3D : MonoBehaviour
 
     private void TryJump()
     {
-        if (rb == null || !IsGrounded()) return;
+        if (rb == null || !CheckGrounded()) return;
 
         Vector3 velocity = rb.linearVelocity;
         velocity.y = 0f;
         rb.linearVelocity = velocity;
         rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        ResolveVisualAnimator()?.PlayJump();
     }
 
-    private bool IsGrounded()
+    private bool CheckGrounded()
     {
         int mask = groundMask.value == 0 ? Physics.DefaultRaycastLayers : groundMask.value;
 
@@ -146,5 +149,16 @@ public class PlayerController3D : MonoBehaviour
         }
 
         return Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, groundCheckDistance + 0.2f, mask, QueryTriggerInteraction.Ignore);
+    }
+
+    private void HandleJumpPressed()
+    {
+        if (allowJump) TryJump();
+    }
+
+    private PlayerVisualAnimator ResolveVisualAnimator()
+    {
+        if (visualAnimator == null) visualAnimator = GetComponentInChildren<PlayerVisualAnimator>(true);
+        return visualAnimator;
     }
 }

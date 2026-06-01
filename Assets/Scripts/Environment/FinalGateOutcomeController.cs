@@ -7,6 +7,7 @@ public class FinalGateOutcomeController : MonoBehaviour
     [SerializeField] private Transform arenaRespawnPoint;
     [SerializeField] private Transform leftGateDoor;
     [SerializeField] private Transform rightGateDoor;
+    [SerializeField] private Collider finalEntryTrigger;
 
     private PlayerController3D player;
     private PlayerAttackController attack;
@@ -125,10 +126,7 @@ public class FinalGateOutcomeController : MonoBehaviour
         ResolveDoorReferences();
         if (leftGateDoor != null) leftGateDoor.localPosition += Vector3.left * 2.2f;
         if (rightGateDoor != null) rightGateDoor.localPosition += Vector3.right * 2.2f;
-
-        GameObject entry = GameObject.Find("GATE_FinalEntryTrigger");
-        Collider trigger = entry != null ? entry.GetComponent<Collider>() : null;
-        if (trigger != null) trigger.enabled = false;
+        if (finalEntryTrigger != null) finalEntryTrigger.enabled = false;
     }
 
     private void RestartGame()
@@ -142,21 +140,17 @@ public class FinalGateOutcomeController : MonoBehaviour
         if (player == null) player = FindFirstObjectByType<PlayerController3D>();
         if (attack == null && player != null) attack = player.GetComponent<PlayerAttackController>();
         if (guardians == null || guardians.Length == 0) guardians = FindObjectsByType<GuardianController>(FindObjectsSortMode.None);
+        if (finalEntryTrigger == null)
+        {
+            FinalGateEntryTrigger entry = FindFirstObjectByType<FinalGateEntryTrigger>();
+            if (entry != null) finalEntryTrigger = entry.GetComponent<Collider>();
+        }
         ResolveDoorReferences();
     }
 
     private void ResolveDoorReferences()
     {
-        if (leftGateDoor == null)
-        {
-            GameObject left = GameObject.Find("Atmos_Door_Left");
-            if (left != null) leftGateDoor = left.transform;
-        }
-
-        if (rightGateDoor == null)
-        {
-            GameObject right = GameObject.Find("Atmos_Door_Right");
-            if (right != null) rightGateDoor = right.transform;
-        }
+        if (leftGateDoor == null || rightGateDoor == null)
+            Debug.LogWarning("Final gate doors are not assigned on FinalGateOutcomeController.", this);
     }
 }

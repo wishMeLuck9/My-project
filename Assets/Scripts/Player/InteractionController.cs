@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class InteractionController : MonoBehaviour
 {
@@ -7,13 +6,22 @@ public class InteractionController : MonoBehaviour
     [SerializeField] private LayerMask interactableLayer = ~0;
 
     private readonly Collider[] overlapHits = new Collider[16];
+    private PlayerInputReader inputReader;
 
-    private void Update()
+    private void Awake()
     {
-        if (Keyboard.current == null || !Keyboard.current.eKey.wasPressedThisFrame) return;
-        if (DialogueController.Instance != null && DialogueController.Instance.IsDialogueOpen) return;
+        inputReader = GetComponent<PlayerInputReader>();
+    }
 
-        TryInteract();
+    private void OnEnable()
+    {
+        if (inputReader == null) inputReader = GetComponent<PlayerInputReader>();
+        if (inputReader != null) inputReader.InteractPressed += HandleInteractPressed;
+    }
+
+    private void OnDisable()
+    {
+        if (inputReader != null) inputReader.InteractPressed -= HandleInteractPressed;
     }
 
     private void TryInteract()
@@ -51,5 +59,12 @@ public class InteractionController : MonoBehaviour
         }
 
         if (nearest != null) nearest.Interact();
+    }
+
+    private void HandleInteractPressed()
+    {
+        if (DialogueController.Instance != null && DialogueController.Instance.IsDialogueOpen) return;
+
+        TryInteract();
     }
 }
