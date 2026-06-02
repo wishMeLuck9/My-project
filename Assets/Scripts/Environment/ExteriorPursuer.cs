@@ -12,6 +12,7 @@ public class ExteriorPursuer : MonoBehaviour
     private EnemyJumpController jumper;
     private ExteriorHuntController hunt;
     private bool isHunting;
+    private float nextRecoveryTime;
 
     private void Awake()
     {
@@ -41,18 +42,9 @@ public class ExteriorPursuer : MonoBehaviour
         if (DialogueController.Instance != null && DialogueController.Instance.IsDialogueOpen) return;
 
         Vector3 target = player.position;
-        if (agent != null && agent.enabled && agent.isOnNavMesh)
+        if (EnsureAgentOnNavMesh())
         {
             agent.SetDestination(target);
-        }
-        else
-        {
-            Vector3 direction = target - transform.position;
-            direction.y = 0f;
-            if (direction.sqrMagnitude > 0.001f)
-            {
-                transform.position += direction.normalized * chaseSpeed * Time.deltaTime;
-            }
         }
 
         Vector3 separation = target - transform.position;
@@ -63,5 +55,20 @@ public class ExteriorPursuer : MonoBehaviour
         {
             hunt.CapturePlayer();
         }
+    }
+
+    private bool EnsureAgentOnNavMesh()
+    {
+        if (agent == null || !agent.enabled) return false;
+        if (agent.isOnNavMesh) return true;
+        if (Time.time < nextRecoveryTime) return false;
+
+        nextRecoveryTime = Time.time + 0.5f;
+        if (!NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 3f, NavMesh.AllAreas)) return false;
+
+        agent.Warp(hit.position);
+        agent.speed = chaseSpeed;
+        agent.isStopped = false;
+        return agent.isOnNavMesh;
     }
 }

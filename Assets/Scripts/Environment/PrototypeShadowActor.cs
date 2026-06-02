@@ -1,4 +1,6 @@
+using System.Linq;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class PrototypeShadowActor : MonoBehaviour
 {
@@ -18,11 +20,13 @@ public class PrototypeShadowActor : MonoBehaviour
 
     private Transform player;
     private EnemyJumpController jumper;
+    private NavMeshAgent agent;
     private float fearUntil = -1f;
     private bool defeated;
 
     public bool IsDefeated => defeated;
     public bool WasAttacked { get; private set; }
+    public ShadowRole Role => role;
 
     public void Configure(ShadowRole newRole, int newHealth)
     {
@@ -35,6 +39,7 @@ public class PrototypeShadowActor : MonoBehaviour
         GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
         if (playerObject != null) player = playerObject.transform;
         jumper = GetComponent<EnemyJumpController>();
+        agent = GetComponent<NavMeshAgent>();
         ApplyRoleColor();
     }
 
@@ -50,7 +55,12 @@ public class PrototypeShadowActor : MonoBehaviour
         away.y = 0f;
         if (away.sqrMagnitude <= 0.01f) return;
 
-        transform.position += away.normalized * fearMoveSpeed * Time.deltaTime;
+        if (agent == null || !agent.enabled || !agent.isOnNavMesh) return;
+        if (!NavMesh.SamplePosition(transform.position + away.normalized * 2f, out NavMeshHit destination, 2f, NavMesh.AllAreas)) return;
+
+        agent.speed = fearMoveSpeed;
+        agent.isStopped = false;
+        agent.SetDestination(destination.position);
     }
 
     public void ReceiveAttack(Transform attacker)
@@ -88,7 +98,9 @@ public class PrototypeShadowActor : MonoBehaviour
 
     private void ApplyRoleColor()
     {
-        if (!TryGetComponent(out Renderer renderer)) return;
+        Renderer renderer = GetComponentsInChildren<Renderer>(true)
+            .FirstOrDefault(candidate => candidate.enabled);
+        if (renderer == null) return;
 
         Color color = role switch
         {

@@ -63,6 +63,15 @@ public class InteractionController : MonoBehaviour
 
             Interactable candidate = candidateCollider.GetComponentInParent<Interactable>();
             if (candidate == null) continue;
+            if (!PhysicsLineOfSight.HasClearPath(
+                    transform,
+                    candidate.transform,
+                    origin,
+                    candidateCollider.bounds.center,
+                    mask))
+            {
+                continue;
+            }
 
             float distance = (candidate.transform.position - transform.position).sqrMagnitude;
             if (distance >= nearestDistance) continue;

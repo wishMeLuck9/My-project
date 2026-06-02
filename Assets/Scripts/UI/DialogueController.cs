@@ -21,7 +21,7 @@ public class DialogueController : MonoBehaviour
     private const float MaxChoiceButtonHeight = 52f;
     private const float MinChoiceButtonHeight = 38f;
     private const float ChoiceSpacing = 8f;
-    private const float DialogueFontSize = 19f;
+    private const float DialogueFontSize = 22f;
 
     [SerializeField] private GameObject dialoguePanel;
     [SerializeField] private TextMeshProUGUI speakerText;
@@ -489,7 +489,7 @@ public class DialogueController : MonoBehaviour
         dialoguePanel = new GameObject("DialoguePanel", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         dialoguePanel.transform.SetParent(root, false);
         Image panelImage = dialoguePanel.GetComponent<Image>();
-        panelImage.color = new Color(0f, 0f, 0f, 0.68f);
+        panelImage.color = new Color(0f, 0f, 0f, 0.94f);
 
         speakerText = CreateText("SpeakerText", dialoguePanel.transform, "SYSTEM", new Color32(255, 56, 56, 255), 22f);
         dialogueText = CreateText("DialogueText", dialoguePanel.transform, string.Empty, Color.white, DialogueFontSize);
@@ -509,6 +509,9 @@ public class DialogueController : MonoBehaviour
         textComponent.text = text;
         textComponent.color = color;
         textComponent.fontSize = fontSize;
+        textComponent.fontStyle = FontStyles.Bold;
+        textComponent.outlineColor = Color.black;
+        textComponent.outlineWidth = 0.14f;
         textComponent.raycastTarget = false;
         return textComponent;
     }

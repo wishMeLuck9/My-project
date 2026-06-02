@@ -68,7 +68,7 @@ public class PlayerAttackController : MonoBehaviour
             if (hit == null || hit.transform == transform) continue;
 
             PrototypeShadowActor shadow = hit.GetComponentInParent<PrototypeShadowActor>();
-            if (shadow != null)
+            if (shadow != null && HasLineOfSight(shadow.transform, hit))
             {
                 shadow.ReceiveAttack(transform);
                 hitSomething = true;
@@ -76,7 +76,7 @@ public class PlayerAttackController : MonoBehaviour
             }
 
             GuardianController guardian = hit.GetComponentInParent<GuardianController>();
-            if (guardian != null)
+            if (guardian != null && HasLineOfSight(guardian.transform, hit))
             {
                 guardian.ReceiveAttack();
                 hitSomething = true;
@@ -93,5 +93,16 @@ public class PlayerAttackController : MonoBehaviour
     {
         if (visualAnimator == null) visualAnimator = GetComponentInChildren<PlayerVisualAnimator>(true);
         return visualAnimator;
+    }
+
+    private bool HasLineOfSight(Transform target, Collider hit)
+    {
+        int mask = hitMask.value == 0 ? Physics.DefaultRaycastLayers : hitMask.value;
+        return PhysicsLineOfSight.HasClearPath(
+            transform,
+            target,
+            transform.position + Vector3.up * 0.8f,
+            hit.bounds.center,
+            mask);
     }
 }

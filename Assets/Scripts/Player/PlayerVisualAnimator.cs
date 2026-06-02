@@ -5,6 +5,7 @@ public class PlayerVisualAnimator : MonoBehaviour
     private static readonly int MoveSpeedHash = Animator.StringToHash("MoveSpeed");
     private static readonly int GroundedHash = Animator.StringToHash("Grounded");
     private static readonly int JumpHash = Animator.StringToHash("Jump");
+    private static readonly int RunningJumpHash = Animator.StringToHash("RunningJump");
     private static readonly int AttackHash = Animator.StringToHash("Attack");
 
     [SerializeField] private Animator animator;
@@ -25,9 +26,9 @@ public class PlayerVisualAnimator : MonoBehaviour
         animator.SetBool(GroundedHash, player.IsGrounded);
     }
 
-    public void PlayJump()
+    public void PlayJump(bool running)
     {
-        if (animator != null) animator.SetTrigger(JumpHash);
+        if (animator != null) animator.SetTrigger(running ? RunningJumpHash : JumpHash);
     }
 
     public void PlayAttack()

@@ -11,6 +11,8 @@ public class PlayerInputReader : MonoBehaviour
     [SerializeField] private string jumpActionName = "Jump";
     [SerializeField] private string attackActionName = "Attack";
     [SerializeField] private string interactActionName = "Interact";
+    [SerializeField] private string sprintActionName = "Sprint";
+    [SerializeField] private string pauseActionName = "Pause";
 
     private InputActionMap playerMap;
     private InputAction moveAction;
@@ -18,13 +20,21 @@ public class PlayerInputReader : MonoBehaviour
     private InputAction jumpAction;
     private InputAction attackAction;
     private InputAction interactAction;
+    private InputAction sprintAction;
+    private InputAction pauseAction;
     private bool isListening;
+    private int lastJumpFrame = -1;
+    private int lastAttackFrame = -1;
+    private int lastInteractFrame = -1;
 
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
+    public bool WalkHeld => (sprintAction != null && sprintAction.IsPressed()) ||
+                            (Keyboard.current != null && Keyboard.current.leftShiftKey.isPressed);
     public event Action JumpPressed;
     public event Action AttackPressed;
     public event Action InteractPressed;
+    public event Action PausePressed;
 
     private void Awake()
     {
@@ -39,6 +49,20 @@ public class PlayerInputReader : MonoBehaviour
     private void OnDisable()
     {
         DisableActions();
+    }
+
+    private void Update()
+    {
+        if (Keyboard.current != null)
+        {
+            if (Keyboard.current.spaceKey.wasPressedThisFrame) RaiseJump();
+            if (Keyboard.current.eKey.wasPressedThisFrame) RaiseInteract();
+        }
+
+        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            RaiseAttack();
+        }
     }
 
     public void Configure(InputActionAsset newActionsAsset)
@@ -57,6 +81,8 @@ public class PlayerInputReader : MonoBehaviour
         jumpAction = playerMap?.FindAction(jumpActionName, false);
         attackAction = playerMap?.FindAction(attackActionName, false);
         interactAction = playerMap?.FindAction(interactActionName, false);
+        sprintAction = playerMap?.FindAction(sprintActionName, false);
+        pauseAction = playerMap?.FindAction(pauseActionName, false);
     }
 
     private void EnableActions()
@@ -76,9 +102,10 @@ public class PlayerInputReader : MonoBehaviour
             lookAction.canceled += OnLook;
         }
 
-        if (jumpAction != null) jumpAction.performed += OnJump;
-        if (attackAction != null) attackAction.performed += OnAttack;
+        if (jumpAction != null) jumpAction.started += OnJump;
+        if (attackAction != null) attackAction.started += OnAttack;
         if (interactAction != null) interactAction.started += OnInteract;
+        if (pauseAction != null) pauseAction.started += OnPause;
 
         playerMap.Enable();
         isListening = true;
@@ -100,9 +127,10 @@ public class PlayerInputReader : MonoBehaviour
             lookAction.canceled -= OnLook;
         }
 
-        if (jumpAction != null) jumpAction.performed -= OnJump;
-        if (attackAction != null) attackAction.performed -= OnAttack;
+        if (jumpAction != null) jumpAction.started -= OnJump;
+        if (attackAction != null) attackAction.started -= OnAttack;
         if (interactAction != null) interactAction.started -= OnInteract;
+        if (pauseAction != null) pauseAction.started -= OnPause;
 
         playerMap?.Disable();
         MoveInput = Vector2.zero;
@@ -122,7 +150,7 @@ public class PlayerInputReader : MonoBehaviour
 
     private void OnJump(InputAction.CallbackContext context)
     {
-        JumpPressed?.Invoke();
+        RaiseJump();
     }
 
     private void OnAttack(InputAction.CallbackContext context)
@@ -133,11 +161,37 @@ public class PlayerInputReader : MonoBehaviour
             if (controlName == "enter" || controlName == "numpadEnter") return;
         }
 
-        AttackPressed?.Invoke();
+        RaiseAttack();
     }
 
     private void OnInteract(InputAction.CallbackContext context)
     {
+        RaiseInteract();
+    }
+
+    private void OnPause(InputAction.CallbackContext context)
+    {
+        PausePressed?.Invoke();
+    }
+
+    private void RaiseJump()
+    {
+        if (lastJumpFrame == Time.frameCount) return;
+        lastJumpFrame = Time.frameCount;
+        JumpPressed?.Invoke();
+    }
+
+    private void RaiseAttack()
+    {
+        if (lastAttackFrame == Time.frameCount) return;
+        lastAttackFrame = Time.frameCount;
+        AttackPressed?.Invoke();
+    }
+
+    private void RaiseInteract()
+    {
+        if (lastInteractFrame == Time.frameCount) return;
+        lastInteractFrame = Time.frameCount;
         InteractPressed?.Invoke();
     }
 }

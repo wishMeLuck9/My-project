@@ -4,8 +4,12 @@ public class PlayerController3D : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float rotationSpeed = 10f;
+    [SerializeField] private float walkSpeedMultiplier = 0.55f;
+    [SerializeField] private float groundAcceleration = 28f;
+    [SerializeField] private float airAcceleration = 12f;
     [SerializeField] private float jumpForce = 6f;
     [SerializeField] private float groundCheckDistance = 0.15f;
+    [SerializeField] private float groundCheckRadius = 0.34f;
     [SerializeField] private LayerMask groundMask = ~0;
     [SerializeField] private Transform cameraTransform;
     [SerializeField] private bool allowJump;
@@ -18,19 +22,27 @@ public class PlayerController3D : MonoBehaviour
     private bool canMove = true;
     private float movementMultiplier = 1f;
     private float movementModifierEndsAt = -1f;
+    private readonly RaycastHit[] groundHits = new RaycastHit[8];
 
     public bool CanMove => canMove;
     public bool JumpEnabled => allowJump;
     public float MoveSpeed => moveSpeed;
     public float RotationSpeed => rotationSpeed;
     public Vector3 PlanarVelocity => rb == null ? Vector3.zero : new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-    public float MovementAmount => canMove ? moveInput.magnitude : 0f;
+    public bool IsWalking => canMove && inputReader != null && inputReader.WalkHeld;
+    public bool IsRunning => canMove && moveInput.magnitude > 0.1f && !IsWalking;
+    public float MovementAmount => canMove ? moveInput.magnitude * (IsWalking ? 0.4f : 1f) : 0f;
     public bool IsGrounded => CheckGrounded();
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        if (rb != null) rb.freezeRotation = true;
+        if (rb != null)
+        {
+            rb.freezeRotation = true;
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        }
 
         playerCollider = GetComponent<Collider>();
         inputReader = GetComponent<PlayerInputReader>();
@@ -73,7 +85,6 @@ public class PlayerController3D : MonoBehaviour
             cameraTransform = Camera.main.transform;
 
         if (rb == null || cameraTransform == null) return;
-        if (moveInput.magnitude <= 0.1f) return;
 
         Vector3 forward = cameraTransform.forward;
         Vector3 right = cameraTransform.right;
@@ -83,10 +94,19 @@ public class PlayerController3D : MonoBehaviour
         right.Normalize();
 
         Vector3 direction = (forward * moveInput.y + right * moveInput.x).normalized;
+        float speed = moveSpeed * movementMultiplier * (IsWalking ? walkSpeedMultiplier : 1f);
+        Vector3 velocity = rb.linearVelocity;
+        Vector3 planarVelocity = new Vector3(velocity.x, 0f, velocity.z);
+        Vector3 targetVelocity = direction * speed;
+        float acceleration = CheckGrounded() ? groundAcceleration : airAcceleration;
+        planarVelocity = Vector3.MoveTowards(planarVelocity, targetVelocity, acceleration * Time.fixedDeltaTime);
+        rb.linearVelocity = new Vector3(planarVelocity.x, velocity.y, planarVelocity.z);
 
-        rb.MovePosition(rb.position + direction * moveSpeed * movementMultiplier * Time.fixedDeltaTime);
-        Quaternion targetRotation = Quaternion.LookRotation(direction);
-        rb.MoveRotation(Quaternion.Slerp(rb.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime));
+        if (direction.sqrMagnitude > 0.001f)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(direction);
+            rb.MoveRotation(Quaternion.Slerp(rb.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime));
+        }
     }
 
     public void SetCanMove(bool state)
@@ -133,7 +153,7 @@ public class PlayerController3D : MonoBehaviour
         velocity.y = 0f;
         rb.linearVelocity = velocity;
         rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-        ResolveVisualAnimator()?.PlayJump();
+        ResolveVisualAnimator()?.PlayJump(IsRunning);
     }
 
     private bool CheckGrounded()
@@ -143,9 +163,23 @@ public class PlayerController3D : MonoBehaviour
         if (playerCollider != null)
         {
             Bounds bounds = playerCollider.bounds;
-            Vector3 origin = bounds.center;
-            float distance = bounds.extents.y + groundCheckDistance;
-            return Physics.Raycast(origin, Vector3.down, distance, mask, QueryTriggerInteraction.Ignore);
+            float radius = Mathf.Min(groundCheckRadius, Mathf.Min(bounds.extents.x, bounds.extents.z) * 0.9f);
+            Vector3 origin = bounds.center - Vector3.up * Mathf.Max(0f, bounds.extents.y - radius - 0.02f);
+            int hitCount = Physics.SphereCastNonAlloc(
+                origin,
+                radius,
+                Vector3.down,
+                groundHits,
+                groundCheckDistance + 0.04f,
+                mask,
+                QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider hit = groundHits[i].collider;
+                if (hit != null && hit.transform != transform && !hit.transform.IsChildOf(transform)) return true;
+            }
+
+            return false;
         }
 
         return Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, groundCheckDistance + 0.2f, mask, QueryTriggerInteraction.Ignore);

@@ -3,9 +3,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-#if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem;
-#endif
 
 public class RuntimeHudController : MonoBehaviour
 {
@@ -15,7 +12,6 @@ public class RuntimeHudController : MonoBehaviour
 
     public static RuntimeHudController Instance { get; private set; }
 
-    private Canvas canvas;
     private TextMeshProUGUI objectiveText;
     private TextMeshProUGUI controlsText;
     private TextMeshProUGUI interactionText;
@@ -23,22 +19,32 @@ public class RuntimeHudController : MonoBehaviour
     private TextMeshProUGUI systemText;
     private TextMeshProUGUI purgatoryText;
     private GameObject controlsPanel;
+    private GameObject interactionPanel;
+    private GameObject stabilityPanel;
+    private GameObject systemPanel;
     private GameObject pausePanel;
     private GameObject purgatoryPanel;
     private GameObject minimapPanel;
     private RectTransform minimapExitMarker;
+    private RawImage minimapImage;
     private Camera minimapCamera;
     private RenderTexture minimapTexture;
     private PlayerController3D player;
+    private PlayerInputReader inputReader;
     private InteractionController interaction;
     private ExteriorHuntController hunt;
     private Transform minimapExit;
     private bool paused;
     private bool startupShown;
     private bool nightUnlockShown;
+    private bool nightMapHintShown;
     private bool exteriorHintShown;
     private float exteriorElapsed;
+    private float nextReferenceResolveAt;
     private string currentScene;
+    private string lastControlsText;
+    private string lastObjectiveText;
+    private string lastStabilityText;
     private Coroutine clearSystemMessageRoutine;
 
     public bool IsPaused => paused;
@@ -50,8 +56,7 @@ public class RuntimeHudController : MonoBehaviour
         RuntimeHudController existing = FindFirstObjectByType<RuntimeHudController>(FindObjectsInactive.Include);
         if (existing != null) return existing;
 
-        GameObject hudObject = new GameObject("RuntimeHudCanvas");
-        return hudObject.AddComponent<RuntimeHudController>();
+        return new GameObject("RuntimeHudCanvas").AddComponent<RuntimeHudController>();
     }
 
     private void Awake()
@@ -74,6 +79,7 @@ public class RuntimeHudController : MonoBehaviour
         if (Instance != this) return;
 
         SceneManager.sceneLoaded -= HandleSceneLoaded;
+        BindInputReader(null);
         Time.timeScale = 1f;
         ReleaseMinimap();
         Instance = null;
@@ -81,7 +87,6 @@ public class RuntimeHudController : MonoBehaviour
 
     private void Update()
     {
-        HandleKeyboard();
         ResolveSceneReferences();
         UpdateCursor();
         UpdateControls();
@@ -101,17 +106,14 @@ public class RuntimeHudController : MonoBehaviour
         if (nightUnlockShown) return;
 
         nightUnlockShown = true;
-        ShowSystemMessage("Ночь признала в тебе силу. Удар доступен.", 4f);
+        ShowSystemMessage("\u041d\u043e\u0447\u044c \u043f\u0440\u0438\u0437\u043d\u0430\u043b\u0430 \u0432 \u0442\u0435\u0431\u0435 \u0441\u0438\u043b\u0443. \u0423\u0434\u0430\u0440 \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d.", 4f);
     }
 
     public void ShowSystemMessage(string message, float duration = 3.5f)
     {
-        if (clearSystemMessageRoutine != null)
-        {
-            StopCoroutine(clearSystemMessageRoutine);
-        }
+        if (clearSystemMessageRoutine != null) StopCoroutine(clearSystemMessageRoutine);
 
-        systemText.text = message;
+        SetSystemMessage(message);
         clearSystemMessageRoutine = StartCoroutine(ClearSystemMessageAfterDelay(duration));
     }
 
@@ -138,6 +140,12 @@ public class RuntimeHudController : MonoBehaviour
         interaction = null;
         hunt = null;
         minimapExit = null;
+        nextReferenceResolveAt = 0f;
+        lastControlsText = null;
+        lastObjectiveText = null;
+        lastStabilityText = null;
+        BindInputReader(null);
+
         if (currentScene == ExteriorScene && !startupShown)
         {
             startupShown = true;
@@ -145,11 +153,24 @@ public class RuntimeHudController : MonoBehaviour
         }
 
         ConfigureMinimap(currentScene == NightScene);
+        if (currentScene == NightScene && !nightMapHintShown)
+        {
+            nightMapHintShown = true;
+            ShowSystemMessage("SYSTEM // \u041a\u0430\u0440\u0442\u0430 \u043a\u0432\u0430\u0434\u0440\u0430\u0442\u0430 \u0430\u043a\u0442\u0438\u0432\u043d\u0430. \u0412\u044b\u0445\u043e\u0434 \u043e\u0442\u043c\u0435\u0447\u0435\u043d \u0433\u043e\u043b\u0443\u0431\u044b\u043c.", 4f);
+        }
     }
 
     private void ResolveSceneReferences()
     {
-        if (player == null) player = FindFirstObjectByType<PlayerController3D>();
+        if (Time.unscaledTime < nextReferenceResolveAt) return;
+        nextReferenceResolveAt = Time.unscaledTime + 0.5f;
+
+        if (player == null)
+        {
+            player = FindFirstObjectByType<PlayerController3D>();
+            BindInputReader(player != null ? player.GetComponent<PlayerInputReader>() : null);
+        }
+
         if (interaction == null && player != null) interaction = player.GetComponent<InteractionController>();
         if (hunt == null) hunt = FindFirstObjectByType<ExteriorHuntController>();
         if (minimapExit == null && currentScene == NightScene)
@@ -159,18 +180,17 @@ public class RuntimeHudController : MonoBehaviour
         }
     }
 
-    private void HandleKeyboard()
+    private void BindInputReader(PlayerInputReader newInputReader)
     {
-#if ENABLE_INPUT_SYSTEM
-        Keyboard keyboard = Keyboard.current;
-        if (keyboard == null) return;
+        if (inputReader == newInputReader) return;
+        if (inputReader != null) inputReader.PausePressed -= HandlePausePressed;
+        inputReader = newInputReader;
+        if (inputReader != null) inputReader.PausePressed += HandlePausePressed;
+    }
 
-        if (keyboard.escapeKey.wasPressedThisFrame)
-        {
-            SetPaused(!paused);
-        }
-
-#endif
+    private void HandlePausePressed()
+    {
+        SetPaused(!paused);
     }
 
     private void SetPaused(bool state)
@@ -178,6 +198,7 @@ public class RuntimeHudController : MonoBehaviour
         paused = state;
         Time.timeScale = paused ? 0f : 1f;
         pausePanel.SetActive(paused);
+        UpdateCursor();
     }
 
     private void UpdateCursor()
@@ -190,48 +211,60 @@ public class RuntimeHudController : MonoBehaviour
 
     private void UpdateControls()
     {
-        string attackHint = currentScene == NightScene ? "\n[LMB] Атака" : string.Empty;
-        controlsText.text = "[WASD] Движение\n[SPACE] Прыжок\n[E] Взаимодействие"
+        string attackHint = currentScene == NightScene ? "\n[LMB] \u0410\u0442\u0430\u043a\u0430" : string.Empty;
+        string text = "[WASD] \u0411\u0435\u0433\n[SHIFT] \u0425\u043e\u0434\u044c\u0431\u0430\n[SPACE] \u041f\u0440\u044b\u0436\u043e\u043a\n[E] \u0412\u0437\u0430\u0438\u043c\u043e\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435"
             + attackHint
-            + "\n[ESC] Пауза";
+            + "\n[ESC] \u041f\u0430\u0443\u0437\u0430";
+        if (lastControlsText == text) return;
+
+        lastControlsText = text;
+        controlsText.text = text;
         controlsPanel.SetActive(true);
     }
 
     private void UpdateObjective()
     {
         WorldState state = WorldState.Instance;
+        string text;
         if (currentScene == ExteriorScene)
         {
-            objectiveText.text = state != null && state.hasExteriorFragment
-                ? "SYSTEM // ЦЕЛЬ: доберись до двери квадрата"
-                : "SYSTEM // ЦЕЛЬ: найди фрагмент света";
-            return;
+            text = state != null && state.hasExteriorFragment
+                ? "SYSTEM // \u0426\u0415\u041b\u042c: \u0434\u043e\u0431\u0435\u0440\u0438\u0441\u044c \u0434\u043e \u0434\u0432\u0435\u0440\u0438 \u043a\u0432\u0430\u0434\u0440\u0430\u0442\u0430"
+                : "SYSTEM // \u0426\u0415\u041b\u042c: \u043d\u0430\u0439\u0434\u0438 \u0444\u0440\u0430\u0433\u043c\u0435\u043d\u0442 \u0441\u0432\u0435\u0442\u0430";
         }
-
-        if (currentScene == NightScene)
+        else if (currentScene == NightScene)
         {
-            objectiveText.text = state != null && state.hasInnerNightFragment
-                ? "SYSTEM // ЦЕЛЬ: доберись до выхода"
-                : "SYSTEM // ЦЕЛЬ: наблюдай или действуй";
-            return;
+            text = state != null && state.hasInnerNightFragment
+                ? "SYSTEM // \u0426\u0415\u041b\u042c: \u0434\u043e\u0431\u0435\u0440\u0438\u0441\u044c \u0434\u043e \u0432\u044b\u0445\u043e\u0434\u0430"
+                : "SYSTEM // \u0426\u0415\u041b\u042c: \u043d\u0430\u0431\u043b\u044e\u0434\u0430\u0439 \u0438\u043b\u0438 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0439";
+        }
+        else
+        {
+            text = "SYSTEM // \u0426\u0415\u041b\u042c: \u0434\u043e\u0439\u0434\u0438 \u0434\u043e \u0432\u0440\u0430\u0442";
         }
 
-        objectiveText.text = "SYSTEM // ЦЕЛЬ: дойди до врат";
+        if (lastObjectiveText == text) return;
+        lastObjectiveText = text;
+        objectiveText.text = text;
     }
 
     private void UpdateInteractionPrompt()
     {
-        interactionText.gameObject.SetActive(interaction != null && interaction.HasNearbyInteractable && !paused);
+        interactionPanel.SetActive(interaction != null && interaction.HasNearbyInteractable && !paused);
     }
 
     private void UpdateStability()
     {
         bool visible = hunt != null && hunt.IsHunting && WorldState.Instance != null;
-        stabilityText.gameObject.SetActive(visible);
+        stabilityPanel.SetActive(visible);
         if (!visible) return;
 
         int remaining = Mathf.Clamp(5 - WorldState.Instance.exteriorCaptureCount, 0, 5);
-        stabilityText.text = "УСТОЙЧИВОСТЬ  " + new string('■', remaining) + new string('□', 5 - remaining);
+        string text = "\u0423\u0421\u0422\u041e\u0419\u0427\u0418\u0412\u041e\u0421\u0422\u042c  " + new string('\u25a0', remaining) + new string('\u25a1', 5 - remaining);
+        if (lastStabilityText == text) return;
+
+        lastStabilityText = text;
+        stabilityText.text = text;
     }
 
     private void UpdateExteriorHint()
@@ -243,29 +276,35 @@ public class RuntimeHudController : MonoBehaviour
         if (exteriorElapsed < ExteriorHintDelay) return;
 
         exteriorHintShown = true;
-        ShowSystemMessage("Если ты не взаимодействуешь, ты исчезаешь.", 5f);
+        ShowSystemMessage("\u0415\u0441\u043b\u0438 \u0442\u044b \u043d\u0435 \u0432\u0437\u0430\u0438\u043c\u043e\u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0435\u0448\u044c, \u0442\u044b \u0438\u0441\u0447\u0435\u0437\u0430\u0435\u0448\u044c.", 5f);
     }
 
     private IEnumerator PlayStartupSequence()
     {
-        yield return ShowStartupLine("Протокол квадрата активен.");
-        yield return ShowStartupLine("Фрагмент обнаружен.");
-        yield return ShowStartupLine("Ты научился идти. Этого достаточно, чтобы начать.\nВыживешь ли ты - зависит от тебя.");
+        yield return ShowStartupLine("\u041f\u0440\u043e\u0442\u043e\u043a\u043e\u043b \u043a\u0432\u0430\u0434\u0440\u0430\u0442\u0430 \u0430\u043a\u0442\u0438\u0432\u0435\u043d.");
+        yield return ShowStartupLine("\u0424\u0440\u0430\u0433\u043c\u0435\u043d\u0442 \u043e\u0431\u043d\u0430\u0440\u0443\u0436\u0435\u043d.");
+        yield return ShowStartupLine("\u0422\u044b \u043d\u0430\u0443\u0447\u0438\u043b\u0441\u044f \u0438\u0434\u0442\u0438. \u042d\u0442\u043e\u0433\u043e \u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e, \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c.\n\u0412\u044b\u0436\u0438\u0432\u0435\u0448\u044c \u043b\u0438 \u0442\u044b - \u0437\u0430\u0432\u0438\u0441\u0438\u0442 \u043e\u0442 \u0442\u0435\u0431\u044f.");
     }
 
     private IEnumerator ShowStartupLine(string line)
     {
-        systemText.text = line;
+        SetSystemMessage(line);
         yield return new WaitForSecondsRealtime(2.4f);
-        systemText.text = string.Empty;
+        SetSystemMessage(string.Empty);
         yield return new WaitForSecondsRealtime(0.25f);
     }
 
     private IEnumerator ClearSystemMessageAfterDelay(float duration)
     {
         yield return new WaitForSecondsRealtime(duration);
-        systemText.text = string.Empty;
+        SetSystemMessage(string.Empty);
         clearSystemMessageRoutine = null;
+    }
+
+    private void SetSystemMessage(string message)
+    {
+        systemText.text = message;
+        systemPanel.SetActive(!string.IsNullOrWhiteSpace(message));
     }
 
     private void ConfigureMinimap(bool enabled)
@@ -279,8 +318,10 @@ public class RuntimeHudController : MonoBehaviour
 
         if (minimapTexture == null)
         {
-            minimapTexture = new RenderTexture(256, 256, 16, RenderTextureFormat.ARGB32);
-            minimapTexture.name = "RuntimeNightMinimap";
+            minimapTexture = new RenderTexture(256, 256, 16, RenderTextureFormat.ARGB32)
+            {
+                name = "RuntimeNightMinimap"
+            };
             minimapTexture.Create();
         }
 
@@ -298,7 +339,7 @@ public class RuntimeHudController : MonoBehaviour
         }
 
         minimapCamera.targetTexture = minimapTexture;
-        minimapPanel.GetComponentInChildren<RawImage>().texture = minimapTexture;
+        minimapImage.texture = minimapTexture;
     }
 
     private void UpdateMinimap()
@@ -307,7 +348,6 @@ public class RuntimeHudController : MonoBehaviour
 
         Vector3 playerPosition = player.transform.position;
         minimapCamera.transform.position = new Vector3(playerPosition.x, playerPosition.y + 32f, playerPosition.z);
-
         if (minimapExitMarker == null || minimapExit == null) return;
 
         Vector3 delta = minimapExit.position - playerPosition;
@@ -333,7 +373,7 @@ public class RuntimeHudController : MonoBehaviour
 
     private void BuildRuntimeUi()
     {
-        canvas = gameObject.AddComponent<Canvas>();
+        Canvas canvas = gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 400;
         CanvasScaler scaler = gameObject.AddComponent<CanvasScaler>();
@@ -341,29 +381,37 @@ public class RuntimeHudController : MonoBehaviour
         scaler.referenceResolution = new Vector2(1280f, 720f);
         gameObject.AddComponent<GraphicRaycaster>();
 
-        controlsPanel = CreatePanel("ControlsPanel", transform, new Color(0.02f, 0.03f, 0.06f, 0.82f), new Vector2(18f, -18f), new Vector2(320f, 180f), new Vector2(0f, 1f));
-        objectiveText = CreateText("Objective", controlsPanel.transform, string.Empty, 18f, new Vector2(12f, -10f), new Vector2(296f, 34f), new Vector2(0f, 1f));
-        controlsText = CreateText("Controls", controlsPanel.transform, string.Empty, 17f, new Vector2(12f, -52f), new Vector2(296f, 116f), new Vector2(0f, 1f));
-        interactionText = CreateText("InteractionPrompt", transform, "[E] Взаимодействовать", 22f, new Vector2(0f, 40f), new Vector2(380f, 42f), new Vector2(0.5f, 0f));
-        interactionText.alignment = TextAlignmentOptions.Center;
-        stabilityText = CreateText("Stability", transform, string.Empty, 23f, new Vector2(0f, -24f), new Vector2(440f, 42f), new Vector2(0.5f, 1f));
-        stabilityText.alignment = TextAlignmentOptions.Center;
-        systemText = CreateText("SystemMessage", transform, string.Empty, 22f, new Vector2(18f, -214f), new Vector2(560f, 96f), new Vector2(0f, 1f));
+        controlsPanel = CreatePanel("ControlsPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(18f, -18f), new Vector2(380f, 220f), new Vector2(0f, 1f));
+        objectiveText = CreateText("Objective", controlsPanel.transform, string.Empty, 18f, new Vector2(12f, -10f), new Vector2(356f, 52f), new Vector2(0f, 1f));
+        controlsText = CreateText("Controls", controlsPanel.transform, string.Empty, 18f, new Vector2(12f, -68f), new Vector2(356f, 144f), new Vector2(0f, 1f));
 
-        minimapPanel = CreatePanel("MinimapPanel", transform, new Color(0.02f, 0.03f, 0.06f, 0.9f), new Vector2(-18f, -18f), new Vector2(180f, 180f), new Vector2(1f, 1f));
-        GameObject minimapImageObject = CreateRect("MinimapImage", minimapPanel.transform, Vector2.zero, new Vector2(164f, 164f), new Vector2(0.5f, 0.5f));
-        minimapImageObject.AddComponent<RawImage>();
-        RectTransform playerMarker = CreateImage("PlayerMarker", minimapPanel.transform, new Color(0.95f, 0.9f, 0.35f, 1f), Vector2.zero, new Vector2(8f, 8f), new Vector2(0.5f, 0.5f));
+        interactionPanel = CreatePanel("InteractionPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(0f, 18f), new Vector2(420f, 54f), new Vector2(0.5f, 0f));
+        interactionText = CreateText("InteractionPrompt", interactionPanel.transform, "[E] \u0412\u0437\u0430\u0438\u043c\u043e\u0434\u0435\u0439\u0441\u0442\u0432\u043e\u0432\u0430\u0442\u044c", 22f, Vector2.zero, new Vector2(400f, 44f), new Vector2(0.5f, 0.5f));
+        interactionText.alignment = TextAlignmentOptions.Center;
+        interactionPanel.SetActive(false);
+
+        stabilityPanel = CreatePanel("StabilityPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(0f, -18f), new Vector2(500f, 54f), new Vector2(0.5f, 1f));
+        stabilityText = CreateText("Stability", stabilityPanel.transform, string.Empty, 24f, Vector2.zero, new Vector2(480f, 44f), new Vector2(0.5f, 0.5f));
+        stabilityText.alignment = TextAlignmentOptions.Center;
+        stabilityPanel.SetActive(false);
+
+        systemPanel = CreatePanel("SystemPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(18f, -252f), new Vector2(680f, 112f), new Vector2(0f, 1f));
+        systemText = CreateText("SystemMessage", systemPanel.transform, string.Empty, 22f, new Vector2(12f, -10f), new Vector2(656f, 92f), new Vector2(0f, 1f));
+        systemPanel.SetActive(false);
+
+        minimapPanel = CreatePanel("MinimapPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.95f), new Vector2(-18f, 18f), new Vector2(190f, 190f), new Vector2(1f, 0f));
+        GameObject minimapImageObject = CreateRect("MinimapImage", minimapPanel.transform, Vector2.zero, new Vector2(174f, 174f), new Vector2(0.5f, 0.5f));
+        minimapImage = minimapImageObject.AddComponent<RawImage>();
+        CreateImage("PlayerMarker", minimapPanel.transform, new Color(0.95f, 0.9f, 0.35f, 1f), Vector2.zero, new Vector2(8f, 8f), new Vector2(0.5f, 0.5f)).SetAsLastSibling();
         minimapExitMarker = CreateImage("ExitMarker", minimapPanel.transform, new Color(0.35f, 0.85f, 1f, 1f), Vector2.zero, new Vector2(10f, 10f), new Vector2(0.5f, 0.5f));
-        playerMarker.SetAsLastSibling();
         minimapExitMarker.SetAsLastSibling();
 
-        pausePanel = CreatePanel("PausePanel", transform, new Color(0f, 0f, 0f, 0.88f), Vector2.zero, new Vector2(420f, 310f), new Vector2(0.5f, 0.5f));
-        TextMeshProUGUI pauseTitle = CreateText("PauseTitle", pausePanel.transform, "ПАУЗА", 32f, new Vector2(0f, -28f), new Vector2(380f, 48f), new Vector2(0.5f, 1f));
+        pausePanel = CreatePanel("PausePanel", transform, new Color(0f, 0f, 0f, 0.92f), Vector2.zero, new Vector2(420f, 310f), new Vector2(0.5f, 0.5f));
+        TextMeshProUGUI pauseTitle = CreateText("PauseTitle", pausePanel.transform, "\u041f\u0410\u0423\u0417\u0410", 32f, new Vector2(0f, -28f), new Vector2(380f, 48f), new Vector2(0.5f, 1f));
         pauseTitle.alignment = TextAlignmentOptions.Center;
-        CreateButton("ResumeButton", pausePanel.transform, "Продолжить", new Vector2(0f, 38f), () => SetPaused(false));
-        CreateButton("ControlsButton", pausePanel.transform, "Управление", new Vector2(0f, -22f), () => controlsPanel.SetActive(true));
-        CreateButton("ExitButton", pausePanel.transform, "Выйти из игры", new Vector2(0f, -82f), QuitGame);
+        CreateButton("ResumeButton", pausePanel.transform, "\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c", new Vector2(0f, 38f), () => SetPaused(false));
+        CreateButton("ControlsButton", pausePanel.transform, "\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435", new Vector2(0f, -22f), () => controlsPanel.SetActive(true));
+        CreateButton("ExitButton", pausePanel.transform, "\u0412\u044b\u0439\u0442\u0438 \u0438\u0437 \u0438\u0433\u0440\u044b", new Vector2(0f, -82f), QuitGame);
         pausePanel.SetActive(false);
 
         purgatoryPanel = CreatePanel("PurgatoryPanel", transform, Color.black, Vector2.zero, Vector2.zero, new Vector2(0.5f, 0.5f), true);
@@ -375,8 +423,7 @@ public class RuntimeHudController : MonoBehaviour
     private static GameObject CreatePanel(string name, Transform parent, Color color, Vector2 position, Vector2 size, Vector2 anchor, bool stretch = false)
     {
         GameObject panel = CreateRect(name, parent, position, size, anchor);
-        Image image = panel.AddComponent<Image>();
-        image.color = color;
+        panel.AddComponent<Image>().color = color;
         if (stretch)
         {
             RectTransform rect = panel.GetComponent<RectTransform>();
@@ -395,7 +442,10 @@ public class RuntimeHudController : MonoBehaviour
         TextMeshProUGUI label = obj.AddComponent<TextMeshProUGUI>();
         label.text = text;
         label.fontSize = size;
-        label.color = new Color(0.82f, 0.9f, 1f, 1f);
+        label.fontStyle = FontStyles.Bold;
+        label.color = Color.white;
+        label.outlineColor = Color.black;
+        label.outlineWidth = 0.14f;
         label.raycastTarget = false;
         return label;
     }
@@ -430,6 +480,7 @@ public class RuntimeHudController : MonoBehaviour
         button.onClick.AddListener(action);
         TextMeshProUGUI label = CreateText("Label", obj.transform, text, 20f, Vector2.zero, new Vector2(240f, 38f), new Vector2(0.5f, 0.5f));
         label.color = Color.black;
+        label.outlineWidth = 0f;
         label.alignment = TextAlignmentOptions.Center;
     }
 

@@ -1,5 +1,7 @@
 using System.Collections;
+using System.Linq;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.Serialization;
 
 public class NightFragmentEncounter : MonoBehaviour
@@ -11,15 +13,18 @@ public class NightFragmentEncounter : MonoBehaviour
     [SerializeField] private Transform mercyDropPoint;
     [SerializeField] private SquarePortalController exitPortal;
     [SerializeField] private float runSpeed = 3.2f;
+    [SerializeField] private float helperTravelTimeout = 3f;
 
     private bool mercyStarted;
     private bool routeCompleted;
     private Vector3 afraidOriginalScale;
     private Quaternion afraidOriginalRotation;
+    private NavMeshAgent helperAgent;
 
     private void Awake()
     {
         ResolveReferences();
+        if (helper != null) helperAgent = helper.GetComponent<NavMeshAgent>();
         if (afraid != null)
         {
             afraidOriginalScale = afraid.transform.localScale;
@@ -33,6 +38,8 @@ public class NightFragmentEncounter : MonoBehaviour
         {
             innerNightFragment.gameObject.SetActive(false);
         }
+
+        if (helper != null) helper.gameObject.SetActive(false);
     }
 
     private void Update()
@@ -70,11 +77,14 @@ public class NightFragmentEncounter : MonoBehaviour
 
         DialogueController.Instance?.ShowDialogue("SHADOW", "Не подходи. Просто смотри.");
 
+        helper.gameObject.SetActive(true);
         afraid.transform.rotation = Quaternion.Euler(0f, afraid.transform.eulerAngles.y, 72f);
         afraid.transform.localScale = new Vector3(afraidOriginalScale.x, afraidOriginalScale.y * 0.65f, afraidOriginalScale.z);
 
         Vector3 target = afraid.transform.position + Vector3.back * 1.2f;
-        while ((helper.transform.position - target).sqrMagnitude > 0.04f)
+        bool hasPath = PrepareHelperPath(target);
+        float startedAt = Time.time;
+        while ((helper.transform.position - target).sqrMagnitude > 0.09f)
         {
             if (WorldState.Instance == null || WorldState.Instance.nightViolenceAttempted)
             {
@@ -82,7 +92,12 @@ public class NightFragmentEncounter : MonoBehaviour
                 yield break;
             }
 
-            helper.transform.position = Vector3.MoveTowards(helper.transform.position, target, runSpeed * Time.deltaTime);
+            if (!hasPath || Time.time - startedAt >= helperTravelTimeout)
+            {
+                helper.transform.position = target;
+                break;
+            }
+
             yield return null;
         }
 
@@ -137,22 +152,39 @@ public class NightFragmentEncounter : MonoBehaviour
         }
     }
 
+    private bool PrepareHelperPath(Vector3 target)
+    {
+        if (helperAgent == null || !helperAgent.enabled) return false;
+        if (!helperAgent.isOnNavMesh &&
+            NavMesh.SamplePosition(helper.transform.position, out NavMeshHit start, 2f, NavMesh.AllAreas))
+        {
+            helperAgent.Warp(start.position);
+        }
+
+        if (!helperAgent.isOnNavMesh ||
+            !NavMesh.SamplePosition(target, out NavMeshHit destination, 2f, NavMesh.AllAreas))
+        {
+            return false;
+        }
+
+        helperAgent.speed = runSpeed;
+        helperAgent.isStopped = false;
+        return helperAgent.SetDestination(destination.position);
+    }
+
     private void ResolveReferences()
     {
-        if (helper == null) helper = FindActor("SHADOW_Ally_01") ?? FindActor("SHADOW_Pleading_01");
-        if (afraid == null) afraid = FindActor("SHADOW_Afraid_01");
         if (innerNightFragment == null) innerNightFragment = FindFirstObjectByType<LightFragmentPickup>(FindObjectsInactive.Include);
-        if (allShadows == null || allShadows.Length == 0) allShadows = FindObjectsByType<PrototypeShadowActor>(FindObjectsSortMode.None);
+        if (allShadows == null || allShadows.Length == 0)
+        {
+            allShadows = FindObjectsByType<PrototypeShadowActor>(FindObjectsSortMode.None)
+                .Where(shadow => shadow != null && shadow.Role == PrototypeShadowActor.ShadowRole.Enemy)
+                .ToArray();
+        }
     }
 
     private string GetHelperSpeakerName()
     {
         return helper != null && helper.name.Contains("Ally") ? "SHADOW_ALLY" : "SHADOW_PLEADING";
-    }
-
-    private static PrototypeShadowActor FindActor(string objectName)
-    {
-        GameObject obj = GameObject.Find(objectName);
-        return obj != null ? obj.GetComponent<PrototypeShadowActor>() : null;
     }
 }
