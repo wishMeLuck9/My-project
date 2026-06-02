@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Unity material files use the same extension as Wolfram Language source files.
+*.mat linguist-detectable=false
