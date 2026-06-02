@@ -14,6 +14,8 @@ public class ExteriorHuntController : MonoBehaviour
     private bool hunting;
     private bool captureLocked;
 
+    public bool IsHunting => hunting;
+
     private void Start()
     {
         ResolveReferences();
@@ -28,6 +30,13 @@ public class ExteriorHuntController : MonoBehaviour
     public void BeginHunt()
     {
         if (hunting) return;
+
+        if (DialogueController.Instance == null || !DialogueController.Instance.IsDialogueOpen)
+        {
+            SetHunting(true);
+            return;
+        }
+
         StartCoroutine(BeginAfterDialogue());
     }
 
@@ -38,24 +47,41 @@ public class ExteriorHuntController : MonoBehaviour
         captureLocked = true;
         WorldState.Instance.RegisterExteriorCapture();
 
+        if (WorldState.Instance.exteriorCaptureCount >= 5)
+        {
+            StartCoroutine(HandlePurgatoryFailure());
+            return;
+        }
+
+        RespawnPlayer();
+        DialogueController.Instance?.ShowDialogue("SHADOW", "Тебя вернули в начало. Следующий побег будет тяжелее.");
+        StartCoroutine(UnlockCapture());
+    }
+
+    private IEnumerator HandlePurgatoryFailure()
+    {
+        SetHunting(false);
+        player.SetCanMove(false);
+        WorldState.Instance.MarkPurgatoryDeath();
+        RuntimeHudController.Instance?.ShowPurgatoryTransition(
+            "Тени добрались до тебя. Теперь тебя ждет чистилище.\n\nТебя не хоронят. Тебя форматируют.");
+
+        yield return new WaitForSecondsRealtime(2.5f);
+
+        WorldState.Instance.ResetExteriorAttempt();
+        exteriorFragment?.RestoreForRetry();
+        RespawnPlayer();
+        player.SetCanMove(true);
+        RuntimeHudController.Instance?.HidePurgatoryTransition();
+        captureLocked = false;
+    }
+
+    private void RespawnPlayer()
+    {
         Vector3 position = respawnPoint != null ? respawnPoint.position : transform.position;
         Quaternion rotation = respawnPoint != null ? respawnPoint.rotation : Quaternion.identity;
         player.Teleport(position, rotation);
         player.ApplyTimedSpeedMultiplier(caughtSlowMultiplier, caughtSlowDuration);
-
-        if (WorldState.Instance.exteriorCaptureCount >= 5)
-        {
-            WorldState.Instance.ResetExteriorAttempt();
-            exteriorFragment?.RestoreForRetry();
-            SetHunting(false);
-            DialogueController.Instance?.ShowDialogue("SHADOW", "Пятый возврат. Фрагмент снова там, где ты его нашел.");
-        }
-        else
-        {
-            DialogueController.Instance?.ShowDialogue("SHADOW", "Тебя вернули в начало. Следующий побег будет тяжелее.");
-        }
-
-        StartCoroutine(UnlockCapture());
     }
 
     private IEnumerator BeginAfterDialogue()

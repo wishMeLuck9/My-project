@@ -7,7 +7,7 @@ EditorBuildSettings:
   m_Scenes:
   - enabled: 1
     path: Assets/Scenes/LOCATION_01_EXTERIOR_DAY.unity
-    guid: d9e5a8f7bf3b2b1498fae654e57581e1
+    guid: bed3b9f041db7ff4c9fa731e75067f76
   - enabled: 1
     path: Assets/Scenes/LOCATION_02_PROTECTED_ALLEYS_NIGHT.unity
     guid: 01de1c3c0125656498bda2f47b1535fc

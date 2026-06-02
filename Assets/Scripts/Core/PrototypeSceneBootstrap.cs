@@ -19,6 +19,7 @@ public static class PrototypeSceneBootstrap
     private static void EnsureCoreManagers()
     {
         DialogueController.EnsureInstance();
+        RuntimeHudController.EnsureInstance();
 
         GameObject managers = GameObject.Find("Managers") ?? GameObject.Find("Managers_Runtime");
         if (managers == null) managers = new GameObject("Managers_Runtime");

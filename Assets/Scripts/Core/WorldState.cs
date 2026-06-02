@@ -145,6 +145,12 @@ public class WorldState : MonoBehaviour
         lightLevel = Mathf.Max(0, lightLevel - 1);
     }
 
+    public void MarkPurgatoryDeath()
+    {
+        playerDeaths += 1;
+        purgatoryMarked = true;
+    }
+
     public void GrantNightFragmentRoute(NightFragmentRoute route)
     {
         nightFragmentRoute = route;

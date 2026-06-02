@@ -14,6 +14,8 @@ public class PlayerAttackController : MonoBehaviour
     private PlayerVisualAnimator visualAnimator;
     [SerializeField] private bool attackEnabledByScene = true;
 
+    public bool IsSceneAttackEnabled => attackEnabledByScene;
+
     private void Awake()
     {
         inputReader = GetComponent<PlayerInputReader>();

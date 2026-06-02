@@ -1,8 +1,11 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class LightFragmentPickup : Interactable
 {
+    public static event Action<FragmentKind> FragmentCollected;
+
     public enum FragmentKind
     {
         Exterior,
@@ -53,6 +56,7 @@ public class LightFragmentPickup : Interactable
         if (WorldState.Instance == null || WorldState.Instance.HasFragment(fragmentKind)) return;
 
         WorldState.Instance.AcquireFragment(fragmentKind);
+        FragmentCollected?.Invoke(fragmentKind);
         gameObject.SetActive(false);
 
         if (fragmentKind == FragmentKind.Exterior)

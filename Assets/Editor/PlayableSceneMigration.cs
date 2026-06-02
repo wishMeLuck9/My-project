@@ -9,15 +9,21 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 
 public static class PlayableSceneMigration
 {
     private const string ExteriorScene = "Assets/Scenes/LOCATION_01_EXTERIOR_DAY.unity";
+    private const string ExteriorArchiveScene = "Assets/Scenes/LOCATION_01_EXTERIOR_DAY_ARCHIVE.unity";
     private const string LegacyNightScene = "Assets/Scenes/LOCATION_02_INNER_NIGHT_SQUARE.unity";
     private const string SourceNightScene = "Assets/Scenes/LOcate2.unity";
     private const string NightScene = "Assets/Scenes/LOCATION_02_PROTECTED_ALLEYS_NIGHT.unity";
     private const string FinalScene = "Assets/Scenes/LOCATION_03_GATE_FINAL.unity";
+    private const string SourceExteriorEnvironment = "Assets/Scenes/DAYMINICITY.fbx";
+    private const string ExteriorArtFolder = "Assets/Art/Locations/Location01_DayMiniCity";
+    private const string ExteriorEnvironment = ExteriorArtFolder + "/DAYMINICITY.fbx";
+    private const string LegacyExteriorEnvironment = ExteriorArtFolder + "/Location01_DayMiniCity.fbx";
     private const string SourceEnvironment = "Assets/Scenes/Virus9_OldTown_ProtectedAlleys_Blockout2_before_origin_to_geometry_20260526_162356.fbx";
     private const string NightArtFolder = "Assets/Art/Locations/Location02_ProtectedAlleysNight";
     private const string NightEnvironment = NightArtFolder + "/Location02_ProtectedAlleysNight.fbx";
@@ -37,14 +43,29 @@ public static class PlayableSceneMigration
     private const float SharedPlayerMoveSpeed = 5f;
     private const float SharedPlayerRotationSpeed = 10f;
     private const bool SharedPlayerJumpEnabled = true;
+    private static readonly string[] FinalGateVisualParts =
+    {
+        "Atmos_Door_Left",
+        "Atmos_Door_Right",
+        "Atmos_Door_Slit",
+        "Atmos_Frame_Left",
+        "Atmos_Frame_Right",
+        "Atmos_Frame_Top",
+        "Gate_Left_Pier",
+        "Gate_Right_Pier",
+        "Atmos_Relief_Left",
+        "Atmos_Relief_Right"
+    };
 
     [MenuItem("Tools/Virus 9/Apply Playable Scene Migration")]
     public static void Apply()
     {
         EnsureFolders();
+        MoveAssetIfNeeded(SourceExteriorEnvironment, ExteriorEnvironment);
         MoveAssetIfNeeded(SourceNightScene, NightScene);
         MoveAssetIfNeeded(SourceEnvironment, NightEnvironment);
         AssetDatabase.Refresh();
+        EnsureExteriorEnvironmentImportSettings();
 
         RuntimeAnimatorController animatorController = EnsureAnimatorController();
         GameObject playerVisual = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerFbx);
@@ -61,6 +82,26 @@ public static class PlayableSceneMigration
         EditorApplication.ExecuteMenuItem("File/Save Project");
         AssetDatabase.Refresh();
         Debug.Log("Playable scene migration applied: exterior chase, protected alleys route, final gate outcome, and animated player visual.");
+    }
+
+    [MenuItem("Tools/Virus 9/Refresh Exterior Day Mini City")]
+    public static void RefreshExteriorDayMiniCity()
+    {
+        EnsureFolders();
+        MoveAssetIfNeeded(SourceExteriorEnvironment, ExteriorEnvironment);
+        AssetDatabase.Refresh();
+        EnsureExteriorEnvironmentImportSettings();
+
+        RuntimeAnimatorController animatorController = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(PlayerController);
+        if (animatorController == null) animatorController = EnsureAnimatorController();
+        GameObject playerVisual = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerFbx);
+        if (playerVisual == null) throw new InvalidOperationException("Player FBX could not be loaded while refreshing exterior scene.");
+
+        ConfigureExteriorScene(playerVisual, animatorController);
+        AssetDatabase.SaveAssets();
+        EditorApplication.ExecuteMenuItem("File/Save Project");
+        AssetDatabase.Refresh();
+        Debug.Log("Exterior day mini city refreshed: clean import, preview camera, gameplay camera, daylight, and selective colliders.");
     }
 
     public static void ApplyFromCommandLine()
@@ -103,18 +144,26 @@ public static class PlayableSceneMigration
     private static void ConfigureExteriorScene(GameObject visualPrefab, RuntimeAnimatorController animatorController)
     {
         Scene scene = EditorSceneManager.OpenScene(ExteriorScene, OpenSceneMode.Single);
-        GameObject player = EnsurePlayer(new Vector3(-1.4f, 1f, -18f), false, visualPrefab, animatorController);
+        EnsureExteriorNarrativeRoots(scene);
+        GameObject environment = EnsureExteriorEnvironment();
+        EnsureExteriorLighting();
+        GameObject player = EnsurePlayer(new Vector3(-1.7f, 1f, -20f), false, visualPrefab, animatorController);
         EnsureCamera(player.transform, SharedCameraOffset, SharedCameraLookAtHeight, SharedCameraFieldOfView);
         EnsureFloor("FloorCollider", new Vector3(0f, -0.5f, 0f), new Vector3(80f, 1f, 80f));
-        EnsureSolidEnvironmentColliders();
+        EnsureExteriorEnvironmentColliders(environment);
 
         LightFragmentPickup fragment = RequireComponent<LightFragmentPickup>("LIGHT_Fragment_01");
+        fragment.transform.position = new Vector3(-3f, 0.5f, 2f);
         fragment.Configure(LightFragmentPickup.FragmentKind.Exterior);
 
-        LocationTransition transition = RequireComponent<LocationTransition>("BUILDING_LivingSquare_Entrance");
+        LocationTransition transition = EnsureComponent<LocationTransition>(
+            EnsureMarker("BUILDING_LivingSquare_Entrance", new Vector3(15.7f, 1.2f, 25f)));
         transition.Configure("LOCATION_02_PROTECTED_ALLEYS_NIGHT", true, true, false);
+        EnsureTrigger(transition.gameObject, new Vector3(3.5f, 3f, 5f));
+        SquarePortalController portal = EnsureExteriorPortal();
+        transition.ConfigurePortal(portal);
 
-        GameObject respawn = EnsureMarker("ExteriorRespawn", new Vector3(-1.4f, 1f, -18f));
+        GameObject respawn = EnsureMarker("ExteriorRespawn", new Vector3(-1.7f, 1f, -20f));
         ExteriorHuntController hunt = EnsureComponent<ExteriorHuntController>(EnsureMarker("ExteriorHunt", Vector3.zero));
         SetReference(hunt, "player", player.GetComponent<PlayerController3D>());
         SetReference(hunt, "playerAttack", player.GetComponent<PlayerAttackController>());
@@ -123,9 +172,259 @@ public static class PlayableSceneMigration
 
         EnsurePursuer("SHADOW_Queue_01");
         EnsurePursuer("SHADOW_Witness_01");
+        RequireObject("SHADOW_Queue_01").transform.position = new Vector3(2f, 0.5f, 6f);
+        RequireObject("SHADOW_Witness_01").transform.position = new Vector3(-5f, 0.5f, 8f);
         SnapActorsToFloor<ExteriorPursuer>();
-        EnsureNavigation("ExteriorNavigation", new Vector3(0f, -0.05f, -4f), new Vector3(10f, 0.1f, 30f));
+        EnsureNavigationVolume("ExteriorNavigation", new Vector3(0f, 3f, 0f), new Vector3(60f, 8f, 60f));
         EditorSceneManager.SaveScene(scene);
+    }
+
+    private static void EnsureExteriorNarrativeRoots(Scene exteriorScene)
+    {
+        if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ExteriorArchiveScene) == null) return;
+
+        Scene archiveScene = EditorSceneManager.OpenScene(ExteriorArchiveScene, OpenSceneMode.Additive);
+        try
+        {
+            foreach (string objectName in new[] { "LIGHT_Fragment_01", "SHADOW_Queue_01", "SHADOW_Witness_01" })
+            {
+                if (FindObject(objectName) != null) continue;
+
+                GameObject source = FindObjectInScene(archiveScene, objectName);
+                if (source == null) throw new InvalidOperationException("Archive exterior scene misses " + objectName + ".");
+                GameObject clone = UnityEngine.Object.Instantiate(source);
+                clone.name = objectName;
+                SceneManager.MoveGameObjectToScene(clone, exteriorScene);
+            }
+        }
+        finally
+        {
+            EditorSceneManager.CloseScene(archiveScene, true);
+        }
+    }
+
+    private static GameObject EnsureExteriorEnvironment()
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ExteriorEnvironment);
+        if (prefab == null) throw new InvalidOperationException("Exterior FBX could not be loaded: " + ExteriorEnvironment);
+
+        Scene scene = SceneManager.GetActiveScene();
+        GameObject environment = scene.GetRootGameObjects()
+            .FirstOrDefault(candidate => PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(candidate) == ExteriorEnvironment);
+        if (environment == null)
+        {
+            environment = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+        }
+
+        foreach (GameObject candidate in scene.GetRootGameObjects().ToArray())
+        {
+            if (candidate == environment) continue;
+            string source = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(candidate);
+            if (source == LegacyExteriorEnvironment || candidate.name == "Location01_DayMiniCity" || candidate.name == "DAYMINICITY")
+            {
+                UnityEngine.Object.DestroyImmediate(candidate);
+            }
+        }
+
+        environment.name = "Location01_DayMiniCity";
+        environment.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+        environment.transform.localScale = Vector3.one;
+        return environment;
+    }
+
+    private static void EnsureExteriorEnvironmentImportSettings()
+    {
+        ModelImporter importer = AssetImporter.GetAtPath(ExteriorEnvironment) as ModelImporter;
+        if (importer == null) throw new InvalidOperationException("Exterior model importer not found: " + ExteriorEnvironment);
+        if (importer.addCollider && !importer.importCameras && !importer.importLights) return;
+
+        importer.addCollider = true;
+        importer.importCameras = false;
+        importer.importLights = false;
+        importer.SaveAndReimport();
+    }
+
+    private static void EnsureExteriorLighting()
+    {
+        Light[] lights = UnityEngine.Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        Light daylight = lights.FirstOrDefault(light => light.type == LightType.Directional && light.transform.parent == null);
+        if (daylight == null)
+        {
+            GameObject lightObject = new GameObject("Directional Light");
+            daylight = lightObject.AddComponent<Light>();
+        }
+
+        foreach (Light light in lights)
+        {
+            if (light != daylight) light.enabled = false;
+        }
+
+        daylight.gameObject.name = "Directional Light";
+        daylight.type = LightType.Directional;
+        daylight.color = new Color(0.92f, 0.96f, 1f);
+        daylight.intensity = 0.9f;
+        daylight.shadows = LightShadows.Soft;
+        daylight.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+        RenderSettings.ambientMode = AmbientMode.Skybox;
+        RenderSettings.ambientIntensity = 0.75f;
+        RenderSettings.reflectionIntensity = 0.6f;
+    }
+
+    private static SquarePortalController EnsureExteriorPortal()
+    {
+        Scene exteriorScene = SceneManager.GetActiveScene();
+        GameObject portalObject = EnsureMarker("ExteriorSquarePortal", new Vector3(17.2f, 0f, 25f));
+        portalObject.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+        portalObject.transform.localScale = Vector3.one * 0.55f;
+
+        CloneFinalGateVisuals(exteriorScene, portalObject.transform);
+        bool hasClonedGateVisuals = HasClonedGateVisuals(portalObject.transform);
+        if (hasClonedGateVisuals)
+        {
+            AlignClonedGateVisuals(portalObject.transform);
+            DestroyPortalFrameFallback(portalObject.transform);
+        }
+        else
+        {
+            EnsurePortalFrameFallback(portalObject.transform, 7.6f, 5.5f);
+        }
+
+        Transform leftDoor = FindDescendant(portalObject.transform, "Atmos_Door_Left")
+            ?? EnsurePortalVisualCube(portalObject.transform, "Atmos_Door_Left", new Vector3(-1.7f, 2.2f, 0f), new Vector3(3.2f, 4.4f, 0.55f));
+        Transform rightDoor = FindDescendant(portalObject.transform, "Atmos_Door_Right")
+            ?? EnsurePortalVisualCube(portalObject.transform, "Atmos_Door_Right", new Vector3(1.7f, 2.2f, 0f), new Vector3(3.2f, 4.4f, 0.55f));
+
+        BoxCollider blocker = EnsurePortalBlocker(portalObject.transform, new Vector3(0f, 2.2f, 0f), new Vector3(7.1f, 4.6f, 0.9f));
+        SquarePortalController portal = EnsureComponent<SquarePortalController>(portalObject);
+        portal.Configure(LightFragmentPickup.FragmentKind.Exterior, true, false, leftDoor, rightDoor, blocker, 2.5f);
+        return portal;
+    }
+
+    private static SquarePortalController EnsureNightPortal(GameObject transitionObject)
+    {
+        Renderer transitionRenderer = transitionObject.GetComponent<Renderer>();
+        if (transitionRenderer != null) transitionRenderer.enabled = false;
+
+        GameObject portalObject = EnsureMarker("NightSquarePortal", transitionObject.transform.position);
+        Transform leftDoor = EnsurePortalVisualCube(portalObject.transform, "NightDoor_Left", new Vector3(-0.82f, 1.35f, 0f), new Vector3(1.55f, 2.7f, 0.35f));
+        Transform rightDoor = EnsurePortalVisualCube(portalObject.transform, "NightDoor_Right", new Vector3(0.82f, 1.35f, 0f), new Vector3(1.55f, 2.7f, 0.35f));
+        EnsurePortalFrameFallback(portalObject.transform, 4.4f, 3.7f);
+        BoxCollider blocker = EnsurePortalBlocker(portalObject.transform, new Vector3(0f, 1.35f, 0f), new Vector3(3.4f, 2.8f, 0.65f));
+
+        SquarePortalController portal = EnsureComponent<SquarePortalController>(portalObject);
+        portal.Configure(LightFragmentPickup.FragmentKind.InnerNight, true, false, leftDoor, rightDoor, blocker, 1.2f);
+        return portal;
+    }
+
+    private static void CloneFinalGateVisuals(Scene targetScene, Transform portalRoot)
+    {
+        if (AssetDatabase.LoadAssetAtPath<SceneAsset>(FinalScene) == null) return;
+
+        Scene sourceScene = EditorSceneManager.OpenScene(FinalScene, OpenSceneMode.Additive);
+        try
+        {
+            foreach (string partName in FinalGateVisualParts)
+            {
+                GameObject source = FindObjectInScene(sourceScene, partName);
+                if (source == null || FindDescendant(portalRoot, partName) != null) continue;
+
+                GameObject clone = UnityEngine.Object.Instantiate(source);
+                clone.name = partName;
+                SceneManager.MoveGameObjectToScene(clone, targetScene);
+                clone.transform.SetParent(portalRoot, false);
+                clone.transform.localPosition = source.transform.localPosition;
+                clone.transform.localRotation = source.transform.localRotation;
+                clone.transform.localScale = source.transform.localScale;
+                foreach (Collider collider in clone.GetComponentsInChildren<Collider>(true))
+                {
+                    UnityEngine.Object.DestroyImmediate(collider);
+                }
+            }
+        }
+        finally
+        {
+            EditorSceneManager.CloseScene(sourceScene, true);
+        }
+    }
+
+    private static bool HasClonedGateVisuals(Transform portalRoot)
+    {
+        return FinalGateVisualParts.Any(partName => FindDescendant(portalRoot, partName) != null);
+    }
+
+    private static void AlignClonedGateVisuals(Transform portalRoot)
+    {
+        Transform[] parts = FinalGateVisualParts
+            .Select(partName => FindDescendant(portalRoot, partName))
+            .Where(part => part != null)
+            .ToArray();
+        Renderer[] renderers = parts
+            .SelectMany(part => part.GetComponentsInChildren<Renderer>(true))
+            .ToArray();
+        if (renderers.Length == 0) return;
+
+        Bounds bounds = renderers[0].bounds;
+        foreach (Renderer renderer in renderers.Skip(1))
+        {
+            bounds.Encapsulate(renderer.bounds);
+        }
+
+        Vector3 worldOffset = new Vector3(
+            portalRoot.position.x - bounds.center.x,
+            portalRoot.position.y - bounds.min.y,
+            portalRoot.position.z - bounds.center.z);
+        Vector3 localOffset = portalRoot.InverseTransformVector(worldOffset);
+        foreach (Transform part in parts.Where(part => part.parent == portalRoot))
+        {
+            part.localPosition += localOffset;
+        }
+    }
+
+    private static void DestroyPortalFrameFallback(Transform parent)
+    {
+        foreach (string name in new[] { "PortalFrame_Left", "PortalFrame_Right", "PortalFrame_Top" })
+        {
+            Transform existing = parent.Find(name);
+            if (existing != null) UnityEngine.Object.DestroyImmediate(existing.gameObject);
+        }
+    }
+
+    private static Transform EnsurePortalVisualCube(Transform parent, string name, Vector3 localPosition, Vector3 localScale)
+    {
+        Transform existing = parent.Find(name);
+        GameObject visual = existing != null ? existing.gameObject : GameObject.CreatePrimitive(PrimitiveType.Cube);
+        visual.name = name;
+        visual.transform.SetParent(parent, false);
+        visual.transform.localPosition = localPosition;
+        visual.transform.localRotation = Quaternion.identity;
+        visual.transform.localScale = localScale;
+        foreach (Collider collider in visual.GetComponents<Collider>())
+        {
+            UnityEngine.Object.DestroyImmediate(collider);
+        }
+
+        return visual.transform;
+    }
+
+    private static void EnsurePortalFrameFallback(Transform parent, float width, float height)
+    {
+        EnsurePortalVisualCube(parent, "PortalFrame_Left", new Vector3(-width * 0.5f, height * 0.5f, 0f), new Vector3(0.45f, height, 0.75f));
+        EnsurePortalVisualCube(parent, "PortalFrame_Right", new Vector3(width * 0.5f, height * 0.5f, 0f), new Vector3(0.45f, height, 0.75f));
+        EnsurePortalVisualCube(parent, "PortalFrame_Top", new Vector3(0f, height, 0f), new Vector3(width, 0.45f, 0.75f));
+    }
+
+    private static BoxCollider EnsurePortalBlocker(Transform parent, Vector3 localPosition, Vector3 size)
+    {
+        Transform existing = parent.Find("PortalPhysicalBlocker");
+        GameObject blockerObject = existing != null ? existing.gameObject : new GameObject("PortalPhysicalBlocker");
+        blockerObject.transform.SetParent(parent, false);
+        blockerObject.transform.localPosition = localPosition;
+        blockerObject.transform.localRotation = Quaternion.identity;
+        blockerObject.transform.localScale = Vector3.one;
+        BoxCollider blocker = EnsureComponent<BoxCollider>(blockerObject);
+        blocker.isTrigger = false;
+        blocker.size = size;
+        return blocker;
     }
 
     private static void ConfigureNightScene(GameObject visualPrefab, RuntimeAnimatorController animatorController)
@@ -186,6 +485,9 @@ public static class PlayableSceneMigration
 
         LocationTransition transition = RequireComponent<LocationTransition>("EXIT_To_FinalGate_Exit");
         transition.Configure("LOCATION_03_GATE_FINAL", false, true, true);
+        SquarePortalController portal = EnsureNightPortal(transition.gameObject);
+        transition.ConfigurePortal(portal);
+        SetReference(encounter, "exitPortal", portal);
         EditorSceneManager.SaveScene(scene);
     }
 
@@ -348,6 +650,19 @@ public static class PlayableSceneMigration
         surface.BuildNavMesh();
     }
 
+    private static void EnsureNavigationVolume(string name, Vector3 center, Vector3 size)
+    {
+        GameObject navigation = EnsureMarker(name, Vector3.zero);
+        DestroyIfPresent("NAV_Walkable");
+
+        NavMeshSurface surface = EnsureComponent<NavMeshSurface>(navigation);
+        surface.collectObjects = CollectObjects.Volume;
+        surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
+        surface.center = center;
+        surface.size = size;
+        surface.BuildNavMesh();
+    }
+
     private static void EnsureSolidEnvironmentColliders()
     {
         foreach (MeshFilter meshFilter in UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -360,6 +675,88 @@ public static class PlayableSceneMigration
             collider.isTrigger = false;
             meshFilter.gameObject.isStatic = true;
         }
+    }
+
+    private static void EnsureExteriorEnvironmentColliders(GameObject environment)
+    {
+        foreach (MeshFilter meshFilter in environment.GetComponentsInChildren<MeshFilter>(true))
+        {
+            foreach (Collider collider in meshFilter.GetComponents<Collider>())
+            {
+                collider.enabled = !ShouldDisableExteriorCollider(meshFilter.name);
+            }
+
+            if (ShouldDisableExteriorCollider(meshFilter.name) ||
+                !IsExteriorObstacleMesh(meshFilter.name) ||
+                meshFilter.sharedMesh == null ||
+                meshFilter.GetComponent<Collider>() != null)
+            {
+                continue;
+            }
+
+            MeshCollider meshCollider = meshFilter.gameObject.AddComponent<MeshCollider>();
+            meshCollider.sharedMesh = meshFilter.sharedMesh;
+            meshCollider.convex = false;
+            meshCollider.isTrigger = false;
+            meshFilter.gameObject.isStatic = true;
+        }
+    }
+
+    private static bool ShouldDisableExteriorCollider(string objectName)
+    {
+        return IsVisualOnlyEnvironmentMesh(objectName) ||
+               objectName.Contains("Roof", StringComparison.OrdinalIgnoreCase) ||
+               objectName.EndsWith("_R", StringComparison.Ordinal) ||
+               objectName.EndsWith("_Win", StringComparison.Ordinal) ||
+               objectName.EndsWith("_In", StringComparison.Ordinal) ||
+               objectName.StartsWith("Drift", StringComparison.Ordinal) ||
+               objectName.StartsWith("StreetDrift", StringComparison.Ordinal) ||
+               objectName.StartsWith("Ice", StringComparison.Ordinal) ||
+               objectName.StartsWith("Icicle_", StringComparison.Ordinal);
+    }
+
+    private static bool IsExteriorObstacleMesh(string objectName)
+    {
+        if (IsVisualOnlyEnvironmentMesh(objectName) ||
+            objectName == "Ground" ||
+            objectName.StartsWith("Drift", StringComparison.Ordinal) ||
+            objectName.StartsWith("StreetDrift", StringComparison.Ordinal) ||
+            objectName.StartsWith("Ice", StringComparison.Ordinal) ||
+            objectName.StartsWith("Icicle_", StringComparison.Ordinal) ||
+            objectName.StartsWith("St_", StringComparison.Ordinal) ||
+            objectName.EndsWith("_R", StringComparison.Ordinal) ||
+            objectName.EndsWith("_D", StringComparison.Ordinal) ||
+            objectName.EndsWith("_W", StringComparison.Ordinal) ||
+            objectName.EndsWith("_In", StringComparison.Ordinal) ||
+            objectName.Contains("_Ch", StringComparison.Ordinal) ||
+            objectName.Contains("_C", StringComparison.Ordinal) ||
+            objectName.Contains(".", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return IsSolidEnvironmentMesh(objectName) ||
+               IsExteriorBuildingCore(objectName) ||
+               objectName == "BigTank" ||
+               objectName == "CtrlRoom" ||
+               objectName == "PumpHouse" ||
+               objectName.StartsWith("Div_", StringComparison.Ordinal) ||
+               objectName.StartsWith("FB_", StringComparison.Ordinal) ||
+               objectName.StartsWith("FP_", StringComparison.Ordinal) ||
+               objectName.StartsWith("Lamp_Post_", StringComparison.Ordinal) ||
+               objectName.StartsWith("Pipe", StringComparison.Ordinal) ||
+               objectName.StartsWith("PS_", StringComparison.Ordinal) ||
+               objectName.StartsWith("Tank_", StringComparison.Ordinal) ||
+               objectName.StartsWith("Silo_", StringComparison.Ordinal) ||
+               objectName.StartsWith("Wall_", StringComparison.Ordinal);
+    }
+
+    private static bool IsExteriorBuildingCore(string objectName)
+    {
+        return (objectName.StartsWith("WH_", StringComparison.Ordinal) ||
+                objectName.StartsWith("WS_", StringComparison.Ordinal) ||
+                objectName.StartsWith("Res_", StringComparison.Ordinal)) &&
+               objectName.Count(character => character == '_') == 1;
     }
 
     private static bool IsSolidEnvironmentMesh(string objectName)
@@ -744,6 +1141,7 @@ public static class PlayableSceneMigration
         if (path == ExteriorScene)
         {
             ValidateActorPlacement<ExteriorPursuer>(path, issues, 0.08f);
+            ValidateActorsClearOfEnvironment<ExteriorPursuer>(path, issues);
             ValidateEnemyJumpers<ExteriorPursuer>(path, issues);
         }
 
@@ -774,6 +1172,7 @@ public static class PlayableSceneMigration
         List<string> missing = UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsInactive.Include, FindObjectsSortMode.None)
             .Where(meshFilter => IsSolidEnvironmentMesh(meshFilter.name) &&
                                  meshFilter.sharedMesh != null &&
+                                 meshFilter.GetComponentInParent<SquarePortalController>() == null &&
                                  meshFilter.GetComponent<Collider>() == null &&
                                  meshFilter.GetComponentInParent<Collider>() == null &&
                                  meshFilter.GetComponentInChildren<Collider>(true) == null)
@@ -818,6 +1217,29 @@ public static class PlayableSceneMigration
         }
     }
 
+    private static void ValidateActorsClearOfEnvironment<T>(string path, List<string> issues) where T : Component
+    {
+        Physics.SyncTransforms();
+        foreach (T actor in UnityEngine.Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            Collider[] blockers = Physics.OverlapCapsule(
+                    actor.transform.position + Vector3.up * 0.15f,
+                    actor.transform.position + Vector3.up * 1.7f,
+                    0.42f,
+                    ~0,
+                    QueryTriggerInteraction.Ignore)
+                .Where(collider => collider != null &&
+                                   collider.name != "FloorCollider" &&
+                                   collider.GetComponentInParent<T>() == null)
+                .ToArray();
+            if (blockers.Length > 0)
+            {
+                issues.Add(Path.GetFileName(path) + " has actor inside solid environment: " +
+                           actor.name + " intersects " + string.Join(", ", blockers.Select(blocker => blocker.name).Distinct()) + ".");
+            }
+        }
+    }
+
     private static Vector3 GetSerializedVector3(UnityEngine.Object target, string propertyName)
     {
         SerializedProperty property = new SerializedObject(target).FindProperty(propertyName);
@@ -840,6 +1262,7 @@ public static class PlayableSceneMigration
     {
         EnsureFolder("Assets/Art/Characters");
         EnsureFolder(PlayerFolder);
+        EnsureFolder(ExteriorArtFolder);
         EnsureFolder(NightArtFolder);
     }
 
@@ -983,5 +1406,23 @@ public static class PlayableSceneMigration
         }
 
         return null;
+    }
+
+    private static GameObject FindObjectInScene(Scene scene, string objectName)
+    {
+        foreach (GameObject root in scene.GetRootGameObjects())
+        {
+            Transform match = root.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(candidate => candidate.name == objectName);
+            if (match != null) return match.gameObject;
+        }
+
+        return null;
+    }
+
+    private static Transform FindDescendant(Transform root, string objectName)
+    {
+        return root.GetComponentsInChildren<Transform>(true)
+            .FirstOrDefault(candidate => candidate.name == objectName);
     }
 }

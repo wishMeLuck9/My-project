@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class InteractionController : MonoBehaviour
@@ -7,6 +8,10 @@ public class InteractionController : MonoBehaviour
 
     private readonly Collider[] overlapHits = new Collider[16];
     private PlayerInputReader inputReader;
+    private Interactable currentInteractable;
+
+    public bool HasNearbyInteractable => currentInteractable != null;
+    public event Action<bool> InteractionAvailabilityChanged;
 
     private void Awake()
     {
@@ -24,7 +29,19 @@ public class InteractionController : MonoBehaviour
         if (inputReader != null) inputReader.InteractPressed -= HandleInteractPressed;
     }
 
+    private void Update()
+    {
+        SetCurrentInteractable(FindInteractable());
+    }
+
     private void TryInteract()
+    {
+        Interactable interactable = FindInteractable();
+        SetCurrentInteractable(interactable);
+        interactable?.Interact();
+    }
+
+    private Interactable FindInteractable()
     {
         int mask = interactableLayer.value == 0 ? Physics.DefaultRaycastLayers : interactableLayer.value;
         Vector3 origin = transform.position + Vector3.up * 0.8f;
@@ -32,11 +49,7 @@ public class InteractionController : MonoBehaviour
         if (Physics.Raycast(origin, transform.forward, out RaycastHit hit, interactionRange, mask, QueryTriggerInteraction.Collide))
         {
             Interactable interactable = hit.collider.GetComponentInParent<Interactable>();
-            if (interactable != null)
-            {
-                interactable.Interact();
-                return;
-            }
+            if (interactable != null) return interactable;
         }
 
         Interactable nearest = null;
@@ -58,7 +71,15 @@ public class InteractionController : MonoBehaviour
             nearestDistance = distance;
         }
 
-        if (nearest != null) nearest.Interact();
+        return nearest;
+    }
+
+    private void SetCurrentInteractable(Interactable interactable)
+    {
+        if (currentInteractable == interactable) return;
+
+        currentInteractable = interactable;
+        InteractionAvailabilityChanged?.Invoke(currentInteractable != null);
     }
 
     private void HandleInteractPressed()

@@ -7,18 +7,21 @@ public class PlayerInputReader : MonoBehaviour
     [SerializeField] private InputActionAsset actionsAsset;
     [SerializeField] private string playerMapName = "Player";
     [SerializeField] private string moveActionName = "Move";
+    [SerializeField] private string lookActionName = "Look";
     [SerializeField] private string jumpActionName = "Jump";
     [SerializeField] private string attackActionName = "Attack";
     [SerializeField] private string interactActionName = "Interact";
 
     private InputActionMap playerMap;
     private InputAction moveAction;
+    private InputAction lookAction;
     private InputAction jumpAction;
     private InputAction attackAction;
     private InputAction interactAction;
     private bool isListening;
 
     public Vector2 MoveInput { get; private set; }
+    public Vector2 LookInput { get; private set; }
     public event Action JumpPressed;
     public event Action AttackPressed;
     public event Action InteractPressed;
@@ -50,6 +53,7 @@ public class PlayerInputReader : MonoBehaviour
     {
         playerMap = actionsAsset != null ? actionsAsset.FindActionMap(playerMapName, false) : null;
         moveAction = playerMap?.FindAction(moveActionName, false);
+        lookAction = playerMap?.FindAction(lookActionName, false);
         jumpAction = playerMap?.FindAction(jumpActionName, false);
         attackAction = playerMap?.FindAction(attackActionName, false);
         interactAction = playerMap?.FindAction(interactActionName, false);
@@ -64,6 +68,12 @@ public class PlayerInputReader : MonoBehaviour
         {
             moveAction.performed += OnMove;
             moveAction.canceled += OnMove;
+        }
+
+        if (lookAction != null)
+        {
+            lookAction.performed += OnLook;
+            lookAction.canceled += OnLook;
         }
 
         if (jumpAction != null) jumpAction.performed += OnJump;
@@ -84,18 +94,30 @@ public class PlayerInputReader : MonoBehaviour
             moveAction.canceled -= OnMove;
         }
 
+        if (lookAction != null)
+        {
+            lookAction.performed -= OnLook;
+            lookAction.canceled -= OnLook;
+        }
+
         if (jumpAction != null) jumpAction.performed -= OnJump;
         if (attackAction != null) attackAction.performed -= OnAttack;
         if (interactAction != null) interactAction.started -= OnInteract;
 
         playerMap?.Disable();
         MoveInput = Vector2.zero;
+        LookInput = Vector2.zero;
         isListening = false;
     }
 
     private void OnMove(InputAction.CallbackContext context)
     {
         MoveInput = context.ReadValue<Vector2>();
+    }
+
+    private void OnLook(InputAction.CallbackContext context)
+    {
+        LookInput = context.ReadValue<Vector2>();
     }
 
     private void OnJump(InputAction.CallbackContext context)

@@ -9,6 +9,7 @@ public class NightFragmentEncounter : MonoBehaviour
     [SerializeField] private PrototypeShadowActor[] allShadows;
     [SerializeField] private LightFragmentPickup innerNightFragment;
     [SerializeField] private Transform mercyDropPoint;
+    [SerializeField] private SquarePortalController exitPortal;
     [SerializeField] private float runSpeed = 3.2f;
 
     private bool mercyStarted;
@@ -102,6 +103,11 @@ public class NightFragmentEncounter : MonoBehaviour
     {
         routeCompleted = true;
         WorldState.Instance.GrantNightFragmentRoute(route);
+        if (route == WorldState.NightFragmentRoute.Violence)
+        {
+            exitPortal?.Unlock();
+        }
+
         if (innerNightFragment != null)
         {
             if (mercyDropPoint != null) innerNightFragment.transform.position = mercyDropPoint.position;
