@@ -17,6 +17,7 @@ public static class PlayableSceneMigration
     private const string LegacyExteriorScene = "Assets/Scenes/LOCATION_01_EXTERIOR_DAY.unity";
     private const string LegacyNightPlayableScene = "Assets/Scenes/LOCATION_02_PROTECTED_ALLEYS_NIGHT.unity";
     private const string LegacyFinalScene = "Assets/Scenes/LOCATION_03_GATE_FINAL.unity";
+    private const string FrontendScene = "Assets/Scenes/Frontend/MENU_BOOT.unity";
     private const string ExteriorScene = "Assets/Scenes/Playable/LOCATION_01_EXTERIOR_DAY.unity";
     private const string ExteriorArchiveScene = "Assets/Scenes/Archive/LOCATION_01_EXTERIOR_DAY_ARCHIVE.unity";
     private const string LegacyNightScene = "Assets/Scenes/LOCATION_02_INNER_NIGHT_SQUARE.unity";
@@ -134,10 +135,10 @@ public static class PlayableSceneMigration
         List<string> issues = new List<string>();
 
         string[] route = EditorBuildSettings.scenes.Where(scene => scene.enabled).Select(scene => scene.path).ToArray();
-        string[] expected = { ExteriorScene, NightScene, FinalScene };
+        string[] expected = { FrontendScene, ExteriorScene, NightScene, FinalScene };
         if (!route.SequenceEqual(expected))
         {
-            issues.Add("Build Settings route is not exterior -> protected alleys -> final gate.");
+            issues.Add("Build Settings route is not menu -> exterior -> protected alleys -> final gate.");
         }
 
         ValidateScene(ExteriorScene, issues, "Player_Fragment", "LIGHT_Fragment_01", "BUILDING_LivingSquare_Entrance", "ExteriorHunt");
@@ -579,8 +580,10 @@ public static class PlayableSceneMigration
         FinalStateEvaluator previousEvaluator = evaluatorObject.GetComponent<FinalStateEvaluator>();
         if (previousEvaluator != null) UnityEngine.Object.DestroyImmediate(previousEvaluator);
         FinalGateOutcomeController outcome = EnsureComponent<FinalGateOutcomeController>(evaluatorObject);
+        FinalBossDirector bossDirector = EnsureComponent<FinalBossDirector>(evaluatorObject);
 
         GameObject respawn = EnsureMarker("FinalArenaRespawn", new Vector3(0f, 1.2f, -12f));
+        SetReference(player.GetComponent<PlayerHealthController>(), "checkpoint", respawn.transform);
         SetReference(outcome, "arenaRespawnPoint", respawn.transform);
         SetReference(outcome, "leftGateDoor", RequireObject("Atmos_Door_Left").transform);
         SetReference(outcome, "rightGateDoor", RequireObject("Atmos_Door_Right").transform);
@@ -589,6 +592,9 @@ public static class PlayableSceneMigration
         GuardianController forceGuardian = EnsureGuardian("GUARDIAN_Force", "GUARDIAN_FORCE", true);
         GuardianController memoryGuardian = EnsureGuardian("GUARDIAN_Memory", "GUARDIAN_MEMORY", false);
         SetReferenceArray(outcome, "guardians", forceGuardian, memoryGuardian);
+        SetReference(bossDirector, "outcome", outcome);
+        SetReference(bossDirector, "player", player.GetComponent<PlayerController3D>());
+        SetReferenceArray(bossDirector, "guardians", forceGuardian, memoryGuardian);
         SnapActorsToFloor<GuardianController>();
         EnsureNavigation("FinalNavigation", new Vector3(0f, 0.15f, -2f), new Vector3(20f, 0.1f, 30f));
         SnapActorsToNavigation<GuardianController>(3f);
@@ -618,6 +624,8 @@ public static class PlayableSceneMigration
         movement.ConfigureTraversal(SharedPlayerJumpEnabled);
         PlayerAttackController attack = EnsureComponent<PlayerAttackController>(player);
         attack.SetSceneAttackEnabled(canAttack);
+        EnsureComponent<CombatantHealth>(player).Configure(3);
+        EnsureComponent<PlayerHealthController>(player);
         EnsureComponent<InteractionController>(player);
 
         Renderer placeholder = player.GetComponent<Renderer>();
@@ -692,6 +700,8 @@ public static class PlayableSceneMigration
         GameObject guardian = RequireObject(objectName);
         GuardianController controller = EnsureComponent<GuardianController>(guardian);
         controller.Configure(displayName, isForce);
+        controller.ConfigureBattleStats(isForce ? 4 : 3, isForce ? 4.2f : 3.6f, 1.45f);
+        EnsureComponent<GuardianAttackController>(guardian);
         NavMeshAgent agent = EnsureComponent<NavMeshAgent>(guardian);
         agent.radius = 0.4f;
         agent.height = 2f;
@@ -992,6 +1002,7 @@ public static class PlayableSceneMigration
     {
         EditorBuildSettings.scenes = new[]
         {
+            new EditorBuildSettingsScene(FrontendScene, true),
             new EditorBuildSettingsScene(ExteriorScene, true),
             new EditorBuildSettingsScene(NightScene, true),
             new EditorBuildSettingsScene(FinalScene, true)
@@ -1359,6 +1370,12 @@ public static class PlayableSceneMigration
 
         if (path == FinalScene)
         {
+            PlayerController3D finalPlayer = FindObject("Player_Fragment")?.GetComponent<PlayerController3D>();
+            if (finalPlayer == null || finalPlayer.GetComponent<PlayerHealthController>() == null)
+            {
+                issues.Add(Path.GetFileName(path) + " has no player health controller.");
+            }
+
             FinalGateOutcomeController outcome = FindObject("FinalEvaluator")?.GetComponent<FinalGateOutcomeController>();
             if (outcome == null ||
                 !HasSerializedReference(outcome, "leftGateDoor") ||
@@ -1366,6 +1383,20 @@ public static class PlayableSceneMigration
                 !HasSerializedReference(outcome, "finalEntryTrigger"))
             {
                 issues.Add(Path.GetFileName(path) + " has unassigned final gate references.");
+            }
+
+            if (outcome == null || outcome.GetComponent<FinalBossDirector>() == null)
+            {
+                issues.Add(Path.GetFileName(path) + " has no final boss director.");
+            }
+
+            foreach (GuardianController guardian in UnityEngine.Object.FindObjectsByType<GuardianController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (guardian.GetComponent<CombatantHealth>() == null ||
+                    guardian.GetComponent<GuardianAttackController>() == null)
+                {
+                    issues.Add(Path.GetFileName(path) + " has guardian without combat components: " + guardian.name);
+                }
             }
 
             ValidateActorPlacement<GuardianController>(path, issues, 0.08f);

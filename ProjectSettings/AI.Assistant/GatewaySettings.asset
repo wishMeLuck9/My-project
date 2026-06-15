@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.AI.Assistant.Editor:Unity.AI.Assistant.Editor:GatewayProjectSettings
   m_ProviderWorkingDirs:
   - providerId: codex
-    workingDir: C:/Users/ACER/Desktop/Mir/unity/UNITYEXP/My project/codex
+    workingDir: C:/Users/ACER/Desktop/Mir/UnityLearning/Personal_Projects/VIRUS9_My_Project
   m_IncludeDefaultAgentsMd: 1

@@ -21,7 +21,9 @@ public class DialogueController : MonoBehaviour
     private const float MaxChoiceButtonHeight = 52f;
     private const float MinChoiceButtonHeight = 38f;
     private const float ChoiceSpacing = 8f;
-    private const float DialogueFontSize = 22f;
+    private const float BaseDialogueFontSize = 22f;
+    private const float HeldSubmitDelay = 0.65f;
+    private const float HeldSubmitInterval = 0.28f;
 
     [SerializeField] private GameObject dialoguePanel;
     [SerializeField] private TextMeshProUGUI speakerText;
@@ -42,6 +44,7 @@ public class DialogueController : MonoBehaviour
     private int currentPage;
     private List<string> pages = new List<string>();
     private string currentSpeaker;
+    private float nextHeldSubmitAt;
 
     public bool IsDialogueOpen => dialoguePanel != null && dialoguePanel.activeSelf;
 
@@ -86,6 +89,7 @@ public class DialogueController : MonoBehaviour
 
         Instance = this;
         EnsureEventSystem();
+        SettingsManager.SettingsChanged += RefreshSettings;
         ConfigureCanvasScaler();
         ConfigureDialogueLayout(1);
 
@@ -103,16 +107,27 @@ public class DialogueController : MonoBehaviour
 
         if (Time.frameCount <= ignoreSubmitUntilFrame) return;
 
-        if (WasSubmitPressed() && selectedButtonIndex >= 0 && selectedButtonIndex < activeButtons.Count)
+        if (WasSubmitRequested() && selectedButtonIndex >= 0 && selectedButtonIndex < activeButtons.Count)
         {
             activeButtons[selectedButtonIndex].onClick.Invoke();
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance != this) return;
+
+        SettingsManager.SettingsChanged -= RefreshSettings;
+        Instance = null;
     }
 
     public void ShowDialogue(string speaker, string text, Action onComplete = null)
     {
         if (!HasRequiredReferences()) return;
 
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        speaker = localizer.TranslateRaw(speaker);
+        text = localizer.TranslateRaw(text);
         onDialogueComplete = onComplete;
         currentSpeaker = speaker;
         fullDialogueText = text;
@@ -133,6 +148,9 @@ public class DialogueController : MonoBehaviour
     {
         if (!HasRequiredReferences()) return;
 
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        speaker = localizer.TranslateRaw(speaker);
+        text = localizer.TranslateRaw(text);
         int choiceCount = choices != null ? choices.Count : 0;
         ConfigureDialogueLayout(choiceCount);
         dialoguePanel.SetActive(true);
@@ -148,7 +166,7 @@ public class DialogueController : MonoBehaviour
             {
                 DialogueChoice capturedChoice = choice;
                 Button button = Instantiate(choiceButtonPrefab, choiceContainer.transform);
-                ConfigureChoiceButton(button, capturedChoice.text);
+                ConfigureChoiceButton(button, localizer.TranslateRaw(capturedChoice.text));
                 button.onClick.AddListener(() =>
                 {
                     CompleteDialogue();
@@ -260,12 +278,12 @@ public class DialogueController : MonoBehaviour
 
         if (isLastPage)
         {
-            ConfigureChoiceButton(button, "Продолжить");
+            ConfigureChoiceButton(button, LocalizationManager.EnsureInstance().Get("dialogue.continue", "Продолжить"));
             button.onClick.AddListener(CompleteDialogue);
         }
         else
         {
-            string label = $"Далее ({currentPage + 1}/{pages.Count})";
+            string label = LocalizationManager.EnsureInstance().Format("dialogue.next", currentPage + 1, pages.Count);
             ConfigureChoiceButton(button, label);
             button.onClick.AddListener(NextPage);
         }
@@ -353,7 +371,8 @@ public class DialogueController : MonoBehaviour
         if (scaler == null) return;
 
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1280f, 720f);
+        float scale = SettingsManager.Instance != null ? SettingsManager.Instance.UiScale : 1f;
+        scaler.referenceResolution = new Vector2(1280f, 720f) / Mathf.Max(0.1f, scale);
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0.5f;
     }
@@ -415,7 +434,7 @@ public class DialogueController : MonoBehaviour
         dialogueText.textWrappingMode = TextWrappingModes.Normal;
         dialogueText.overflowMode = TextOverflowModes.Truncate;
         dialogueText.enableAutoSizing = false;
-        dialogueText.fontSize = DialogueFontSize;
+        dialogueText.fontSize = ResolveDialogueFontSize();
     }
 
     private void ConfigureChoiceContainer()
@@ -492,7 +511,7 @@ public class DialogueController : MonoBehaviour
         panelImage.color = new Color(0f, 0f, 0f, 0.94f);
 
         speakerText = CreateText("SpeakerText", dialoguePanel.transform, "SYSTEM", new Color32(255, 56, 56, 255), 22f);
-        dialogueText = CreateText("DialogueText", dialoguePanel.transform, string.Empty, Color.white, DialogueFontSize);
+        dialogueText = CreateText("DialogueText", dialoguePanel.transform, string.Empty, Color.white, ResolveDialogueFontSize());
 
         choiceContainer = new GameObject("ChoiceContainer", typeof(RectTransform));
         choiceContainer.transform.SetParent(dialoguePanel.transform, false);
@@ -590,7 +609,34 @@ public class DialogueController : MonoBehaviour
 #endif
     }
 
-    private static bool WasSubmitPressed()
+    private bool WasSubmitRequested()
+    {
+        if (WasSubmitPressedThisFrame())
+        {
+            nextHeldSubmitAt = Time.unscaledTime + HeldSubmitDelay;
+            return true;
+        }
+
+        SettingsManager settings = SettingsManager.Instance;
+        if (settings == null || !settings.HoldInsteadOfRepeat || !IsSubmitHeld())
+        {
+            nextHeldSubmitAt = 0f;
+            return false;
+        }
+
+        if (nextHeldSubmitAt <= 0f)
+        {
+            nextHeldSubmitAt = Time.unscaledTime + HeldSubmitDelay;
+            return false;
+        }
+
+        if (Time.unscaledTime < nextHeldSubmitAt) return false;
+
+        nextHeldSubmitAt = Time.unscaledTime + HeldSubmitInterval;
+        return true;
+    }
+
+    private static bool WasSubmitPressedThisFrame()
     {
 #if ENABLE_INPUT_SYSTEM
         Keyboard keyboard = Keyboard.current;
@@ -605,6 +651,42 @@ public class DialogueController : MonoBehaviour
             || Input.GetKeyDown(KeyCode.Return)
             || Input.GetKeyDown(KeyCode.KeypadEnter);
 #endif
+    }
+
+    private static bool IsSubmitHeld()
+    {
+#if ENABLE_INPUT_SYSTEM
+        Keyboard keyboard = Keyboard.current;
+        return keyboard != null
+            && (keyboard.eKey.isPressed
+                || keyboard.spaceKey.isPressed
+                || keyboard.enterKey.isPressed
+                || keyboard.numpadEnterKey.isPressed);
+#else
+        return Input.GetKey(KeyCode.E)
+            || Input.GetKey(KeyCode.Space)
+            || Input.GetKey(KeyCode.Return)
+            || Input.GetKey(KeyCode.KeypadEnter);
+#endif
+    }
+
+    private void RefreshSettings()
+    {
+        ConfigureCanvasScaler();
+        if (dialogueText != null) dialogueText.fontSize = ResolveDialogueFontSize();
+    }
+
+    private static float ResolveDialogueFontSize()
+    {
+        SettingsManager settings = SettingsManager.Instance;
+        if (settings == null) return BaseDialogueFontSize;
+
+        return settings.SubtitleSize switch
+        {
+            0 => BaseDialogueFontSize - 3f,
+            2 => BaseDialogueFontSize + 4f,
+            _ => BaseDialogueFontSize
+        };
     }
 
     private bool HasRequiredReferences()

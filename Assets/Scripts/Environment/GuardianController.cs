@@ -14,6 +14,8 @@ public class GuardianController : Interactable
     private Transform player;
     private NavMeshAgent agent;
     private EnemyJumpController jumper;
+    private CombatantHealth healthComponent;
+    private GuardianAttackController attacks;
     private int health;
     private Vector3 spawnPosition;
     private Quaternion spawnRotation;
@@ -23,14 +25,20 @@ public class GuardianController : Interactable
 
     public string GuardianName => string.IsNullOrWhiteSpace(guardianName) ? name : guardianName;
     public bool IsDefeated => defeated;
+    public int MaxHealth => Health.MaxHealth;
+    public int CurrentHealth => defeated ? 0 : Health.CurrentHealth;
+    public CombatantHealth Health => healthComponent != null ? healthComponent : healthComponent = GetComponent<CombatantHealth>() ?? gameObject.AddComponent<CombatantHealth>();
 
     private void Awake()
     {
         spawnPosition = transform.position;
         spawnRotation = transform.rotation;
-        health = maxHealth;
+        healthComponent = GetComponent<CombatantHealth>() ?? gameObject.AddComponent<CombatantHealth>();
+        healthComponent.Configure(maxHealth);
+        health = healthComponent.CurrentHealth;
         agent = GetComponent<NavMeshAgent>();
         jumper = GetComponent<EnemyJumpController>();
+        attacks = GetComponent<GuardianAttackController>();
     }
 
     public void Configure(string newName, bool forceGuardian, string[] lines = null)
@@ -38,6 +46,15 @@ public class GuardianController : Interactable
         guardianName = newName;
         isForceGuardian = forceGuardian;
         customLines = lines;
+        Health.Configure(maxHealth, false);
+    }
+
+    public void ConfigureBattleStats(int newMaxHealth, float newChaseSpeed, float newCatchDistance)
+    {
+        maxHealth = Mathf.Max(1, newMaxHealth);
+        chaseSpeed = Mathf.Max(0.5f, newChaseSpeed);
+        catchDistance = Mathf.Max(0.5f, newCatchDistance);
+        Health.Configure(maxHealth);
     }
 
     public override void Interact()
@@ -58,8 +75,12 @@ public class GuardianController : Interactable
 
     public void ResetBattleState()
     {
+        bool shouldResumeBattle = battling && arena != null && player != null;
+
         defeated = false;
-        health = maxHealth;
+        Health.Configure(maxHealth);
+        health = Health.CurrentHealth;
+        ResolveAttackController()?.ResetBattle();
         transform.SetPositionAndRotation(spawnPosition, spawnRotation);
         SetColliderEnabled(true);
         if (agent != null && agent.enabled && agent.isOnNavMesh)
@@ -67,6 +88,11 @@ public class GuardianController : Interactable
             agent.Warp(spawnPosition);
             agent.speed = chaseSpeed;
             agent.isStopped = false;
+        }
+
+        if (shouldResumeBattle)
+        {
+            ResolveAttackController()?.BeginBattle(arena, player, isForceGuardian);
         }
     }
 
@@ -77,14 +103,19 @@ public class GuardianController : Interactable
 
         if (EnsureAgentOnNavMesh())
         {
-            agent.SetDestination(player.position);
+            float preferredRange = attacks != null ? attacks.PreferredCombatRange : catchDistance;
+            Vector3 planar = player.position - transform.position;
+            planar.y = 0f;
+            agent.isStopped = planar.sqrMagnitude <= preferredRange * preferredRange && attacks != null;
+            if (!agent.isStopped) agent.SetDestination(player.position);
         }
 
         Vector3 distance = player.position - transform.position;
         distance.y = 0f;
         jumper?.TickAutoJump(player, true, true);
+        attacks?.TickBattle();
 
-        if (distance.sqrMagnitude <= catchDistance * catchDistance)
+        if (attacks == null && distance.sqrMagnitude <= catchDistance * catchDistance)
         {
             arena.ResetArenaAfterPlayerHit();
         }
@@ -94,11 +125,13 @@ public class GuardianController : Interactable
     {
         if (!battling || defeated) return;
 
-        health -= 1;
-        if (health <= 0)
+        if (!Health.ApplyDamage(1, null)) return;
+        health = Health.CurrentHealth;
+        if (Health.IsDead)
         {
             defeated = true;
             SetColliderEnabled(false);
+            ResolveAttackController()?.ResetBattle();
             arena?.NotifyGuardianDefeated();
             return;
         }
@@ -142,5 +175,11 @@ public class GuardianController : Interactable
         agent.speed = chaseSpeed;
         agent.isStopped = false;
         return agent.isOnNavMesh;
+    }
+
+    private GuardianAttackController ResolveAttackController()
+    {
+        if (attacks == null) attacks = GetComponent<GuardianAttackController>();
+        return attacks;
     }
 }

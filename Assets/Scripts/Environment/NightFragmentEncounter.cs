@@ -118,10 +118,7 @@ public class NightFragmentEncounter : MonoBehaviour
     {
         routeCompleted = true;
         WorldState.Instance.GrantNightFragmentRoute(route);
-        if (route == WorldState.NightFragmentRoute.Violence)
-        {
-            exitPortal?.Unlock();
-        }
+        exitPortal?.Unlock();
 
         if (innerNightFragment != null)
         {

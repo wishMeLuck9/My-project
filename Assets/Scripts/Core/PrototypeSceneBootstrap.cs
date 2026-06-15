@@ -18,8 +18,9 @@ public static class PrototypeSceneBootstrap
 
     private static void EnsureCoreManagers()
     {
-        DialogueController.EnsureInstance();
-        RuntimeHudController.EnsureInstance();
+        LocalizationManager.EnsureInstance();
+        SettingsManager.EnsureInstance();
+        SaveGameManager.EnsureInstance();
 
         GameObject managers = GameObject.Find("Managers") ?? GameObject.Find("Managers_Runtime");
         if (managers == null) managers = new GameObject("Managers_Runtime");
@@ -33,5 +34,11 @@ public static class PrototypeSceneBootstrap
         {
             managers.AddComponent<GameFlowController>();
         }
+
+        if (!SceneIds.IsGameplay(SceneManager.GetActiveScene())) return;
+
+        DialogueController.EnsureInstance();
+        RuntimeHudController.EnsureInstance();
+        PauseMenuController.EnsureInstance();
     }
 }

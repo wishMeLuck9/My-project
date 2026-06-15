@@ -21,6 +21,7 @@ public class PrototypeShadowActor : MonoBehaviour
     private Transform player;
     private EnemyJumpController jumper;
     private NavMeshAgent agent;
+    private CombatantHealth healthComponent;
     private float fearUntil = -1f;
     private bool defeated;
 
@@ -28,10 +29,17 @@ public class PrototypeShadowActor : MonoBehaviour
     public bool WasAttacked { get; private set; }
     public ShadowRole Role => role;
 
+    private void Awake()
+    {
+        healthComponent = GetComponent<CombatantHealth>() ?? gameObject.AddComponent<CombatantHealth>();
+        healthComponent.Configure(health);
+    }
+
     public void Configure(ShadowRole newRole, int newHealth)
     {
         role = newRole;
         health = Mathf.Max(1, newHealth);
+        if (healthComponent != null) healthComponent.Configure(health);
     }
 
     private void Start()
@@ -68,10 +76,11 @@ public class PrototypeShadowActor : MonoBehaviour
         if (defeated) return;
 
         WasAttacked = true;
-        health -= 1;
+        if (!healthComponent.ApplyDamage(1, attacker != null ? attacker.gameObject : null)) return;
+        health = healthComponent.CurrentHealth;
         fearUntil = Time.time + fearDuration;
 
-        bool nowDefeated = health <= 0;
+        bool nowDefeated = healthComponent.IsDead;
         WorldState.Instance?.RecordShadowAttack(nowDefeated);
 
         if (nowDefeated)
@@ -91,6 +100,7 @@ public class PrototypeShadowActor : MonoBehaviour
     {
         defeated = false;
         WasAttacked = false;
+        healthComponent?.ResetHealth();
         ApplyRoleColor();
         Collider collider = GetComponent<Collider>();
         if (collider != null) collider.enabled = true;

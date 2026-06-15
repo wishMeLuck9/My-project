@@ -26,11 +26,11 @@ public class PlayerInputReader : MonoBehaviour
     private int lastJumpFrame = -1;
     private int lastAttackFrame = -1;
     private int lastInteractFrame = -1;
+    private bool walkToggled;
 
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
-    public bool WalkHeld => (sprintAction != null && sprintAction.IsPressed()) ||
-                            (Keyboard.current != null && Keyboard.current.leftShiftKey.isPressed);
+    public bool WalkHeld => IsWalkModeActive();
     public event Action JumpPressed;
     public event Action AttackPressed;
     public event Action InteractPressed;
@@ -53,6 +53,8 @@ public class PlayerInputReader : MonoBehaviour
 
     private void Update()
     {
+        UpdateMovementModeToggle();
+
         if (Keyboard.current != null)
         {
             if (Keyboard.current.spaceKey.wasPressedThisFrame) RaiseJump();
@@ -136,6 +138,7 @@ public class PlayerInputReader : MonoBehaviour
         MoveInput = Vector2.zero;
         LookInput = Vector2.zero;
         isListening = false;
+        walkToggled = false;
     }
 
     private void OnMove(InputAction.CallbackContext context)
@@ -193,5 +196,41 @@ public class PlayerInputReader : MonoBehaviour
         if (lastInteractFrame == Time.frameCount) return;
         lastInteractFrame = Time.frameCount;
         InteractPressed?.Invoke();
+    }
+
+    private void UpdateMovementModeToggle()
+    {
+        SettingsManager settings = SettingsManager.Instance;
+        if (settings == null || !settings.ToggleRun)
+        {
+            walkToggled = false;
+            return;
+        }
+
+        if (WasSprintPressedThisFrame())
+        {
+            walkToggled = !walkToggled;
+        }
+    }
+
+    private bool IsWalkModeActive()
+    {
+        SettingsManager settings = SettingsManager.Instance;
+        if (settings != null && settings.ToggleRun) return walkToggled;
+        return IsSprintModifierPressed();
+    }
+
+    private bool IsSprintModifierPressed()
+    {
+        if (sprintAction != null && sprintAction.IsPressed()) return true;
+        Keyboard keyboard = Keyboard.current;
+        return keyboard != null && (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed);
+    }
+
+    private bool WasSprintPressedThisFrame()
+    {
+        if (sprintAction != null && sprintAction.WasPressedThisFrame()) return true;
+        Keyboard keyboard = Keyboard.current;
+        return keyboard != null && (keyboard.leftShiftKey.wasPressedThisFrame || keyboard.rightShiftKey.wasPressedThisFrame);
     }
 }

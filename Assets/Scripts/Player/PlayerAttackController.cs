@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class PlayerAttackController : MonoBehaviour
 {
@@ -6,6 +7,10 @@ public class PlayerAttackController : MonoBehaviour
     [SerializeField] private float attackRadius = 1.0f;
     [SerializeField] private LayerMask hitMask = ~0;
     [SerializeField] private float cooldown = 0.35f;
+    [SerializeField] private float spellRange = 18f;
+    [SerializeField] private float spellSpeed = 16f;
+    [SerializeField] private float spellRadius = 0.18f;
+    [SerializeField] private Vector3 fallbackCastOffset = new Vector3(0.35f, 1.15f, 0.45f);
 
     private readonly Collider[] hitBuffer = new Collider[16];
     private float nextAttackTime;
@@ -14,7 +19,7 @@ public class PlayerAttackController : MonoBehaviour
     private PlayerVisualAnimator visualAnimator;
     [SerializeField] private bool attackEnabledByScene = true;
 
-    public bool IsSceneAttackEnabled => attackEnabledByScene;
+    public bool IsSceneAttackEnabled => IsCorruptionPowerAvailable();
 
     private void Awake()
     {
@@ -45,17 +50,19 @@ public class PlayerAttackController : MonoBehaviour
 
     private void TryAttack()
     {
-        if (!attackEnabledByScene || !canAttack) return;
+        if (!canAttack || !IsCorruptionPowerAvailable()) return;
         if (Time.time < nextAttackTime) return;
         if (DialogueController.Instance != null && DialogueController.Instance.IsDialogueOpen) return;
 
         nextAttackTime = Time.time + cooldown;
-        PerformAttack();
+        PerformAttack(attackEnabledByScene);
     }
 
-    private void PerformAttack()
+    private void PerformAttack(bool resolveGameplayHit)
     {
         ResolveVisualAnimator()?.PlayAttack();
+        CastCorruptionSpell();
+        if (!resolveGameplayHit) return;
 
         int mask = hitMask.value == 0 ? Physics.DefaultRaycastLayers : hitMask.value;
         Vector3 center = transform.position + Vector3.up * 0.8f + transform.forward * attackRange;
@@ -89,10 +96,47 @@ public class PlayerAttackController : MonoBehaviour
         }
     }
 
+    private void CastCorruptionSpell()
+    {
+        int mask = hitMask.value == 0 ? Physics.DefaultRaycastLayers : hitMask.value;
+        Vector3 origin = ResolveCastOrigin();
+        Vector3 direction = transform.forward.sqrMagnitude > 0.001f ? transform.forward.normalized : Vector3.forward;
+        Vector3 destination = origin + direction * spellRange;
+        Vector3 normal = -direction;
+        Transform target = null;
+
+        if (Physics.SphereCast(origin, spellRadius, direction, out RaycastHit hit, spellRange, mask, QueryTriggerInteraction.Ignore))
+        {
+            destination = hit.point;
+            normal = hit.normal;
+            target = hit.collider.transform;
+        }
+
+        CorruptionSpellProjectile.Spawn(origin, destination, normal, target, spellSpeed, spellRadius);
+    }
+
+    private Vector3 ResolveCastOrigin()
+    {
+        PlayerVisualAnimator visual = ResolveVisualAnimator();
+        Animator animator = visual != null ? visual.GetComponent<Animator>() : GetComponentInChildren<Animator>(true);
+        Transform hand = animator != null && animator.isHuman ? animator.GetBoneTransform(HumanBodyBones.RightHand) : null;
+        if (hand != null) return hand.position + transform.forward * 0.15f;
+
+        return transform.TransformPoint(fallbackCastOffset);
+    }
+
     private PlayerVisualAnimator ResolveVisualAnimator()
     {
         if (visualAnimator == null) visualAnimator = GetComponentInChildren<PlayerVisualAnimator>(true);
         return visualAnimator;
+    }
+
+    private bool IsCorruptionPowerAvailable()
+    {
+        if (!attackEnabledByScene) return false;
+
+        string sceneName = SceneManager.GetActiveScene().name;
+        return sceneName == SceneIds.Night || sceneName == SceneIds.Final;
     }
 
     private bool HasLineOfSight(Transform target, Collider hit)
