@@ -5,7 +5,7 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/Frontend/MENU_BOOT.unity
     guid: 603369d677def6c4b8552020549c90aa
   - enabled: 1
