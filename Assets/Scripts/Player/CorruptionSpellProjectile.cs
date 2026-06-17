@@ -11,6 +11,9 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
     private float duration;
     private float elapsed;
     private float radius;
+    private bool resolveGameplayHit;
+    private Transform attackSource;
+    private bool impactResolved;
 
     private TrailRenderer trail;
     private Light glow;
@@ -21,24 +24,36 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
         Vector3 impactNormal,
         Transform impactTarget,
         float speed,
-        float radius)
+        float radius,
+        bool resolveGameplayHit = false,
+        Transform attackSource = null)
     {
         GameObject projectileObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         projectileObject.name = "Corruption_Spell_Projectile";
         Destroy(projectileObject.GetComponent<Collider>());
 
         CorruptionSpellProjectile projectile = projectileObject.AddComponent<CorruptionSpellProjectile>();
-        projectile.Initialize(start, destination, impactNormal, impactTarget, speed, radius);
+        projectile.Initialize(start, destination, impactNormal, impactTarget, speed, radius, resolveGameplayHit, attackSource);
         return projectile;
     }
 
-    private void Initialize(Vector3 start, Vector3 destination, Vector3 impactNormal, Transform impactTarget, float speed, float radius)
+    private void Initialize(
+        Vector3 start,
+        Vector3 destination,
+        Vector3 impactNormal,
+        Transform impactTarget,
+        float speed,
+        float radius,
+        bool resolveGameplayHit,
+        Transform attackSource)
     {
         this.start = start;
         this.destination = destination;
         this.impactNormal = impactNormal.sqrMagnitude > 0.001f ? impactNormal.normalized : Vector3.up;
         this.impactTarget = impactTarget;
         this.radius = Mathf.Max(0.04f, radius);
+        this.resolveGameplayHit = resolveGameplayHit;
+        this.attackSource = attackSource;
 
         transform.position = start;
         transform.localScale = Vector3.one * this.radius * 2f;
@@ -77,8 +92,25 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
 
         if (t >= 1f)
         {
+            ResolveGameplayImpact();
             CorruptionImpactEffect.Spawn(destination, impactNormal, impactTarget);
             Destroy(gameObject);
         }
+    }
+
+    private void ResolveGameplayImpact()
+    {
+        if (!resolveGameplayHit || impactResolved || impactTarget == null) return;
+
+        impactResolved = true;
+        PrototypeShadowActor shadow = impactTarget.GetComponentInParent<PrototypeShadowActor>();
+        if (shadow != null)
+        {
+            shadow.ReceiveAttack(attackSource);
+            return;
+        }
+
+        GuardianController guardian = impactTarget.GetComponentInParent<GuardianController>();
+        guardian?.ReceiveAttack();
     }
 }

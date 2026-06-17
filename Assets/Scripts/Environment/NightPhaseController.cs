@@ -13,5 +13,16 @@ public class NightPhaseController : MonoBehaviour
         RenderSettings.fog = true;
         RenderSettings.fogColor = new Color(0.03f, 0.03f, 0.08f);
         RenderSettings.fogDensity = 0.045f;
+
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        DialogueController.Instance?.ShowDialoguePages(
+            "SYSTEM",
+            new[]
+            {
+                localizer.Get("raw.night.intro.square"),
+                localizer.Get("raw.night.intro.attack"),
+                localizer.Get("raw.night.intro.shadows"),
+                localizer.Get("raw.night.intro.hunted")
+            });
     }
 }

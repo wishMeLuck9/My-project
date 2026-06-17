@@ -13,19 +13,29 @@ public class FinalGateOutcomeController : MonoBehaviour
     private PlayerAttackController attack;
     private PlayerHealthController playerHealth;
     private FinalBossDirector bossDirector;
+    private bool introStarted;
+    private bool introComplete;
     private bool started;
     private bool resolved;
+    private bool forceResolutionQueued;
     private float nextArenaResetTime;
 
     private void Start()
     {
         ResolveReferences();
         if (attack != null) attack.SetSceneAttackEnabled(false);
+        Invoke(nameof(StartFinalIntro), 0.85f);
     }
 
     public void BeginResolution()
     {
         if (started || resolved || WorldState.Instance == null) return;
+        if (!introComplete)
+        {
+            StartFinalIntro();
+            return;
+        }
+
         started = true;
         ResolveReferences();
 
@@ -38,14 +48,22 @@ public class FinalGateOutcomeController : MonoBehaviour
             return;
         }
 
-        if (state.enemyShadowsDefeated > 0)
+        if (HasViolentRoute(state))
         {
             StartArena(localizer);
         }
         else
         {
-            OfferSacrifice(localizer);
+            OfferFinalChoices(localizer);
         }
+    }
+
+    public void StartForcedBattleFromIntro()
+    {
+        if (started || resolved) return;
+
+        started = true;
+        StartArena(LocalizationManager.EnsureInstance());
     }
 
     public void ResetArenaAfterPlayerHit()
@@ -86,19 +104,69 @@ public class FinalGateOutcomeController : MonoBehaviour
 
     public void NotifyGuardianDefeated()
     {
-        if (resolved || guardians == null || guardians.Length == 0) return;
+        if (resolved || forceResolutionQueued || guardians == null || guardians.Length == 0) return;
 
         foreach (GuardianController guardian in guardians)
         {
             if (guardian == null || !guardian.IsDefeated) return;
         }
 
-        WorldState.Instance?.CompleteForceEnding();
-        ResolveEnding("raw.ending.force.title", "raw.ending.force.text");
+        forceResolutionQueued = true;
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        DialogueController.Instance?.ShowDialoguePages(
+            GateSpeaker(localizer),
+            new[]
+            {
+                localizer.Get("raw.final.bound.1"),
+                localizer.Get("raw.final.bound.2")
+            },
+            () =>
+            {
+                WorldState.Instance?.CompleteForceEnding();
+                ResolveEnding("raw.ending.force.title", "raw.ending.force.text");
+            });
+    }
+
+    private void StartFinalIntro()
+    {
+        if (introStarted || resolved || DialogueController.Instance == null) return;
+        introStarted = true;
+        ResolveReferences();
+
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        WorldState state = WorldState.Instance;
+        bool violent = state != null && HasViolentRoute(state);
+        List<string> pages = new List<string>
+        {
+            localizer.Get("raw.final.intro.guardians"),
+            localizer.Get("raw.final.intro.boundaries")
+        };
+
+        if (violent)
+        {
+            pages.Add(localizer.Get("raw.final.intro.violent"));
+            pages.Add(localizer.Get("raw.final.intro.attack"));
+        }
+        else
+        {
+            pages.Add(localizer.Get("raw.final.intro.peaceful"));
+            pages.Add(localizer.Get("raw.final.intro.queue"));
+            pages.Add(localizer.Get("raw.final.intro.offer"));
+        }
+
+        DialogueController.Instance.ShowDialoguePages(
+            GateSpeaker(localizer),
+            pages,
+            () =>
+            {
+                introComplete = true;
+                if (violent) StartForcedBattleFromIntro();
+            });
     }
 
     private void StartArena(LocalizationManager localizer)
     {
+        ResolveReferences();
         if (attack != null) attack.SetSceneAttackEnabled(true);
         foreach (GuardianController guardian in guardians)
         {
@@ -109,7 +177,7 @@ public class FinalGateOutcomeController : MonoBehaviour
         DialogueController.Instance?.ShowDialogue(GateSpeaker(localizer), localizer.Get("raw.gate.violent"));
     }
 
-    private void OfferSacrifice(LocalizationManager localizer)
+    private void OfferFinalChoices(LocalizationManager localizer)
     {
         if (DialogueController.Instance == null) return;
 
@@ -118,30 +186,54 @@ public class FinalGateOutcomeController : MonoBehaviour
             localizer.Get("raw.gate.peaceful.prompt"),
             new List<DialogueChoice>
             {
-                new DialogueChoice(localizer.Get("raw.gate.pay"), () =>
-                {
-                    WorldState.Instance.CompleteSacrificeEnding();
-                    ResolveEnding("raw.ending.paid.title", "raw.ending.paid.text");
-                }),
-                new DialogueChoice(localizer.Get("raw.gate.restart.choice"), () => started = false)
+                new DialogueChoice(localizer.Get("raw.gate.accept.chains"), ResolveKeeperPath),
+                new DialogueChoice(localizer.Get("raw.gate.fight"), () => StartArena(localizer)),
+                new DialogueChoice(localizer.Get("raw.gate.destroy"), ResolveFragmentDestroyedEnding)
             });
     }
 
-    private void ResolveEnding(string titleKey, string textKey)
+    private void ResolveKeeperPath()
+    {
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        DialogueController.Instance?.ShowDialoguePages(
+            GateSpeaker(localizer),
+            new[]
+            {
+                localizer.Get("raw.gate.accept.1"),
+                localizer.Get("raw.gate.accept.2")
+            },
+            () =>
+            {
+                WorldState.Instance?.CompleteSacrificeEnding();
+                ResolveEnding("raw.ending.paid.title", "raw.ending.paid.text");
+            });
+    }
+
+    private void ResolveFragmentDestroyedEnding()
+    {
+        WorldState.Instance?.RecordFragmentDestroyedEnding();
+        ResolveEnding("raw.ending.destroy.title", "raw.ending.destroy.text", false);
+    }
+
+    private void ResolveEnding(string titleKey, string textKey, bool openGate = true)
     {
         resolved = true;
         bossDirector?.EndFight();
         if (attack != null) attack.SetSceneAttackEnabled(false);
-        OpenGate();
+        if (openGate) OpenGate();
         LocalizationManager localizer = LocalizationManager.EnsureInstance();
 
-        DialogueController.Instance?.ShowChoices(
-            localizer.Get(titleKey),
-            localizer.Get(textKey) + "\n\n" + localizer.Get("raw.ending.placeholder"),
-            new List<DialogueChoice>
-            {
-                new DialogueChoice(localizer.Get("ending.restart"), RestartGame)
-            });
+        string title = localizer.Get(titleKey);
+        DialogueController.Instance?.ShowDialogue(title, localizer.Get(textKey), () =>
+        {
+            DialogueController.Instance?.ShowChoices(
+                title,
+                localizer.Get("raw.ending.restart.prompt"),
+                new List<DialogueChoice>
+                {
+                    new DialogueChoice(localizer.Get("ending.restart"), RestartGame)
+                });
+        });
     }
 
     private void OpenGate()
@@ -184,8 +276,15 @@ public class FinalGateOutcomeController : MonoBehaviour
             Debug.LogWarning("Final gate doors are not assigned on FinalGateOutcomeController.", this);
     }
 
+    private static bool HasViolentRoute(WorldState state)
+    {
+        return state.enemyShadowsDefeated > 0 ||
+               state.nightViolenceAttempted ||
+               state.nightFragmentRoute == WorldState.NightFragmentRoute.Violence;
+    }
+
     private static string GateSpeaker(LocalizationManager localizer)
     {
-        return localizer.Get("speaker.gate", "ВРАТА");
+        return localizer.Get("speaker.gate", "GATE");
     }
 }

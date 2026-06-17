@@ -56,9 +56,7 @@ public class PlayerController3D : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         if (rb != null)
         {
-            rb.freezeRotation = true;
-            rb.interpolation = RigidbodyInterpolation.Interpolate;
-            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            ConfigurePhysicsBody(rb);
         }
 
         playerCollider = GetComponent<Collider>();
@@ -66,6 +64,17 @@ public class PlayerController3D : MonoBehaviour
         visualAnimator = GetComponentInChildren<PlayerVisualAnimator>(true);
         if (cameraTransform == null && Camera.main != null)
             cameraTransform = Camera.main.transform;
+    }
+
+    private static void ConfigurePhysicsBody(Rigidbody body)
+    {
+        body.isKinematic = false;
+        body.useGravity = true;
+        body.detectCollisions = true;
+        body.constraints = RigidbodyConstraints.FreezeRotation;
+        body.interpolation = RigidbodyInterpolation.Interpolate;
+        body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        body.WakeUp();
     }
 
     private void OnEnable()

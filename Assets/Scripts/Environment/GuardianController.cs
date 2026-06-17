@@ -136,7 +136,9 @@ public class GuardianController : Interactable
             return;
         }
 
-        DialogueController.Instance?.ShowDialogue(GuardianName, "Удар принят. Врата все еще закрыты.");
+        DialogueController.Instance?.ShowDialogue(
+            GuardianName,
+            LocalizationManager.EnsureInstance().Get("raw.guardian.hit"));
     }
 
     public string BuildEvaluationMessage()
@@ -147,11 +149,12 @@ public class GuardianController : Interactable
         }
 
         WorldState state = WorldState.Instance;
-        if (state == null) return "Состояние не найдено. Проверка отложена.";
-        if (state.enemyShadowsDefeated > 0) return "Ты принес убийство. Теперь проход придется отнять.";
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        if (state == null) return localizer.Get("raw.guardian.missing");
+        if (state.enemyShadowsDefeated > 0 || state.nightViolenceAttempted) return localizer.Get("raw.guardian.violent");
         return isForceGuardian
-            ? "Ты удержал руку. Сила отступит, если ты отдашь все добровольно."
-            : "Два фрагмента, память и жизнь. Иначе врата не откроются.";
+            ? localizer.Get("raw.guardian.mercy")
+            : localizer.Get("raw.guardian.price");
     }
 
     private void SetColliderEnabled(bool state)

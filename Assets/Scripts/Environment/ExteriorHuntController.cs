@@ -13,6 +13,8 @@ public class ExteriorHuntController : MonoBehaviour
 
     private bool hunting;
     private bool captureLocked;
+    private bool gateSequencePaused;
+    private Coroutine beginAfterDialogueRoutine;
 
     public bool IsHunting => hunting;
 
@@ -30,6 +32,7 @@ public class ExteriorHuntController : MonoBehaviour
     public void BeginHunt()
     {
         if (hunting) return;
+        if (gateSequencePaused) return;
 
         if (DialogueController.Instance == null || !DialogueController.Instance.IsDialogueOpen)
         {
@@ -37,12 +40,45 @@ public class ExteriorHuntController : MonoBehaviour
             return;
         }
 
-        StartCoroutine(BeginAfterDialogue());
+        if (beginAfterDialogueRoutine == null)
+        {
+            beginAfterDialogueRoutine = StartCoroutine(BeginAfterDialogue());
+        }
+    }
+
+    public void PauseForGateSequence(bool paused)
+    {
+        if (gateSequencePaused == paused) return;
+
+        gateSequencePaused = paused;
+        ResolveReferences();
+        if (paused)
+        {
+            if (beginAfterDialogueRoutine != null)
+            {
+                StopCoroutine(beginAfterDialogueRoutine);
+                beginAfterDialogueRoutine = null;
+            }
+
+            captureLocked = true;
+            foreach (ExteriorPursuer pursuer in pursuers)
+            {
+                pursuer?.PauseForGateSequence(true);
+            }
+            return;
+        }
+
+        captureLocked = false;
+        foreach (ExteriorPursuer pursuer in pursuers)
+        {
+            pursuer?.PauseForGateSequence(false);
+            if (hunting) pursuer?.SetHunting(true, this);
+        }
     }
 
     public void CapturePlayer()
     {
-        if (!hunting || captureLocked || WorldState.Instance == null || player == null) return;
+        if (!hunting || gateSequencePaused || captureLocked || WorldState.Instance == null || player == null) return;
 
         captureLocked = true;
         WorldState.Instance.RegisterExteriorCapture();
@@ -92,7 +128,8 @@ public class ExteriorHuntController : MonoBehaviour
             yield return null;
         }
 
-        SetHunting(true);
+        beginAfterDialogueRoutine = null;
+        if (!gateSequencePaused) SetHunting(true);
     }
 
     private IEnumerator UnlockCapture()

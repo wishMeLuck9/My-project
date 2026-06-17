@@ -144,6 +144,49 @@ public class DialogueController : MonoBehaviour
         SetPlayerControl(false);
     }
 
+    public void ShowDialoguePages(string speaker, IReadOnlyList<string> pageTexts, Action onComplete = null)
+    {
+        if (!HasRequiredReferences())
+        {
+            onComplete?.Invoke();
+            return;
+        }
+
+        if (pageTexts == null || pageTexts.Count == 0)
+        {
+            onComplete?.Invoke();
+            return;
+        }
+
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        speaker = localizer.TranslateRaw(speaker);
+        onDialogueComplete = onComplete;
+        currentSpeaker = speaker;
+        fullDialogueText = string.Join("\n\n", pageTexts);
+
+        ConfigureDialogueLayout(3);
+        dialoguePanel.SetActive(true);
+        speakerText.text = speaker;
+
+        pages.Clear();
+        for (int i = 0; i < pageTexts.Count; i++)
+        {
+            string page = localizer.TranslateRaw(pageTexts[i]);
+            if (!string.IsNullOrWhiteSpace(page)) pages.Add(page);
+        }
+
+        if (pages.Count == 0)
+        {
+            CompleteDialogue();
+            return;
+        }
+
+        currentPage = 0;
+        ShowCurrentPage();
+
+        SetPlayerControl(false);
+    }
+
     public void ShowChoices(string speaker, string text, List<DialogueChoice> choices)
     {
         if (!HasRequiredReferences()) return;

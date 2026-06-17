@@ -163,7 +163,7 @@ public class RuntimeHudController : MonoBehaviour
         lastHealthText = null;
         lastBossText = null;
 
-        if (currentScene == ExteriorScene && !startupShown)
+        if (currentScene == ExteriorScene && !startupShown && !GameplayIntroController.ShouldShowIntroForScene(currentScene))
         {
             startupShown = true;
             StartCoroutine(PlayStartupSequence());

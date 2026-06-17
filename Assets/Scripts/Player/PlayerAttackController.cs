@@ -61,8 +61,8 @@ public class PlayerAttackController : MonoBehaviour
     private void PerformAttack(bool resolveGameplayHit)
     {
         ResolveVisualAnimator()?.PlayAttack();
-        CastCorruptionSpell();
-        if (!resolveGameplayHit) return;
+        bool projectileWillResolveHit = CastCorruptionSpell(resolveGameplayHit);
+        if (!resolveGameplayHit || projectileWillResolveHit) return;
 
         int mask = hitMask.value == 0 ? Physics.DefaultRaycastLayers : hitMask.value;
         Vector3 center = transform.position + Vector3.up * 0.8f + transform.forward * attackRange;
@@ -96,7 +96,7 @@ public class PlayerAttackController : MonoBehaviour
         }
     }
 
-    private void CastCorruptionSpell()
+    private bool CastCorruptionSpell(bool resolveGameplayHit)
     {
         int mask = hitMask.value == 0 ? Physics.DefaultRaycastLayers : hitMask.value;
         Vector3 origin = ResolveCastOrigin();
@@ -104,15 +104,26 @@ public class PlayerAttackController : MonoBehaviour
         Vector3 destination = origin + direction * spellRange;
         Vector3 normal = -direction;
         Transform target = null;
+        bool canResolveProjectileHit = false;
 
         if (Physics.SphereCast(origin, spellRadius, direction, out RaycastHit hit, spellRange, mask, QueryTriggerInteraction.Ignore))
         {
             destination = hit.point;
             normal = hit.normal;
             target = hit.collider.transform;
+            canResolveProjectileHit = resolveGameplayHit && IsCombatTarget(target);
         }
 
-        CorruptionSpellProjectile.Spawn(origin, destination, normal, target, spellSpeed, spellRadius);
+        CorruptionSpellProjectile.Spawn(
+            origin,
+            destination,
+            normal,
+            target,
+            spellSpeed,
+            spellRadius,
+            canResolveProjectileHit,
+            transform);
+        return canResolveProjectileHit;
     }
 
     private Vector3 ResolveCastOrigin()
@@ -148,5 +159,12 @@ public class PlayerAttackController : MonoBehaviour
             transform.position + Vector3.up * 0.8f,
             hit.bounds.center,
             mask);
+    }
+
+    private static bool IsCombatTarget(Transform target)
+    {
+        if (target == null) return false;
+        return target.GetComponentInParent<PrototypeShadowActor>() != null ||
+               target.GetComponentInParent<GuardianController>() != null;
     }
 }

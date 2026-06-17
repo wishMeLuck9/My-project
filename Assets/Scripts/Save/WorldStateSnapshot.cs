@@ -27,10 +27,13 @@ public class WorldStateSnapshot
     public int shadowViolence;
     public int enemyShadowsDefeated;
     public int playerDeaths;
+    public bool introShown;
     public bool hasExteriorFragment;
     public bool hasInnerNightFragment;
     public int exteriorCaptureCount;
     public bool nightViolenceAttempted;
+    public bool nightGuardianChainStarted;
+    public int nightGuardianChainDefeatedCount;
     public WorldState.NightFragmentRoute nightFragmentRoute;
     public WorldState.EndingOutcome endingOutcome;
 
@@ -64,10 +67,13 @@ public class WorldStateSnapshot
             shadowViolence = state.shadowViolence,
             enemyShadowsDefeated = state.enemyShadowsDefeated,
             playerDeaths = state.playerDeaths,
+            introShown = state.introShown,
             hasExteriorFragment = state.hasExteriorFragment,
             hasInnerNightFragment = state.hasInnerNightFragment,
             exteriorCaptureCount = state.exteriorCaptureCount,
             nightViolenceAttempted = state.nightViolenceAttempted,
+            nightGuardianChainStarted = state.nightGuardianChainStarted,
+            nightGuardianChainDefeatedCount = state.nightGuardianChainDefeatedCount,
             nightFragmentRoute = state.nightFragmentRoute,
             endingOutcome = state.endingOutcome
         };
@@ -101,10 +107,13 @@ public class WorldStateSnapshot
         state.shadowViolence = shadowViolence;
         state.enemyShadowsDefeated = enemyShadowsDefeated;
         state.playerDeaths = playerDeaths;
+        state.introShown = introShown;
         state.hasExteriorFragment = hasExteriorFragment;
         state.hasInnerNightFragment = hasInnerNightFragment;
         state.exteriorCaptureCount = exteriorCaptureCount;
         state.nightViolenceAttempted = nightViolenceAttempted;
+        state.nightGuardianChainStarted = nightGuardianChainStarted;
+        state.nightGuardianChainDefeatedCount = nightGuardianChainDefeatedCount;
         state.nightFragmentRoute = nightFragmentRoute;
         state.endingOutcome = endingOutcome;
     }

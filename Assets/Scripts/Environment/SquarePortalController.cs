@@ -70,6 +70,24 @@ public class SquarePortalController : MonoBehaviour
         if (physicalBlocker != null) physicalBlocker.enabled = true;
     }
 
+    public void SetUnlockWhenFragmentCollected(bool state)
+    {
+        unlockWhenFragmentCollected = state;
+    }
+
+    public void SetPortalVisible(bool visible)
+    {
+        foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
+        {
+            renderer.enabled = visible;
+        }
+
+        foreach (Light light in GetComponentsInChildren<Light>(true))
+        {
+            light.enabled = visible;
+        }
+    }
+
     public void Unlock()
     {
         CaptureClosedPositions();

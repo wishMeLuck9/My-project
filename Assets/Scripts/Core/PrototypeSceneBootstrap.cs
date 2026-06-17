@@ -40,5 +40,6 @@ public static class PrototypeSceneBootstrap
         DialogueController.EnsureInstance();
         RuntimeHudController.EnsureInstance();
         PauseMenuController.EnsureInstance();
+        GameplayIntroController.EnsureInstance();
     }
 }

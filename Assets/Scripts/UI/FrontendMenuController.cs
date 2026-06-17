@@ -38,7 +38,7 @@ public class FrontendMenuController : MonoBehaviour
         SettingsManager.EnsureInstance();
         SaveGameManager.EnsureInstance();
 
-        startButton?.onClick.AddListener(() => ShowOnly(introductionPanel));
+        startButton?.onClick.AddListener(() => ShowOnly(mainMenuPanel));
         introContinueButton?.onClick.AddListener(() => ShowOnly(mainMenuPanel));
         newGameButton?.onClick.AddListener(() => SaveGameManager.Instance.StartNewGame());
         continueButton?.onClick.AddListener(() => SaveGameManager.Instance.ContinueLatest());
