@@ -4,6 +4,7 @@ public class PlayerController3D : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float rotationSpeed = 10f;
+    [SerializeField] private float maxTurnDegreesPerSecond = 240f;
     [SerializeField] private float walkSpeedMultiplier = 0.55f;
     [SerializeField] private float groundAcceleration = 28f;
     [SerializeField] private float airAcceleration = 12f;
@@ -31,7 +32,23 @@ public class PlayerController3D : MonoBehaviour
     public Vector3 PlanarVelocity => rb == null ? Vector3.zero : new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
     public bool IsWalking => canMove && inputReader != null && inputReader.WalkHeld;
     public bool IsRunning => canMove && moveInput.magnitude > 0.1f && !IsWalking;
-    public float MovementAmount => canMove ? moveInput.magnitude * (IsWalking ? 0.4f : 1f) : 0f;
+    public float MovementAmount
+    {
+        get
+        {
+            if (!canMove || rb == null) return 0f;
+
+            float planarSpeed = PlanarVelocity.magnitude;
+            if (IsWalking)
+            {
+                float walkSpeed = Mathf.Max(0.01f, moveSpeed * movementMultiplier * walkSpeedMultiplier);
+                return Mathf.Clamp01(planarSpeed / walkSpeed) * 0.4f;
+            }
+
+            float runSpeed = Mathf.Max(0.01f, moveSpeed * movementMultiplier);
+            return Mathf.Clamp01(planarSpeed / runSpeed);
+        }
+    }
     public bool IsGrounded => CheckGrounded();
 
     private void Awake()
@@ -39,9 +56,7 @@ public class PlayerController3D : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         if (rb != null)
         {
-            rb.freezeRotation = true;
-            rb.interpolation = RigidbodyInterpolation.Interpolate;
-            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            ConfigurePhysicsBody(rb);
         }
 
         playerCollider = GetComponent<Collider>();
@@ -49,6 +64,17 @@ public class PlayerController3D : MonoBehaviour
         visualAnimator = GetComponentInChildren<PlayerVisualAnimator>(true);
         if (cameraTransform == null && Camera.main != null)
             cameraTransform = Camera.main.transform;
+    }
+
+    private static void ConfigurePhysicsBody(Rigidbody body)
+    {
+        body.isKinematic = false;
+        body.useGravity = true;
+        body.detectCollisions = true;
+        body.constraints = RigidbodyConstraints.FreezeRotation;
+        body.interpolation = RigidbodyInterpolation.Interpolate;
+        body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        body.WakeUp();
     }
 
     private void OnEnable()
@@ -105,7 +131,14 @@ public class PlayerController3D : MonoBehaviour
         if (direction.sqrMagnitude > 0.001f)
         {
             Quaternion targetRotation = Quaternion.LookRotation(direction);
-            rb.MoveRotation(Quaternion.Slerp(rb.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime));
+            Quaternion smoothedRotation = Quaternion.Slerp(
+                rb.rotation,
+                targetRotation,
+                1f - Mathf.Exp(-rotationSpeed * Time.fixedDeltaTime));
+            rb.MoveRotation(Quaternion.RotateTowards(
+                rb.rotation,
+                smoothedRotation,
+                maxTurnDegreesPerSecond * Time.fixedDeltaTime));
         }
     }
 

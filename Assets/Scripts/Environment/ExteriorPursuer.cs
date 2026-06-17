@@ -12,6 +12,7 @@ public class ExteriorPursuer : MonoBehaviour
     private EnemyJumpController jumper;
     private ExteriorHuntController hunt;
     private bool isHunting;
+    private bool pausedForGateSequence;
     private float nextRecoveryTime;
 
     private void Awake()
@@ -24,15 +25,34 @@ public class ExteriorPursuer : MonoBehaviour
     public void SetHunting(bool state, ExteriorHuntController controller)
     {
         hunt = controller;
-        isHunting = state;
+        isHunting = state && !pausedForGateSequence;
         GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
         player = playerObject != null ? playerObject.transform : null;
 
-        if (dialogue != null) dialogue.enabled = !state;
+        if (dialogue != null) dialogue.enabled = !state && !pausedForGateSequence;
         if (agent != null)
         {
             agent.speed = chaseSpeed;
-            agent.isStopped = !state;
+            agent.isStopped = !isHunting;
+        }
+    }
+
+    public void PauseForGateSequence(bool paused)
+    {
+        pausedForGateSequence = paused;
+        if (paused)
+        {
+            isHunting = false;
+            if (dialogue != null) dialogue.enabled = false;
+            if (agent != null)
+            {
+                agent.isStopped = true;
+                agent.ResetPath();
+            }
+        }
+        else if (dialogue != null)
+        {
+            dialogue.enabled = !isHunting;
         }
     }
 

@@ -28,9 +28,16 @@ public class GameFlowController : MonoBehaviour
         if (string.IsNullOrWhiteSpace(sceneName)) return;
 
 #if UNITY_EDITOR
-        string scenePath = $"Assets/Scenes/{sceneName}.unity";
-        if (System.IO.File.Exists(scenePath))
+        string[] scenePaths =
         {
+            $"Assets/Scenes/Frontend/{sceneName}.unity",
+            $"Assets/Scenes/Playable/{sceneName}.unity",
+            $"Assets/Scenes/{sceneName}.unity"
+        };
+        foreach (string scenePath in scenePaths)
+        {
+            if (!System.IO.File.Exists(scenePath)) continue;
+
             EditorSceneManager.LoadSceneInPlayMode(scenePath, new LoadSceneParameters(LoadSceneMode.Single));
             return;
         }

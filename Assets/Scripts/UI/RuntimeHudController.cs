@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -16,13 +17,16 @@ public class RuntimeHudController : MonoBehaviour
     private TextMeshProUGUI controlsText;
     private TextMeshProUGUI interactionText;
     private TextMeshProUGUI stabilityText;
+    private TextMeshProUGUI healthText;
+    private TextMeshProUGUI bossText;
     private TextMeshProUGUI systemText;
     private TextMeshProUGUI purgatoryText;
     private GameObject controlsPanel;
     private GameObject interactionPanel;
     private GameObject stabilityPanel;
+    private GameObject healthPanel;
+    private GameObject bossPanel;
     private GameObject systemPanel;
-    private GameObject pausePanel;
     private GameObject purgatoryPanel;
     private GameObject minimapPanel;
     private RectTransform minimapExitMarker;
@@ -30,11 +34,12 @@ public class RuntimeHudController : MonoBehaviour
     private Camera minimapCamera;
     private RenderTexture minimapTexture;
     private PlayerController3D player;
+    private PlayerHealthController playerHealth;
+    private FinalBossDirector bossDirector;
     private PlayerInputReader inputReader;
     private InteractionController interaction;
     private ExteriorHuntController hunt;
     private Transform minimapExit;
-    private bool paused;
     private bool startupShown;
     private bool nightUnlockShown;
     private bool nightMapHintShown;
@@ -45,9 +50,12 @@ public class RuntimeHudController : MonoBehaviour
     private string lastControlsText;
     private string lastObjectiveText;
     private string lastStabilityText;
+    private string lastHealthText;
+    private string lastBossText;
     private Coroutine clearSystemMessageRoutine;
+    private CanvasScaler canvasScaler;
 
-    public bool IsPaused => paused;
+    public bool IsPaused => PauseMenuController.Instance != null && PauseMenuController.Instance.IsPaused;
 
     public static RuntimeHudController EnsureInstance()
     {
@@ -71,6 +79,9 @@ public class RuntimeHudController : MonoBehaviour
         DontDestroyOnLoad(gameObject);
         BuildRuntimeUi();
         SceneManager.sceneLoaded += HandleSceneLoaded;
+        LocalizationManager.LanguageChanged += RefreshLocalizedText;
+        SettingsManager.SettingsChanged += RefreshSettings;
+        RefreshLocalizedText();
         ApplyScene(SceneManager.GetActiveScene());
     }
 
@@ -79,7 +90,8 @@ public class RuntimeHudController : MonoBehaviour
         if (Instance != this) return;
 
         SceneManager.sceneLoaded -= HandleSceneLoaded;
-        BindInputReader(null);
+        LocalizationManager.LanguageChanged -= RefreshLocalizedText;
+        SettingsManager.SettingsChanged -= RefreshSettings;
         Time.timeScale = 1f;
         ReleaseMinimap();
         Instance = null;
@@ -92,6 +104,8 @@ public class RuntimeHudController : MonoBehaviour
         UpdateControls();
         UpdateObjective();
         UpdateInteractionPrompt();
+        UpdateHealth();
+        UpdateBossHealth();
         UpdateStability();
         UpdateExteriorHint();
     }
@@ -106,14 +120,14 @@ public class RuntimeHudController : MonoBehaviour
         if (nightUnlockShown) return;
 
         nightUnlockShown = true;
-        ShowSystemMessage("\u041d\u043e\u0447\u044c \u043f\u0440\u0438\u0437\u043d\u0430\u043b\u0430 \u0432 \u0442\u0435\u0431\u0435 \u0441\u0438\u043b\u0443. \u0423\u0434\u0430\u0440 \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d.", 4f);
+        ShowSystemMessage(LocalizationManager.EnsureInstance().Get("hud.night_unlocked"), 4f);
     }
 
     public void ShowSystemMessage(string message, float duration = 3.5f)
     {
         if (clearSystemMessageRoutine != null) StopCoroutine(clearSystemMessageRoutine);
 
-        SetSystemMessage(message);
+        SetSystemMessage(LocalizationManager.EnsureInstance().TranslateRaw(message));
         clearSystemMessageRoutine = StartCoroutine(ClearSystemMessageAfterDelay(duration));
     }
 
@@ -137,6 +151,8 @@ public class RuntimeHudController : MonoBehaviour
     {
         currentScene = scene.name;
         player = null;
+        playerHealth = null;
+        bossDirector = null;
         interaction = null;
         hunt = null;
         minimapExit = null;
@@ -144,9 +160,10 @@ public class RuntimeHudController : MonoBehaviour
         lastControlsText = null;
         lastObjectiveText = null;
         lastStabilityText = null;
-        BindInputReader(null);
+        lastHealthText = null;
+        lastBossText = null;
 
-        if (currentScene == ExteriorScene && !startupShown)
+        if (currentScene == ExteriorScene && !startupShown && !GameplayIntroController.ShouldShowIntroForScene(currentScene))
         {
             startupShown = true;
             StartCoroutine(PlayStartupSequence());
@@ -156,7 +173,7 @@ public class RuntimeHudController : MonoBehaviour
         if (currentScene == NightScene && !nightMapHintShown)
         {
             nightMapHintShown = true;
-            ShowSystemMessage("SYSTEM // \u041a\u0430\u0440\u0442\u0430 \u043a\u0432\u0430\u0434\u0440\u0430\u0442\u0430 \u0430\u043a\u0442\u0438\u0432\u043d\u0430. \u0412\u044b\u0445\u043e\u0434 \u043e\u0442\u043c\u0435\u0447\u0435\u043d \u0433\u043e\u043b\u0443\u0431\u044b\u043c.", 4f);
+            ShowSystemMessage(LocalizationManager.EnsureInstance().Get("hud.map_active"), 4f);
         }
     }
 
@@ -168,9 +185,12 @@ public class RuntimeHudController : MonoBehaviour
         if (player == null)
         {
             player = FindFirstObjectByType<PlayerController3D>();
-            BindInputReader(player != null ? player.GetComponent<PlayerInputReader>() : null);
+            inputReader = player != null ? player.GetComponent<PlayerInputReader>() : null;
+            playerHealth = player != null ? player.GetComponent<PlayerHealthController>() : null;
         }
 
+        if (playerHealth == null && player != null) playerHealth = player.GetComponent<PlayerHealthController>();
+        if (bossDirector == null) bossDirector = FindFirstObjectByType<FinalBossDirector>();
         if (interaction == null && player != null) interaction = player.GetComponent<InteractionController>();
         if (hunt == null) hunt = FindFirstObjectByType<ExteriorHuntController>();
         if (minimapExit == null && currentScene == NightScene)
@@ -180,41 +200,47 @@ public class RuntimeHudController : MonoBehaviour
         }
     }
 
-    private void BindInputReader(PlayerInputReader newInputReader)
+    private void RefreshLocalizedText()
     {
-        if (inputReader == newInputReader) return;
-        if (inputReader != null) inputReader.PausePressed -= HandlePausePressed;
-        inputReader = newInputReader;
-        if (inputReader != null) inputReader.PausePressed += HandlePausePressed;
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        lastControlsText = null;
+        lastObjectiveText = null;
+        lastStabilityText = null;
+        if (interactionText != null) interactionText.text = localizer.Get("hud.interact");
+        if (systemText != null) systemText.text = localizer.TranslateRaw(systemText.text);
+        if (purgatoryText != null) purgatoryText.text = localizer.TranslateRaw(purgatoryText.text);
     }
 
-    private void HandlePausePressed()
+    private void RefreshSettings()
     {
-        SetPaused(!paused);
-    }
-
-    private void SetPaused(bool state)
-    {
-        paused = state;
-        Time.timeScale = paused ? 0f : 1f;
-        pausePanel.SetActive(paused);
-        UpdateCursor();
+        lastControlsText = null;
+        lastHealthText = null;
+        lastBossText = null;
+        ApplySettingsPresentation();
+        UpdateControls();
+        UpdateInteractionPrompt();
+        UpdateHealth();
+        UpdateBossHealth();
     }
 
     private void UpdateCursor()
     {
         bool dialogueOpen = DialogueController.Instance != null && DialogueController.Instance.IsDialogueOpen;
-        bool shouldRelease = paused || dialogueOpen || purgatoryPanel.activeSelf;
+        bool shouldRelease = IsPaused || dialogueOpen || purgatoryPanel.activeSelf;
         Cursor.lockState = shouldRelease ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = shouldRelease;
     }
 
     private void UpdateControls()
     {
-        string attackHint = currentScene == NightScene ? "\n[LMB] \u0410\u0442\u0430\u043a\u0430" : string.Empty;
-        string text = "[WASD] \u0411\u0435\u0433\n[SHIFT] \u0425\u043e\u0434\u044c\u0431\u0430\n[SPACE] \u041f\u0440\u044b\u0436\u043e\u043a\n[E] \u0412\u0437\u0430\u0438\u043c\u043e\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435"
-            + attackHint
-            + "\n[ESC] \u041f\u0430\u0443\u0437\u0430";
+        if (SettingsManager.Instance != null && !SettingsManager.Instance.TutorialHints)
+        {
+            controlsPanel.SetActive(false);
+            return;
+        }
+
+        string key = currentScene == NightScene ? "hud.controls.night" : "hud.controls.day";
+        string text = LocalizationManager.EnsureInstance().Get(key);
         if (lastControlsText == text) return;
 
         lastControlsText = text;
@@ -228,19 +254,19 @@ public class RuntimeHudController : MonoBehaviour
         string text;
         if (currentScene == ExteriorScene)
         {
-            text = state != null && state.hasExteriorFragment
-                ? "SYSTEM // \u0426\u0415\u041b\u042c: \u0434\u043e\u0431\u0435\u0440\u0438\u0441\u044c \u0434\u043e \u0434\u0432\u0435\u0440\u0438 \u043a\u0432\u0430\u0434\u0440\u0430\u0442\u0430"
-                : "SYSTEM // \u0426\u0415\u041b\u042c: \u043d\u0430\u0439\u0434\u0438 \u0444\u0440\u0430\u0433\u043c\u0435\u043d\u0442 \u0441\u0432\u0435\u0442\u0430";
+            text = LocalizationManager.EnsureInstance().Get(state != null && state.hasExteriorFragment
+                ? "hud.objective.exterior.gate"
+                : "hud.objective.exterior.fragment");
         }
         else if (currentScene == NightScene)
         {
-            text = state != null && state.hasInnerNightFragment
-                ? "SYSTEM // \u0426\u0415\u041b\u042c: \u0434\u043e\u0431\u0435\u0440\u0438\u0441\u044c \u0434\u043e \u0432\u044b\u0445\u043e\u0434\u0430"
-                : "SYSTEM // \u0426\u0415\u041b\u042c: \u043d\u0430\u0431\u043b\u044e\u0434\u0430\u0439 \u0438\u043b\u0438 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0439";
+            text = LocalizationManager.EnsureInstance().Get(state != null && state.hasInnerNightFragment
+                ? "hud.objective.night.exit"
+                : "hud.objective.night.choice");
         }
         else
         {
-            text = "SYSTEM // \u0426\u0415\u041b\u042c: \u0434\u043e\u0439\u0434\u0438 \u0434\u043e \u0432\u0440\u0430\u0442";
+            text = LocalizationManager.EnsureInstance().Get("hud.objective.final");
         }
 
         if (lastObjectiveText == text) return;
@@ -250,7 +276,8 @@ public class RuntimeHudController : MonoBehaviour
 
     private void UpdateInteractionPrompt()
     {
-        interactionPanel.SetActive(interaction != null && interaction.HasNearbyInteractable && !paused);
+        bool enabled = SettingsManager.Instance == null || SettingsManager.Instance.SimplePrompts;
+        interactionPanel.SetActive(enabled && interaction != null && interaction.HasNearbyInteractable && !IsPaused);
     }
 
     private void UpdateStability()
@@ -260,11 +287,40 @@ public class RuntimeHudController : MonoBehaviour
         if (!visible) return;
 
         int remaining = Mathf.Clamp(5 - WorldState.Instance.exteriorCaptureCount, 0, 5);
-        string text = "\u0423\u0421\u0422\u041e\u0419\u0427\u0418\u0412\u041e\u0421\u0422\u042c  " + new string('\u25a0', remaining) + new string('\u25a1', 5 - remaining);
+        string blocks = new string('\u25a0', remaining) + new string('\u25a1', 5 - remaining);
+        string text = LocalizationManager.EnsureInstance().Format("hud.stability", blocks);
         if (lastStabilityText == text) return;
 
         lastStabilityText = text;
         stabilityText.text = text;
+    }
+
+    private void UpdateHealth()
+    {
+        bool visible = playerHealth != null;
+        healthPanel.SetActive(visible);
+        if (!visible) return;
+
+        string text = LocalizationManager.EnsureInstance().Format("hud.health", playerHealth.CurrentHealth, playerHealth.MaxHealth);
+        if (lastHealthText == text) return;
+
+        lastHealthText = text;
+        healthText.text = text;
+    }
+
+    private void UpdateBossHealth()
+    {
+        bool visible = bossDirector != null && bossDirector.IsFightActive && bossDirector.MaxBossHealth > 0;
+        bossPanel.SetActive(visible);
+        if (!visible) return;
+
+        int percent = Mathf.RoundToInt(bossDirector.NormalizedBossHealth * 100f);
+        string key = bossDirector.IsPhaseTwo ? "hud.boss.phase2" : "hud.boss";
+        string text = LocalizationManager.EnsureInstance().Format(key, percent);
+        if (lastBossText == text) return;
+
+        lastBossText = text;
+        bossText.text = text;
     }
 
     private void UpdateExteriorHint()
@@ -276,20 +332,20 @@ public class RuntimeHudController : MonoBehaviour
         if (exteriorElapsed < ExteriorHintDelay) return;
 
         exteriorHintShown = true;
-        ShowSystemMessage("\u0415\u0441\u043b\u0438 \u0442\u044b \u043d\u0435 \u0432\u0437\u0430\u0438\u043c\u043e\u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0435\u0448\u044c, \u0442\u044b \u0438\u0441\u0447\u0435\u0437\u0430\u0435\u0448\u044c.", 5f);
+        ShowSystemMessage(LocalizationManager.EnsureInstance().Get("hud.idle_hint"), 5f);
     }
 
     private IEnumerator PlayStartupSequence()
     {
-        yield return ShowStartupLine("\u041f\u0440\u043e\u0442\u043e\u043a\u043e\u043b \u043a\u0432\u0430\u0434\u0440\u0430\u0442\u0430 \u0430\u043a\u0442\u0438\u0432\u0435\u043d.");
-        yield return ShowStartupLine("\u0424\u0440\u0430\u0433\u043c\u0435\u043d\u0442 \u043e\u0431\u043d\u0430\u0440\u0443\u0436\u0435\u043d.");
-        yield return ShowStartupLine("\u0422\u044b \u043d\u0430\u0443\u0447\u0438\u043b\u0441\u044f \u0438\u0434\u0442\u0438. \u042d\u0442\u043e\u0433\u043e \u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e, \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c.\n\u0412\u044b\u0436\u0438\u0432\u0435\u0448\u044c \u043b\u0438 \u0442\u044b - \u0437\u0430\u0432\u0438\u0441\u0438\u0442 \u043e\u0442 \u0442\u0435\u0431\u044f.");
+        yield return ShowStartupLine(LocalizationManager.EnsureInstance().Get("hud.start.1"));
+        yield return ShowStartupLine(LocalizationManager.EnsureInstance().Get("hud.start.2"));
+        yield return ShowStartupLine(LocalizationManager.EnsureInstance().Get("hud.start.3"));
     }
 
     private IEnumerator ShowStartupLine(string line)
     {
         SetSystemMessage(line);
-        yield return new WaitForSecondsRealtime(2.4f);
+        yield return new WaitForSecondsRealtime(SettingsManager.Instance != null && SettingsManager.Instance.ReduceMotion ? 1.4f : 2.4f);
         SetSystemMessage(string.Empty);
         yield return new WaitForSecondsRealtime(0.25f);
     }
@@ -376,14 +432,24 @@ public class RuntimeHudController : MonoBehaviour
         Canvas canvas = gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 400;
-        CanvasScaler scaler = gameObject.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1280f, 720f);
+        canvasScaler = gameObject.AddComponent<CanvasScaler>();
+        canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        canvasScaler.referenceResolution = new Vector2(1280f, 720f);
         gameObject.AddComponent<GraphicRaycaster>();
 
         controlsPanel = CreatePanel("ControlsPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(18f, -18f), new Vector2(380f, 220f), new Vector2(0f, 1f));
         objectiveText = CreateText("Objective", controlsPanel.transform, string.Empty, 18f, new Vector2(12f, -10f), new Vector2(356f, 52f), new Vector2(0f, 1f));
         controlsText = CreateText("Controls", controlsPanel.transform, string.Empty, 18f, new Vector2(12f, -68f), new Vector2(356f, 144f), new Vector2(0f, 1f));
+
+        healthPanel = CreatePanel("HealthPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(18f, -252f), new Vector2(170f, 48f), new Vector2(0f, 1f));
+        healthText = CreateText("Health", healthPanel.transform, string.Empty, 22f, Vector2.zero, new Vector2(150f, 38f), new Vector2(0.5f, 0.5f));
+        healthText.alignment = TextAlignmentOptions.Center;
+        healthPanel.SetActive(false);
+
+        bossPanel = CreatePanel("BossPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.95f), new Vector2(0f, -82f), new Vector2(520f, 48f), new Vector2(0.5f, 1f));
+        bossText = CreateText("BossHealth", bossPanel.transform, string.Empty, 22f, Vector2.zero, new Vector2(500f, 38f), new Vector2(0.5f, 0.5f));
+        bossText.alignment = TextAlignmentOptions.Center;
+        bossPanel.SetActive(false);
 
         interactionPanel = CreatePanel("InteractionPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(0f, 18f), new Vector2(420f, 54f), new Vector2(0.5f, 0f));
         interactionText = CreateText("InteractionPrompt", interactionPanel.transform, "[E] \u0412\u0437\u0430\u0438\u043c\u043e\u0434\u0435\u0439\u0441\u0442\u0432\u043e\u0432\u0430\u0442\u044c", 22f, Vector2.zero, new Vector2(400f, 44f), new Vector2(0.5f, 0.5f));
@@ -395,7 +461,7 @@ public class RuntimeHudController : MonoBehaviour
         stabilityText.alignment = TextAlignmentOptions.Center;
         stabilityPanel.SetActive(false);
 
-        systemPanel = CreatePanel("SystemPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(18f, -252f), new Vector2(680f, 112f), new Vector2(0f, 1f));
+        systemPanel = CreatePanel("SystemPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(18f, -308f), new Vector2(680f, 112f), new Vector2(0f, 1f));
         systemText = CreateText("SystemMessage", systemPanel.transform, string.Empty, 22f, new Vector2(12f, -10f), new Vector2(656f, 92f), new Vector2(0f, 1f));
         systemPanel.SetActive(false);
 
@@ -406,18 +472,59 @@ public class RuntimeHudController : MonoBehaviour
         minimapExitMarker = CreateImage("ExitMarker", minimapPanel.transform, new Color(0.35f, 0.85f, 1f, 1f), Vector2.zero, new Vector2(10f, 10f), new Vector2(0.5f, 0.5f));
         minimapExitMarker.SetAsLastSibling();
 
-        pausePanel = CreatePanel("PausePanel", transform, new Color(0f, 0f, 0f, 0.92f), Vector2.zero, new Vector2(420f, 310f), new Vector2(0.5f, 0.5f));
-        TextMeshProUGUI pauseTitle = CreateText("PauseTitle", pausePanel.transform, "\u041f\u0410\u0423\u0417\u0410", 32f, new Vector2(0f, -28f), new Vector2(380f, 48f), new Vector2(0.5f, 1f));
-        pauseTitle.alignment = TextAlignmentOptions.Center;
-        CreateButton("ResumeButton", pausePanel.transform, "\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c", new Vector2(0f, 38f), () => SetPaused(false));
-        CreateButton("ControlsButton", pausePanel.transform, "\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435", new Vector2(0f, -22f), () => controlsPanel.SetActive(true));
-        CreateButton("ExitButton", pausePanel.transform, "\u0412\u044b\u0439\u0442\u0438 \u0438\u0437 \u0438\u0433\u0440\u044b", new Vector2(0f, -82f), QuitGame);
-        pausePanel.SetActive(false);
-
         purgatoryPanel = CreatePanel("PurgatoryPanel", transform, Color.black, Vector2.zero, Vector2.zero, new Vector2(0.5f, 0.5f), true);
         purgatoryText = CreateText("PurgatoryText", purgatoryPanel.transform, string.Empty, 28f, Vector2.zero, new Vector2(900f, 180f), new Vector2(0.5f, 0.5f));
         purgatoryText.alignment = TextAlignmentOptions.Center;
         purgatoryPanel.SetActive(false);
+        ApplySettingsPresentation();
+    }
+
+    private void ApplySettingsPresentation()
+    {
+        SettingsManager settings = SettingsManager.Instance;
+        float uiScale = settings != null ? settings.UiScale : 1f;
+        if (canvasScaler != null)
+        {
+            canvasScaler.referenceResolution = new Vector2(1280f, 720f) / Mathf.Max(0.1f, uiScale);
+        }
+
+        float textScale = settings == null
+            ? 1f
+            : settings.SubtitleSize switch
+            {
+                0 => 0.9f,
+                2 => 1.14f,
+                _ => 1f
+            };
+
+        SetFontSize(objectiveText, 18f * textScale);
+        SetFontSize(controlsText, 18f * textScale);
+        SetFontSize(interactionText, 22f * textScale);
+        SetFontSize(stabilityText, 24f * textScale);
+        SetFontSize(healthText, 22f * textScale);
+        SetFontSize(bossText, 22f * textScale);
+        SetFontSize(systemText, 22f * textScale);
+        SetFontSize(purgatoryText, 28f * textScale);
+
+        bool highContrast = settings != null && settings.HighContrast;
+        bool colorblind = settings != null && settings.ColorblindFriendly;
+        Color panelColor = highContrast ? new Color(0f, 0f, 0f, 0.98f) : new Color(0.01f, 0.02f, 0.04f, 0.94f);
+        foreach (Image image in GetComponentsInChildren<Image>(true))
+        {
+            if (image.name.Contains("Marker")) continue;
+            if (image.gameObject.name.EndsWith("Panel")) image.color = panelColor;
+        }
+
+        if (minimapExitMarker != null)
+        {
+            Image marker = minimapExitMarker.GetComponent<Image>();
+            if (marker != null) marker.color = colorblind ? new Color(1f, 0.75f, 0.15f, 1f) : new Color(0.35f, 0.85f, 1f, 1f);
+        }
+    }
+
+    private static void SetFontSize(TMP_Text label, float size)
+    {
+        if (label != null) label.fontSize = size;
     }
 
     private static GameObject CreatePanel(string name, Transform parent, Color color, Vector2 position, Vector2 size, Vector2 anchor, bool stretch = false)
@@ -484,12 +591,4 @@ public class RuntimeHudController : MonoBehaviour
         label.alignment = TextAlignmentOptions.Center;
     }
 
-    private static void QuitGame()
-    {
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#else
-        Application.Quit();
-#endif
-    }
 }

@@ -17,6 +17,7 @@ public static class PlayableSceneMigration
     private const string LegacyExteriorScene = "Assets/Scenes/LOCATION_01_EXTERIOR_DAY.unity";
     private const string LegacyNightPlayableScene = "Assets/Scenes/LOCATION_02_PROTECTED_ALLEYS_NIGHT.unity";
     private const string LegacyFinalScene = "Assets/Scenes/LOCATION_03_GATE_FINAL.unity";
+    private const string FrontendScene = "Assets/Scenes/Frontend/MENU_BOOT.unity";
     private const string ExteriorScene = "Assets/Scenes/Playable/LOCATION_01_EXTERIOR_DAY.unity";
     private const string ExteriorArchiveScene = "Assets/Scenes/Archive/LOCATION_01_EXTERIOR_DAY_ARCHIVE.unity";
     private const string LegacyNightScene = "Assets/Scenes/LOCATION_02_INNER_NIGHT_SQUARE.unity";
@@ -51,6 +52,10 @@ public static class PlayableSceneMigration
     private const float SharedPlayerMoveSpeed = 5f;
     private const float SharedPlayerRotationSpeed = 10f;
     private const bool SharedPlayerJumpEnabled = true;
+    private const float FinalArenaGroundY = 0f;
+    private static readonly Vector3 FinalPlayerSpawn = new Vector3(0f, 1f, -12f);
+    private static readonly Vector3 FinalFloorCenter = new Vector3(0f, -0.5f, 0f);
+    private static readonly Vector3 FinalFloorSize = new Vector3(42f, 1f, 42f);
     private static readonly string[] FinalGateVisualParts =
     {
         "Atmos_Door_Left",
@@ -122,6 +127,38 @@ public static class PlayableSceneMigration
         Debug.Log("Exterior day mini city refreshed: clean import, preview camera, gameplay camera, daylight, and selective colliders.");
     }
 
+    [MenuItem("Tools/Virus 9/Fix Final Gate Player Height")]
+    public static void FixFinalGatePlayerHeight()
+    {
+        Scene scene = EditorSceneManager.OpenScene(FinalScene, OpenSceneMode.Single);
+        EnsureFloor("FloorCollider", FinalFloorCenter, FinalFloorSize);
+
+        GameObject player = FindObject("Player_Fragment");
+        if (player == null)
+        {
+            Debug.LogWarning("Final player height fix skipped: Player_Fragment was not found.");
+            return;
+        }
+
+        ConfigurePlayerBody(EnsureComponent<Rigidbody>(player));
+        SnapColliderBottomToGround(player, FinalArenaGroundY);
+        AlignPlayerVisualToCollider(player);
+        EnsureMarker("FinalArenaRespawn", new Vector3(0f, player.transform.position.y, -12f));
+
+        GameObject navigation = FindObject("FinalNavigation");
+        Transform walkable = navigation == null ? null : navigation.transform.Find("NAV_Walkable");
+        if (walkable != null)
+        {
+            walkable.position = new Vector3(0f, FinalArenaGroundY - 0.05f, -2f);
+            BoxCollider walkableCollider = EnsureComponent<BoxCollider>(walkable.gameObject);
+            walkableCollider.size = new Vector3(20f, 0.1f, 30f);
+        }
+
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("Final gate player height fixed: player and respawn now sit on the arena floor.");
+    }
+
     public static void ApplyFromCommandLine()
     {
         Apply();
@@ -134,10 +171,10 @@ public static class PlayableSceneMigration
         List<string> issues = new List<string>();
 
         string[] route = EditorBuildSettings.scenes.Where(scene => scene.enabled).Select(scene => scene.path).ToArray();
-        string[] expected = { ExteriorScene, NightScene, FinalScene };
+        string[] expected = { FrontendScene, ExteriorScene, NightScene, FinalScene };
         if (!route.SequenceEqual(expected))
         {
-            issues.Add("Build Settings route is not exterior -> protected alleys -> final gate.");
+            issues.Add("Build Settings route is not menu -> exterior -> protected alleys -> final gate.");
         }
 
         ValidateScene(ExteriorScene, issues, "Player_Fragment", "LIGHT_Fragment_01", "BUILDING_LivingSquare_Entrance", "ExteriorHunt");
@@ -178,7 +215,7 @@ public static class PlayableSceneMigration
         LocationTransition transition = EnsureComponent<LocationTransition>(
             EnsureMarker("BUILDING_LivingSquare_Entrance", new Vector3(15.7f, 1.2f, 25f)));
         transition.Configure("LOCATION_02_PROTECTED_ALLEYS_NIGHT", true, true, false);
-        EnsureTrigger(transition.gameObject, new Vector3(3.5f, 3f, 5f));
+        EnsureTrigger(transition.gameObject, new Vector3(4.8f, 3.2f, 6f));
         SquarePortalController portal = EnsureExteriorPortal();
         transition.ConfigurePortal(portal);
 
@@ -189,10 +226,24 @@ public static class PlayableSceneMigration
         SetReference(hunt, "respawnPoint", respawn.transform);
         SetReference(hunt, "exteriorFragment", fragment);
 
+        ExteriorGateCutsceneController gateCutscene = EnsureComponent<ExteriorGateCutsceneController>(transition.gameObject);
+        SetReference(gateCutscene, "transition", transition);
+        SetReference(gateCutscene, "portal", portal);
+        SetReference(gateCutscene, "hunt", hunt);
+        SetReference(gateCutscene, "player", player.GetComponent<PlayerController3D>());
+        SetReference(gateCutscene, "playerInput", player.GetComponent<PlayerInputReader>());
+        SetReference(gateCutscene, "playerAttack", player.GetComponent<PlayerAttackController>());
+        SetReference(gateCutscene, "playerGateLight", EnsurePlayerGateLight(player));
+        SetReference(gateCutscene, "gateGlow", EnsureExteriorGateCutsceneGlow(portal.transform));
+
         EnsurePursuer("SHADOW_Queue_01");
         EnsurePursuer("SHADOW_Witness_01");
+        EnsurePursuer("SHADOW_Queue_02");
+        EnsurePursuer("SHADOW_Witness_02");
         RequireObject("SHADOW_Queue_01").transform.position = new Vector3(-2f, 0.5f, 8f);
         RequireObject("SHADOW_Witness_01").transform.position = new Vector3(2f, 0.5f, 12f);
+        RequireObject("SHADOW_Queue_02").transform.position = new Vector3(-5.5f, 0.5f, 13.5f);
+        RequireObject("SHADOW_Witness_02").transform.position = new Vector3(5.5f, 0.5f, 16f);
         SnapActorsToFloor<ExteriorPursuer>();
         EnsureNavigationVolume("ExteriorNavigation", new Vector3(0f, 3f, 0f), new Vector3(60f, 8f, 60f));
         SnapActorsToNavigation<ExteriorPursuer>(3f);
@@ -325,7 +376,7 @@ public static class PlayableSceneMigration
 
         BoxCollider blocker = EnsurePortalBlocker(portalObject.transform, new Vector3(0f, 2.2f, 0f), new Vector3(7.1f, 4.6f, 0.9f));
         SquarePortalController portal = EnsureComponent<SquarePortalController>(portalObject);
-        portal.Configure(LightFragmentPickup.FragmentKind.Exterior, true, false, leftDoor, rightDoor, blocker, 2.5f);
+        portal.Configure(LightFragmentPickup.FragmentKind.Exterior, false, false, leftDoor, rightDoor, blocker, 2.5f);
         return portal;
     }
 
@@ -343,8 +394,40 @@ public static class PlayableSceneMigration
         BoxCollider blocker = EnsurePortalBlocker(portalObject.transform, new Vector3(0f, 1.35f, 0f), new Vector3(3.4f, 2.8f, 0.65f));
 
         SquarePortalController portal = EnsureComponent<SquarePortalController>(portalObject);
-        portal.Configure(LightFragmentPickup.FragmentKind.InnerNight, true, false, leftDoor, rightDoor, blocker, 1.2f);
+        portal.Configure(LightFragmentPickup.FragmentKind.InnerNight, false, false, leftDoor, rightDoor, blocker, 1.2f);
         return portal;
+    }
+
+    private static Light EnsurePlayerGateLight(GameObject player)
+    {
+        Transform existing = player.transform.Find("ExteriorGatePlayerLight");
+        GameObject lightObject = existing != null ? existing.gameObject : new GameObject("ExteriorGatePlayerLight");
+        lightObject.transform.SetParent(player.transform, false);
+        lightObject.transform.localPosition = new Vector3(0f, 1.15f, 0.18f);
+        Light light = EnsureComponent<Light>(lightObject);
+        light.type = LightType.Point;
+        light.enabled = false;
+        light.color = new Color(1f, 0.78f, 0.34f, 1f);
+        light.intensity = 0f;
+        light.range = 1.2f;
+        light.shadows = LightShadows.None;
+        return light;
+    }
+
+    private static Light EnsureExteriorGateCutsceneGlow(Transform portalRoot)
+    {
+        Transform existing = portalRoot.Find("ExteriorGateCutsceneGlow");
+        GameObject lightObject = existing != null ? existing.gameObject : new GameObject("ExteriorGateCutsceneGlow");
+        lightObject.transform.SetParent(portalRoot, false);
+        lightObject.transform.localPosition = new Vector3(0f, 2.2f, -0.4f);
+        Light light = EnsureComponent<Light>(lightObject);
+        light.type = LightType.Point;
+        light.enabled = false;
+        light.color = new Color(1f, 0.42f, 0.22f, 1f);
+        light.intensity = 0f;
+        light.range = 2f;
+        light.shadows = LightShadows.None;
+        return light;
     }
 
     private static void CloneFinalGateVisuals(Scene targetScene, Transform portalRoot)
@@ -566,9 +649,11 @@ public static class PlayableSceneMigration
     {
         Scene scene = EditorSceneManager.OpenScene(FinalScene, OpenSceneMode.Single);
         GameObject environment = FindObject("Location03_GateFinal");
-        GameObject player = EnsurePlayer(new Vector3(0f, 1.2f, -12f), true, visualPrefab, animatorController);
+        GameObject player = EnsurePlayer(FinalPlayerSpawn, true, visualPrefab, animatorController);
         EnsureCamera(player.transform, SharedCameraOffset, SharedCameraLookAtHeight, SharedCameraFieldOfView);
-        EnsureFloor("FloorCollider", new Vector3(0f, -0.3f, 0f), new Vector3(42f, 1f, 42f));
+        EnsureFloor("FloorCollider", FinalFloorCenter, FinalFloorSize);
+        SnapColliderBottomToGround(player, FinalArenaGroundY);
+        AlignPlayerVisualToCollider(player);
         EnsureBox("COL_L3_BackBoundary", new Vector3(0f, 4f, -19f), new Vector3(22f, 8f, 1f));
         EnsureBox("COL_L3_GateBackstop", new Vector3(0f, 4f, 14f), new Vector3(14f, 8f, 1f));
         EnsureBox("COL_L3_LeftBoundary", new Vector3(-11f, 4f, -2.5f), new Vector3(1f, 8f, 33f));
@@ -579,8 +664,10 @@ public static class PlayableSceneMigration
         FinalStateEvaluator previousEvaluator = evaluatorObject.GetComponent<FinalStateEvaluator>();
         if (previousEvaluator != null) UnityEngine.Object.DestroyImmediate(previousEvaluator);
         FinalGateOutcomeController outcome = EnsureComponent<FinalGateOutcomeController>(evaluatorObject);
+        FinalBossDirector bossDirector = EnsureComponent<FinalBossDirector>(evaluatorObject);
 
-        GameObject respawn = EnsureMarker("FinalArenaRespawn", new Vector3(0f, 1.2f, -12f));
+        GameObject respawn = EnsureMarker("FinalArenaRespawn", new Vector3(0f, player.transform.position.y, -12f));
+        SetReference(player.GetComponent<PlayerHealthController>(), "checkpoint", respawn.transform);
         SetReference(outcome, "arenaRespawnPoint", respawn.transform);
         SetReference(outcome, "leftGateDoor", RequireObject("Atmos_Door_Left").transform);
         SetReference(outcome, "rightGateDoor", RequireObject("Atmos_Door_Right").transform);
@@ -589,8 +676,11 @@ public static class PlayableSceneMigration
         GuardianController forceGuardian = EnsureGuardian("GUARDIAN_Force", "GUARDIAN_FORCE", true);
         GuardianController memoryGuardian = EnsureGuardian("GUARDIAN_Memory", "GUARDIAN_MEMORY", false);
         SetReferenceArray(outcome, "guardians", forceGuardian, memoryGuardian);
+        SetReference(bossDirector, "outcome", outcome);
+        SetReference(bossDirector, "player", player.GetComponent<PlayerController3D>());
+        SetReferenceArray(bossDirector, "guardians", forceGuardian, memoryGuardian);
         SnapActorsToFloor<GuardianController>();
-        EnsureNavigation("FinalNavigation", new Vector3(0f, 0.15f, -2f), new Vector3(20f, 0.1f, 30f));
+        EnsureNavigation("FinalNavigation", new Vector3(0f, FinalArenaGroundY - 0.05f, -2f), new Vector3(20f, 0.1f, 30f));
         SnapActorsToNavigation<GuardianController>(3f);
         OrganizeSceneHierarchy(environment);
         EditorSceneManager.SaveScene(scene);
@@ -608,8 +698,7 @@ public static class PlayableSceneMigration
         player.tag = "Player";
         player.transform.SetPositionAndRotation(position, Quaternion.identity);
         Rigidbody body = EnsureComponent<Rigidbody>(player);
-        body.freezeRotation = true;
-        body.interpolation = RigidbodyInterpolation.Interpolate;
+        ConfigurePlayerBody(body);
         EnsureComponent<CapsuleCollider>(player);
         PlayerInputReader input = EnsureComponent<PlayerInputReader>(player);
         input.Configure(LoadInputActionsAsset());
@@ -618,6 +707,8 @@ public static class PlayableSceneMigration
         movement.ConfigureTraversal(SharedPlayerJumpEnabled);
         PlayerAttackController attack = EnsureComponent<PlayerAttackController>(player);
         attack.SetSceneAttackEnabled(canAttack);
+        EnsureComponent<CombatantHealth>(player).Configure(3);
+        EnsureComponent<PlayerHealthController>(player);
         EnsureComponent<InteractionController>(player);
 
         Renderer placeholder = player.GetComponent<Renderer>();
@@ -645,6 +736,18 @@ public static class PlayableSceneMigration
         animator.applyRootMotion = false;
         EnsureComponent<PlayerVisualAnimator>(visual);
         return player;
+    }
+
+    private static void ConfigurePlayerBody(Rigidbody body)
+    {
+        if (body == null) return;
+
+        body.isKinematic = false;
+        body.useGravity = true;
+        body.detectCollisions = true;
+        body.constraints = RigidbodyConstraints.FreezeRotation;
+        body.interpolation = RigidbodyInterpolation.Interpolate;
+        body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
     }
 
     private static void EnsureCamera(Transform player, Vector3 offset, float lookAtHeight, float fov)
@@ -678,7 +781,14 @@ public static class PlayableSceneMigration
 
     private static void EnsurePursuer(string objectName)
     {
-        GameObject shadow = RequireObject(objectName);
+        GameObject shadow = FindObject(objectName);
+        if (shadow == null)
+        {
+            GameObject template = FindObject("SHADOW_Queue_01") ?? FindObject("SHADOW_Witness_01");
+            shadow = template != null ? UnityEngine.Object.Instantiate(template) : GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            shadow.name = objectName;
+        }
+
         EnsureComponent<ExteriorPursuer>(shadow);
         NavMeshAgent agent = EnsureComponent<NavMeshAgent>(shadow);
         agent.radius = 0.35f;
@@ -692,6 +802,8 @@ public static class PlayableSceneMigration
         GameObject guardian = RequireObject(objectName);
         GuardianController controller = EnsureComponent<GuardianController>(guardian);
         controller.Configure(displayName, isForce);
+        controller.ConfigureBattleStats(isForce ? 4 : 3, isForce ? 4.2f : 3.6f, 1.45f);
+        EnsureComponent<GuardianAttackController>(guardian);
         NavMeshAgent agent = EnsureComponent<NavMeshAgent>(guardian);
         agent.radius = 0.4f;
         agent.height = 2f;
@@ -988,10 +1100,37 @@ public static class PlayableSceneMigration
         visual.transform.position -= new Vector3(centerOffset.x, bounds.min.y - targetBottom, centerOffset.z);
     }
 
+    private static void AlignPlayerVisualToCollider(GameObject player)
+    {
+        Transform visual = player == null ? null : player.transform.Find("PlayerVisual_DEAD2");
+        if (visual != null) AlignVisualToPlayer(player, visual.gameObject);
+    }
+
+    private static void SnapColliderBottomToGround(GameObject obj, float groundY)
+    {
+        if (obj == null) return;
+
+        Physics.SyncTransforms();
+        Collider collider = obj.GetComponent<Collider>();
+        if (collider == null)
+        {
+            Vector3 position = obj.transform.position;
+            position.y = groundY;
+            obj.transform.position = position;
+            return;
+        }
+
+        Vector3 adjustedPosition = obj.transform.position;
+        adjustedPosition.y += groundY - collider.bounds.min.y;
+        obj.transform.position = adjustedPosition;
+        Physics.SyncTransforms();
+    }
+
     private static void UpdateBuildRoute()
     {
         EditorBuildSettings.scenes = new[]
         {
+            new EditorBuildSettingsScene(FrontendScene, true),
             new EditorBuildSettingsScene(ExteriorScene, true),
             new EditorBuildSettingsScene(NightScene, true),
             new EditorBuildSettingsScene(FinalScene, true)
@@ -1359,6 +1498,12 @@ public static class PlayableSceneMigration
 
         if (path == FinalScene)
         {
+            PlayerController3D finalPlayer = FindObject("Player_Fragment")?.GetComponent<PlayerController3D>();
+            if (finalPlayer == null || finalPlayer.GetComponent<PlayerHealthController>() == null)
+            {
+                issues.Add(Path.GetFileName(path) + " has no player health controller.");
+            }
+
             FinalGateOutcomeController outcome = FindObject("FinalEvaluator")?.GetComponent<FinalGateOutcomeController>();
             if (outcome == null ||
                 !HasSerializedReference(outcome, "leftGateDoor") ||
@@ -1366,6 +1511,20 @@ public static class PlayableSceneMigration
                 !HasSerializedReference(outcome, "finalEntryTrigger"))
             {
                 issues.Add(Path.GetFileName(path) + " has unassigned final gate references.");
+            }
+
+            if (outcome == null || outcome.GetComponent<FinalBossDirector>() == null)
+            {
+                issues.Add(Path.GetFileName(path) + " has no final boss director.");
+            }
+
+            foreach (GuardianController guardian in UnityEngine.Object.FindObjectsByType<GuardianController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (guardian.GetComponent<CombatantHealth>() == null ||
+                    guardian.GetComponent<GuardianAttackController>() == null)
+                {
+                    issues.Add(Path.GetFileName(path) + " has guardian without combat components: " + guardian.name);
+                }
             }
 
             ValidateActorPlacement<GuardianController>(path, issues, 0.08f);

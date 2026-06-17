@@ -13,7 +13,8 @@ public class WorldState : MonoBehaviour
     {
         None,
         Sacrifice,
-        Force
+        Force,
+        FragmentDestroyed
     }
 
     public static WorldState Instance { get; private set; }
@@ -51,10 +52,13 @@ public class WorldState : MonoBehaviour
     public int playerDeaths = 0;
 
     [Header("Story Route")]
+    public bool introShown = false;
     public bool hasExteriorFragment = false;
     public bool hasInnerNightFragment = false;
     public int exteriorCaptureCount = 0;
     public bool nightViolenceAttempted = false;
+    public bool nightGuardianChainStarted = false;
+    public int nightGuardianChainDefeatedCount = 0;
     public NightFragmentRoute nightFragmentRoute = NightFragmentRoute.None;
     public EndingOutcome endingOutcome = EndingOutcome.None;
 
@@ -156,6 +160,16 @@ public class WorldState : MonoBehaviour
         nightFragmentRoute = route;
     }
 
+    public void BeginNightGuardianChain()
+    {
+        nightGuardianChainStarted = true;
+    }
+
+    public void SetNightGuardianChainDefeatedCount(int defeatedCount)
+    {
+        nightGuardianChainDefeatedCount = Mathf.Max(nightGuardianChainDefeatedCount, defeatedCount);
+    }
+
     public void CompleteSacrificeEnding()
     {
         hasExteriorFragment = false;
@@ -170,6 +184,14 @@ public class WorldState : MonoBehaviour
     public void CompleteForceEnding()
     {
         endingOutcome = EndingOutcome.Force;
+    }
+
+    public void RecordFragmentDestroyedEnding()
+    {
+        hasExteriorFragment = false;
+        hasInnerNightFragment = false;
+        lightLevel = 0;
+        endingOutcome = EndingOutcome.FragmentDestroyed;
     }
 
     public void ResetRun()
@@ -198,10 +220,13 @@ public class WorldState : MonoBehaviour
         shadowViolence = 0;
         enemyShadowsDefeated = 0;
         playerDeaths = 0;
+        introShown = false;
         hasExteriorFragment = false;
         hasInnerNightFragment = false;
         exteriorCaptureCount = 0;
         nightViolenceAttempted = false;
+        nightGuardianChainStarted = false;
+        nightGuardianChainDefeatedCount = 0;
         nightFragmentRoute = NightFragmentRoute.None;
         endingOutcome = EndingOutcome.None;
     }

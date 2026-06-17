@@ -32,17 +32,18 @@ public class LightFragmentPickup : Interactable
             return;
         }
 
-        string text = fragmentKind == FragmentKind.Exterior
-            ? "Фрагмент лежит там, где на тебя еще смотрели без погони. Поднять его?"
-            : "Фрагмент остался на месте чужого выбора. Взять его с собой?";
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        string promptKey = fragmentKind == FragmentKind.Exterior
+            ? "raw.fragment.day.prompt"
+            : "raw.fragment.night.prompt";
 
         DialogueController.Instance.ShowChoices(
             "FRAGMENT",
-            text,
+            localizer.Get(promptKey),
             new List<DialogueChoice>
             {
-                new DialogueChoice("Поднять", Collect),
-                new DialogueChoice("Оставить", null)
+                new DialogueChoice(localizer.Get("raw.fragment.take"), Collect),
+                new DialogueChoice(localizer.Get("raw.fragment.leave"), null)
             });
     }
 
@@ -59,15 +60,16 @@ public class LightFragmentPickup : Interactable
         FragmentCollected?.Invoke(fragmentKind);
         gameObject.SetActive(false);
 
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
         if (fragmentKind == FragmentKind.Exterior)
         {
             ExteriorHuntController hunt = FindFirstObjectByType<ExteriorHuntController>();
             if (hunt != null) hunt.BeginHunt();
-            DialogueController.Instance?.ShowDialogue("SYSTEM", "Фрагмент принят. Квадрат узнал тебя. Беги к зданию на окраине.");
+            DialogueController.Instance?.ShowDialogue("SYSTEM", localizer.Get("raw.exterior.fragment.awakening"));
         }
         else
         {
-            DialogueController.Instance?.ShowDialogue("SYSTEM", "Второй фрагмент принят. Теперь врата смогут назвать цену.");
+            DialogueController.Instance?.ShowDialogue("SYSTEM", localizer.Get("raw.fragment.night.collected"));
         }
     }
 }

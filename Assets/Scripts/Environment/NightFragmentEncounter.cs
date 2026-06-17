@@ -17,6 +17,8 @@ public class NightFragmentEncounter : MonoBehaviour
 
     private bool mercyStarted;
     private bool routeCompleted;
+    private bool violenceChainStarted;
+    private int lastDefeatedCount;
     private Vector3 afraidOriginalScale;
     private Quaternion afraidOriginalRotation;
     private NavMeshAgent helperAgent;
@@ -34,27 +36,39 @@ public class NightFragmentEncounter : MonoBehaviour
 
     private void Start()
     {
+        ResolveReferences();
         if (innerNightFragment != null)
         {
             innerNightFragment.gameObject.SetActive(false);
         }
 
         if (helper != null) helper.gameObject.SetActive(false);
+        StartInitialEnemyAggro();
     }
 
     private void Update()
     {
         if (routeCompleted || WorldState.Instance == null) return;
 
-        if (WorldState.Instance.nightViolenceAttempted)
-        {
-            if (mercyStarted) RestoreMercyActors();
+        if (!WorldState.Instance.nightViolenceAttempted) return;
 
-            if (AreAllShadowsDefeated())
-            {
-                CompleteRoute(WorldState.NightFragmentRoute.Violence);
-                DialogueController.Instance?.ShowDialogue("SYSTEM", "Площадь опустела. Фрагмент выпал из последней тени.");
-            }
+        if (mercyStarted) RestoreMercyActors();
+        if (!violenceChainStarted) StartViolenceRoute();
+
+        int defeatedCount = CountDefeatedShadows();
+        if (defeatedCount != lastDefeatedCount)
+        {
+            lastDefeatedCount = defeatedCount;
+            WorldState.Instance.SetNightGuardianChainDefeatedCount(defeatedCount);
+            PromoteNextLivingShadow();
+        }
+
+        if (AreAllShadowsDefeated())
+        {
+            CompleteRoute(WorldState.NightFragmentRoute.Violence);
+            DialogueController.Instance?.ShowDialogue(
+                "SYSTEM",
+                LocalizationManager.EnsureInstance().Get("raw.night.drop"));
         }
     }
 
@@ -64,6 +78,7 @@ public class NightFragmentEncounter : MonoBehaviour
         if (WorldState.Instance.nightViolenceAttempted) return;
 
         mercyStarted = true;
+        SetPeacefulFleeing(true);
         StartCoroutine(PlayMercyWitnessEvent());
     }
 
@@ -75,9 +90,12 @@ public class NightFragmentEncounter : MonoBehaviour
             yield break;
         }
 
-        DialogueController.Instance?.ShowDialogue("SHADOW", "Не подходи. Просто смотри.");
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        DialogueController.Instance?.ShowDialogue("SHADOW", localizer.Get("raw.night.observe"));
 
         helper.gameObject.SetActive(true);
+        helper.RestoreForEvent();
+        helper.SetFleeingFromPlayer(false);
         afraid.transform.rotation = Quaternion.Euler(0f, afraid.transform.eulerAngles.y, 72f);
         afraid.transform.localScale = new Vector3(afraidOriginalScale.x, afraidOriginalScale.y * 0.65f, afraidOriginalScale.z);
 
@@ -111,17 +129,68 @@ public class NightFragmentEncounter : MonoBehaviour
         afraid.transform.rotation = afraidOriginalRotation;
         afraid.transform.localScale = afraidOriginalScale;
         CompleteRoute(WorldState.NightFragmentRoute.Mercy);
-        DialogueController.Instance?.ShowDialogue(GetHelperSpeakerName(), "Она встала. Забери то, что осталось на земле, и не делай из этого охоту.");
+        DialogueController.Instance?.ShowDialogue(GetHelperSpeakerName(), localizer.Get("raw.night.mercy"));
+    }
+
+    private void StartInitialEnemyAggro()
+    {
+        ResolveReferences();
+        foreach (PrototypeShadowActor shadow in allShadows)
+        {
+            if (shadow == null || shadow.IsDefeated) continue;
+            if (shadow.Role == PrototypeShadowActor.ShadowRole.Enemy)
+            {
+                shadow.SetHunting(true);
+            }
+        }
+    }
+
+    private void StartViolenceRoute()
+    {
+        violenceChainStarted = true;
+        WorldState.Instance?.BeginNightGuardianChain();
+        ResolveReferences();
+
+        if (helper != null && !helper.gameObject.activeSelf)
+        {
+            helper.gameObject.SetActive(true);
+            helper.RestoreForEvent();
+        }
+
+        foreach (PrototypeShadowActor shadow in allShadows)
+        {
+            if (shadow == null || shadow.IsDefeated) continue;
+            shadow.SetHunting(true);
+        }
+
+        PromoteNextLivingShadow();
+    }
+
+    private void PromoteNextLivingShadow()
+    {
+        ResolveReferences();
+        PrototypeShadowActor next = allShadows
+            .FirstOrDefault(shadow => shadow != null &&
+                                      !shadow.IsDefeated &&
+                                      shadow.Role != PrototypeShadowActor.ShadowRole.GuardianProxy);
+        next?.PromoteToGuardianProxy();
+    }
+
+    private void SetPeacefulFleeing(bool state)
+    {
+        ResolveReferences();
+        foreach (PrototypeShadowActor shadow in allShadows)
+        {
+            if (shadow == null || shadow.IsDefeated) continue;
+            shadow.SetFleeingFromPlayer(state);
+        }
     }
 
     private void CompleteRoute(WorldState.NightFragmentRoute route)
     {
         routeCompleted = true;
         WorldState.Instance.GrantNightFragmentRoute(route);
-        if (route == WorldState.NightFragmentRoute.Violence)
-        {
-            exitPortal?.Unlock();
-        }
+        exitPortal?.Lock();
 
         if (innerNightFragment != null)
         {
@@ -133,14 +202,15 @@ public class NightFragmentEncounter : MonoBehaviour
     private bool AreAllShadowsDefeated()
     {
         ResolveReferences();
-        if (allShadows == null || allShadows.Length == 0) return false;
+        return allShadows != null &&
+               allShadows.Length > 0 &&
+               allShadows.All(shadow => shadow != null && shadow.IsDefeated);
+    }
 
-        foreach (PrototypeShadowActor shadow in allShadows)
-        {
-            if (shadow == null || !shadow.IsDefeated) return false;
-        }
-
-        return true;
+    private int CountDefeatedShadows()
+    {
+        ResolveReferences();
+        return allShadows?.Count(shadow => shadow != null && shadow.IsDefeated) ?? 0;
     }
 
     private void RestoreMercyActors()
@@ -150,6 +220,8 @@ public class NightFragmentEncounter : MonoBehaviour
             afraid.transform.rotation = afraidOriginalRotation;
             afraid.transform.localScale = afraidOriginalScale;
         }
+
+        SetPeacefulFleeing(false);
     }
 
     private bool PrepareHelperPath(Vector3 target)
@@ -175,12 +247,17 @@ public class NightFragmentEncounter : MonoBehaviour
     private void ResolveReferences()
     {
         if (innerNightFragment == null) innerNightFragment = FindFirstObjectByType<LightFragmentPickup>(FindObjectsInactive.Include);
-        if (allShadows == null || allShadows.Length == 0)
-        {
-            allShadows = FindObjectsByType<PrototypeShadowActor>(FindObjectsSortMode.None)
-                .Where(shadow => shadow != null && shadow.Role == PrototypeShadowActor.ShadowRole.Enemy)
-                .ToArray();
-        }
+
+        PrototypeShadowActor[] discovered = FindObjectsByType<PrototypeShadowActor>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .Where(shadow => shadow != null && shadow.Role == PrototypeShadowActor.ShadowRole.Enemy)
+            .ToArray();
+
+        allShadows = (allShadows ?? new PrototypeShadowActor[0])
+            .Where(shadow => shadow != null)
+            .Concat(new[] { helper, afraid }.Where(shadow => shadow != null))
+            .Concat(discovered)
+            .Distinct()
+            .ToArray();
     }
 
     private string GetHelperSpeakerName()
