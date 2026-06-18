@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
@@ -28,6 +29,8 @@ public class PrototypeShadowActor : MonoBehaviour
     [SerializeField] private float reactionDistance = 8.5f;
     [SerializeField] private float reactionCooldownMin = 3f;
     [SerializeField] private float reactionCooldownMax = 5.6f;
+    [SerializeField] private float hitScaleFeedback = 0.78f;
+    [SerializeField] private float hitScaleFeedbackDuration = 0.14f;
     [Header("Group Tactics")]
     [SerializeField] private float flankRadius = 1.15f;
     [SerializeField] private float destinationRefreshInterval = 0.24f;
@@ -51,6 +54,7 @@ public class PrototypeShadowActor : MonoBehaviour
     private float formationAngle;
     private Vector3 currentDestination;
     private bool hasCurrentDestination;
+    private Coroutine hitScaleRoutine;
     private bool defeated;
     private bool hunting;
     private bool fleeing;
@@ -167,10 +171,11 @@ public class PrototypeShadowActor : MonoBehaviour
 
         if (nowDefeated)
         {
-            defeated = true;
-            transform.localScale = originalScale * 0.45f;
-            SetColliderEnabled(false);
-            Defeated?.Invoke(this);
+            ApplyDefeatedVisual();
+        }
+        else
+        {
+            PlayHitScaleFeedback();
         }
 
         ApplyRoleColor();
@@ -183,10 +188,46 @@ public class PrototypeShadowActor : MonoBehaviour
         WasAttacked = false;
         hunting = false;
         fleeing = false;
+        if (hitScaleRoutine != null)
+        {
+            StopCoroutine(hitScaleRoutine);
+            hitScaleRoutine = null;
+        }
+
         transform.localScale = originalScale;
         healthComponent?.ResetHealth();
         ApplyRoleColor();
         SetColliderEnabled(true);
+    }
+
+    private void PlayHitScaleFeedback()
+    {
+        if (hitScaleFeedback <= 0f || hitScaleFeedbackDuration <= 0f) return;
+        if (hitScaleRoutine != null) StopCoroutine(hitScaleRoutine);
+        hitScaleRoutine = StartCoroutine(HitScaleFeedbackRoutine());
+    }
+
+    private IEnumerator HitScaleFeedbackRoutine()
+    {
+        transform.localScale = originalScale * hitScaleFeedback;
+        yield return new WaitForSeconds(hitScaleFeedbackDuration);
+
+        if (!defeated) transform.localScale = originalScale;
+        hitScaleRoutine = null;
+    }
+
+    private void ApplyDefeatedVisual()
+    {
+        defeated = true;
+        if (hitScaleRoutine != null)
+        {
+            StopCoroutine(hitScaleRoutine);
+            hitScaleRoutine = null;
+        }
+
+        transform.localScale = originalScale * 0.45f;
+        SetColliderEnabled(false);
+        Defeated?.Invoke(this);
     }
 
     private void TickHunt()
