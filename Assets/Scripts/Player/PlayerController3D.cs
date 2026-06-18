@@ -23,6 +23,7 @@ public class PlayerController3D : MonoBehaviour
     private bool canMove = true;
     private float movementMultiplier = 1f;
     private float movementModifierEndsAt = -1f;
+    private float externalImpulseControlLockedUntil = -1f;
     private readonly RaycastHit[] groundHits = new RaycastHit[8];
 
     public bool CanMove => canMove;
@@ -112,6 +113,8 @@ public class PlayerController3D : MonoBehaviour
 
         if (rb == null || cameraTransform == null) return;
 
+        if (Time.time < externalImpulseControlLockedUntil) return;
+
         Vector3 forward = cameraTransform.forward;
         Vector3 right = cameraTransform.right;
         forward.y = 0;
@@ -152,6 +155,16 @@ public class PlayerController3D : MonoBehaviour
     {
         movementMultiplier = Mathf.Clamp(multiplier, 0.1f, 1f);
         movementModifierEndsAt = Time.time + Mathf.Max(0f, duration);
+    }
+
+    public void ApplyExternalImpulse(Vector3 impulse, float controlLockDuration = 0.18f)
+    {
+        if (rb == null || !canMove) return;
+
+        rb.AddForce(impulse, ForceMode.VelocityChange);
+        externalImpulseControlLockedUntil = Mathf.Max(
+            externalImpulseControlLockedUntil,
+            Time.time + Mathf.Max(0f, controlLockDuration));
     }
 
     public void ConfigureTraversal(bool jumpEnabled)

@@ -21,7 +21,21 @@ public class PrototypeShadowActor : MonoBehaviour
     [SerializeField] private float huntMoveSpeed = 3.25f;
     [SerializeField] private float guardianMoveSpeed = 4.05f;
     [SerializeField] private float contactDistance = 1.05f;
+    [SerializeField] private float maxContactHeightDifference = 0.75f;
     [SerializeField] private float contactCooldown = 1.25f;
+    [SerializeField] private LayerMask contactLineOfSightMask = ~0;
+    [SerializeField] private float stareAtPlayerDistance = 5.5f;
+    [SerializeField] private float reactionDistance = 8.5f;
+    [SerializeField] private float reactionCooldownMin = 3f;
+    [SerializeField] private float reactionCooldownMax = 5.6f;
+    [Header("Group Tactics")]
+    [SerializeField] private float flankRadius = 1.15f;
+    [SerializeField] private float destinationRefreshInterval = 0.24f;
+    [SerializeField] private float personalSpaceRadius = 0.9f;
+    [SerializeField] private float personalSpaceWeight = 0.55f;
+    [SerializeField] private float stuckVelocityThreshold = 0.14f;
+    [SerializeField] private float stuckRepathAfter = 0.8f;
+    [SerializeField] private float stuckSideStepDistance = 1.35f;
 
     private Transform player;
     private EnemyJumpController jumper;
@@ -31,17 +45,32 @@ public class PrototypeShadowActor : MonoBehaviour
     private float fearUntil = -1f;
     private float nextContactDamageTime;
     private float nextNavRecoveryTime;
+    private float nextReactionTime;
+    private float nextDestinationUpdateTime;
+    private float stuckStartedAt = -1f;
+    private float formationAngle;
+    private Vector3 currentDestination;
+    private bool hasCurrentDestination;
     private bool defeated;
     private bool hunting;
     private bool fleeing;
 
+    private static float nextSharedReactionTime;
+    private static readonly string[] HuntReactionKeys =
+    {
+        "raw.shadow.hunt.reaction.seen",
+        "raw.shadow.hunt.reaction.close"
+    };
+
     public bool IsDefeated => defeated;
+    public bool IsHunting => hunting && !defeated;
     public bool WasAttacked { get; private set; }
     public ShadowRole Role => role;
     public event Action<PrototypeShadowActor> Defeated;
 
     private void Awake()
     {
+        formationAngle = Mathf.Repeat(Mathf.Abs(GetInstanceID()) * 137.508f, 360f);
         originalScale = transform.localScale;
         healthComponent = GetComponent<CombatantHealth>() ?? gameObject.AddComponent<CombatantHealth>();
         healthComponent.Configure(health);
@@ -64,6 +93,16 @@ public class PrototypeShadowActor : MonoBehaviour
         {
             agent.speed = role == ShadowRole.GuardianProxy ? guardianMoveSpeed : huntMoveSpeed;
             agent.isStopped = !state;
+            agent.avoidancePriority = 25 + Mathf.Abs(GetInstanceID()) % 45;
+            agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
+        }
+
+        if (hunting)
+        {
+            nextReactionTime = Time.time + UnityEngine.Random.Range(1.4f, 2.8f);
+            nextDestinationUpdateTime = 0f;
+            stuckStartedAt = -1f;
+            hasCurrentDestination = false;
         }
     }
 
@@ -157,12 +196,12 @@ public class PrototypeShadowActor : MonoBehaviour
         {
             agent.speed = role == ShadowRole.GuardianProxy ? guardianMoveSpeed : huntMoveSpeed;
             agent.isStopped = false;
-            agent.SetDestination(player.position);
+            UpdateHuntDestination();
         }
 
-        Vector3 distance = player.position - transform.position;
-        distance.y = 0f;
-        if (distance.sqrMagnitude > contactDistance * contactDistance || Time.time < nextContactDamageTime) return;
+        TickHuntPresence();
+
+        if (!IsPlayerInContactRange() || Time.time < nextContactDamageTime) return;
 
         nextContactDamageTime = Time.time + contactCooldown;
         PlayerHealthController healthController = player.GetComponent<PlayerHealthController>();
@@ -172,6 +211,147 @@ public class PrototypeShadowActor : MonoBehaviour
                 LocalizationManager.EnsureInstance().Format("hud.damage", healthController.CurrentHealth, healthController.MaxHealth),
                 1.2f);
         }
+    }
+
+    private void UpdateHuntDestination()
+    {
+        if (agent == null || player == null) return;
+        if (Time.time < nextDestinationUpdateTime && hasCurrentDestination)
+        {
+            agent.SetDestination(currentDestination);
+            return;
+        }
+
+        nextDestinationUpdateTime = Time.time + destinationRefreshInterval;
+        currentDestination = ResolveHuntDestination(player.position);
+        hasCurrentDestination = true;
+        agent.SetDestination(currentDestination);
+    }
+
+    private Vector3 ResolveHuntDestination(Vector3 target)
+    {
+        Vector3 toPlayer = target - transform.position;
+        toPlayer.y = 0f;
+        Vector3 desired = target;
+
+        if (flankRadius > 0.01f && toPlayer.sqrMagnitude > contactDistance * contactDistance)
+        {
+            float angle = formationAngle + Time.time * 8f;
+            desired += Quaternion.Euler(0f, angle, 0f) * Vector3.forward * flankRadius;
+        }
+
+        desired += CalculateLocalSeparation();
+
+        if (IsAgentStuckTryingToMove())
+        {
+            Vector3 forward = toPlayer.sqrMagnitude > 0.01f ? toPlayer.normalized : transform.forward;
+            Vector3 side = Vector3.Cross(Vector3.up, forward).normalized;
+            float sideSign = GetInstanceID() % 2 == 0 ? 1f : -1f;
+            desired = transform.position + forward * 0.65f + side * stuckSideStepDistance * sideSign;
+        }
+
+        return NavMesh.SamplePosition(desired, out NavMeshHit hit, 2f, NavMesh.AllAreas)
+            ? hit.position
+            : target;
+    }
+
+    private Vector3 CalculateLocalSeparation()
+    {
+        if (personalSpaceRadius <= 0.01f) return Vector3.zero;
+
+        Vector3 separation = Vector3.zero;
+        PrototypeShadowActor[] shadows = FindObjectsByType<PrototypeShadowActor>(FindObjectsSortMode.None);
+        for (int i = 0; i < shadows.Length; i++)
+        {
+            PrototypeShadowActor other = shadows[i];
+            if (other == null || other == this || !other.IsHunting) continue;
+
+            Vector3 away = transform.position - other.transform.position;
+            away.y = 0f;
+            float distance = away.magnitude;
+            if (distance <= 0.01f || distance >= personalSpaceRadius) continue;
+
+            separation += away.normalized * ((personalSpaceRadius - distance) / personalSpaceRadius);
+        }
+
+        return separation * personalSpaceWeight;
+    }
+
+    private bool IsAgentStuckTryingToMove()
+    {
+        if (agent == null || !agent.hasPath || agent.pathPending)
+        {
+            stuckStartedAt = -1f;
+            return false;
+        }
+
+        if (agent.remainingDistance <= agent.stoppingDistance + 0.35f)
+        {
+            stuckStartedAt = -1f;
+            return false;
+        }
+
+        bool wantsToMove = agent.desiredVelocity.sqrMagnitude > 0.2f * 0.2f;
+        bool barelyMoving = agent.velocity.sqrMagnitude < stuckVelocityThreshold * stuckVelocityThreshold;
+        if (!wantsToMove || !barelyMoving)
+        {
+            stuckStartedAt = -1f;
+            return false;
+        }
+
+        if (stuckStartedAt < 0f) stuckStartedAt = Time.time;
+        return Time.time - stuckStartedAt >= stuckRepathAfter;
+    }
+
+    private void TickHuntPresence()
+    {
+        if (player == null) return;
+
+        Vector3 planar = player.position - transform.position;
+        float heightDifference = planar.y;
+        planar.y = 0f;
+        if (planar.sqrMagnitude <= 0.01f) return;
+
+        bool playerIsAbove = heightDifference > maxContactHeightDifference;
+        if (playerIsAbove || planar.sqrMagnitude <= stareAtPlayerDistance * stareAtPlayerDistance)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(planar.normalized, Vector3.up);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, 320f * Time.deltaTime);
+        }
+
+        if (Time.time < nextReactionTime || Time.time < nextSharedReactionTime) return;
+        if (planar.sqrMagnitude > reactionDistance * reactionDistance) return;
+        if (!HasClearPathToPlayer()) return;
+
+        string key = playerIsAbove
+            ? "raw.shadow.hunt.reaction.above"
+            : HuntReactionKeys[UnityEngine.Random.Range(0, HuntReactionKeys.Length)];
+        RuntimeHudController.Instance?.ShowSystemMessage(LocalizationManager.EnsureInstance().Get(key), 1.8f);
+
+        float cooldown = UnityEngine.Random.Range(reactionCooldownMin, reactionCooldownMax);
+        nextReactionTime = Time.time + cooldown;
+        nextSharedReactionTime = Time.time + cooldown * 0.75f;
+    }
+
+    private bool IsPlayerInContactRange()
+    {
+        if (player == null) return false;
+
+        Vector3 separation = player.position - transform.position;
+        if (Mathf.Abs(separation.y) > maxContactHeightDifference) return false;
+
+        separation.y = 0f;
+        if (separation.sqrMagnitude > contactDistance * contactDistance) return false;
+
+        return HasClearPathToPlayer();
+    }
+
+    private bool HasClearPathToPlayer()
+    {
+        int mask = contactLineOfSightMask.value == 0 ? Physics.DefaultRaycastLayers : contactLineOfSightMask.value;
+        Vector3 origin = transform.position + Vector3.up * 1.0f;
+        Vector3 destination = player.position + Vector3.up * 0.8f;
+        return PhysicsLineOfSight.HasClearPath(transform, player, origin, destination, mask);
     }
 
     private void TickFlee()

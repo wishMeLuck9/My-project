@@ -13,6 +13,8 @@ public class EnemyJumpController : MonoBehaviour
 
     private NavMeshAgent agent;
     private Transform trackedTarget;
+    private PlayerController3D trackedPlayerController;
+    private Rigidbody trackedTargetBody;
     private float targetGroundY;
     private float defaultBaseOffset;
     private float fallbackGroundY;
@@ -45,8 +47,10 @@ public class EnemyJumpController : MonoBehaviour
         toTarget.y = 0f;
         if (toTarget.sqrMagnitude > triggerDistance * triggerDistance) return;
 
-        bool targetIsAirborne = target.position.y > targetGroundY + targetAirborneHeight;
-        bool timedHop = hopWhileActive && Time.time >= nextActiveHopTime;
+        bool targetIsAirborne = IsTargetJumpingAboveGround(target);
+        bool timedHop = hopWhileActive
+                         && Time.time >= nextActiveHopTime
+                         && target.position.y <= transform.position.y + targetAirborneHeight;
 
         if (targetIsAirborne || timedHop)
         {
@@ -92,11 +96,43 @@ public class EnemyJumpController : MonoBehaviour
         if (trackedTarget != target)
         {
             trackedTarget = target;
+            trackedPlayerController = target.GetComponent<PlayerController3D>();
+            trackedTargetBody = target.GetComponent<Rigidbody>();
             targetGroundY = target.position.y;
             return;
         }
 
-        targetGroundY = Mathf.Min(targetGroundY, target.position.y);
+        if (trackedPlayerController == null)
+        {
+            trackedPlayerController = target.GetComponent<PlayerController3D>();
+        }
+
+        if (trackedTargetBody == null)
+        {
+            trackedTargetBody = target.GetComponent<Rigidbody>();
+        }
+
+        // Important: do not keep the lowest Y forever.
+        // When the player runs uphill, their Y position naturally increases while still grounded.
+        // The old code treated that as if the player was airborne, so the guardian kept hopping.
+        bool targetIsGrounded = trackedPlayerController == null || trackedPlayerController.IsGrounded;
+        if (targetIsGrounded || target.position.y < targetGroundY)
+        {
+            targetGroundY = target.position.y;
+        }
+    }
+
+    private bool IsTargetJumpingAboveGround(Transform target)
+    {
+        if (target == null) return false;
+
+        bool aboveTrackedGround = target.position.y > targetGroundY + targetAirborneHeight;
+        if (!aboveTrackedGround) return false;
+
+        if (trackedPlayerController == null) return true;
+        if (trackedPlayerController.IsGrounded) return false;
+
+        return trackedTargetBody == null || trackedTargetBody.linearVelocity.y > 0.05f;
     }
 
     private void ApplyVerticalOffset(float offset)

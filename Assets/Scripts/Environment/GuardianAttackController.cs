@@ -8,6 +8,7 @@ public class GuardianAttackController : MonoBehaviour
     [SerializeField] private int meleeDamage = 1;
     [SerializeField] private float meleeRange = 2.05f;
     [SerializeField] private float meleeRadius = 1.15f;
+    [SerializeField] private float maxMeleeHeightDifference = 0.75f;
     [SerializeField] private float meleeCooldown = 1.45f;
     [SerializeField] private float meleeTelegraphSeconds = 0.42f;
     [SerializeField] private int rangedDamage = 1;
@@ -88,7 +89,7 @@ public class GuardianAttackController : MonoBehaviour
         delta.y = 0f;
         float distance = delta.magnitude;
 
-        if (distance <= meleeRange && Time.time >= nextMeleeTime)
+        if (distance <= meleeRange && IsTargetWithinMeleeHeight() && HasLineOfSight() && Time.time >= nextMeleeTime)
         {
             StartCoroutine(MeleeRoutine());
             return;
@@ -136,12 +137,20 @@ public class GuardianAttackController : MonoBehaviour
     private bool IsTargetInMeleeArc()
     {
         if (target == null) return false;
+        if (!IsTargetWithinMeleeHeight()) return false;
+        if (!HasLineOfSight()) return false;
 
         Vector3 toTarget = target.position - transform.position;
         toTarget.y = 0f;
         if (toTarget.sqrMagnitude > meleeRadius * meleeRadius) return false;
         if (toTarget.sqrMagnitude <= 0.01f) return true;
         return Vector3.Dot(transform.forward, toTarget.normalized) > -0.15f;
+    }
+
+    private bool IsTargetWithinMeleeHeight()
+    {
+        if (target == null) return false;
+        return Mathf.Abs(target.position.y - transform.position.y) <= maxMeleeHeightDifference;
     }
 
     private bool HasLineOfSight()

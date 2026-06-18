@@ -12,6 +12,17 @@ public class ExteriorGateCutsceneController : MonoBehaviour
     [SerializeField] private PlayerAttackController playerAttack;
     [SerializeField] private Light playerGateLight;
     [SerializeField] private Light gateGlow;
+    [Header("Guiding Fragment Light")]
+    [SerializeField] private bool guidePlayerToGate = true;
+    [SerializeField] private float guideDistance = 55f;
+    [SerializeField] private float guideMinIntensity = 0.12f;
+    [SerializeField] private float guideFacingBoost = 0.35f;
+    [SerializeField] private float guideDistanceBoost = 0.28f;
+    [SerializeField] private float guidePulseSpeed = 2.6f;
+    [SerializeField] private float guideLightForwardOffset = 0.75f;
+    [SerializeField] private float guideSpotAngle = 34f;
+
+    [Header("Gate Reveal / Cutscene")]
     [SerializeField] private float revealDistance = 9f;
     [SerializeField] private float shakeDistance = 5.5f;
     [SerializeField] private float cutsceneDistance = 2.8f;
@@ -43,23 +54,35 @@ public class ExteriorGateCutsceneController : MonoBehaviour
 
     private void Update()
     {
-        if (cutsceneCompleted || WorldState.Instance == null || !WorldState.Instance.hasExteriorFragment) return;
+        if (cutsceneCompleted) return;
+
+        if (WorldState.Instance == null || !WorldState.Instance.hasExteriorFragment)
+        {
+            SetVisualIntensity(0f, 0f);
+            if (portal != null && !portal.IsUnlocked) portal.SetPortalVisible(false);
+            if (portal != null && hasPortalBasePosition) portal.transform.localPosition = portalBaseLocalPosition;
+            return;
+        }
 
         ResolveReferences();
         if (player == null) return;
 
         float distance = Vector3.Distance(Planar(player.transform.position), Planar(transform.position));
-        float proximity = Mathf.Clamp01(1f - Mathf.InverseLerp(cutsceneDistance, revealDistance, distance));
-        bool shouldReveal = distance <= revealDistance || IsCutsceneActive;
+        float gateProximity = Mathf.Clamp01(1f - Mathf.InverseLerp(cutsceneDistance, revealDistance, distance));
+        bool shouldRevealGate = distance <= revealDistance || IsCutsceneActive;
 
         if (portal != null)
         {
-            portal.SetPortalVisible(shouldReveal);
+            portal.SetPortalVisible(shouldRevealGate);
             if (!portal.IsUnlocked) portal.Lock();
         }
 
-        SetVisualIntensity(shouldReveal ? proximity : 0f);
-        TickGateShake(distance, proximity);
+        float playerGuide = CalculateGuidingIntensity(distance);
+        float playerIntensity = IsCutsceneActive ? 1f : Mathf.Max(shouldRevealGate ? gateProximity : 0f, playerGuide);
+        float gateIntensity = shouldRevealGate ? gateProximity : 0f;
+
+        SetVisualIntensity(playerIntensity, gateIntensity);
+        TickGateShake(distance, gateProximity);
 
         if (!cutsceneStarted && distance <= cutsceneDistance)
         {
@@ -253,24 +276,82 @@ public class ExteriorGateCutsceneController : MonoBehaviour
         portal.transform.localPosition = portalBaseLocalPosition + jitter;
     }
 
+    private float CalculateGuidingIntensity(float distance)
+    {
+        if (!guidePlayerToGate || player == null) return 0f;
+        if (IsCutsceneActive || distance <= revealDistance || distance > guideDistance) return 0f;
+
+        Vector3 toGate = Planar(transform.position - player.transform.position);
+        if (toGate.sqrMagnitude < 0.001f) return 0f;
+
+        Vector3 playerForward = Planar(player.transform.forward);
+        float facingGate = 0.5f;
+        if (playerForward.sqrMagnitude > 0.001f)
+        {
+            facingGate = Mathf.Clamp01((Vector3.Dot(playerForward.normalized, toGate.normalized) + 1f) * 0.5f);
+        }
+
+        float closeness = Mathf.Clamp01(1f - Mathf.InverseLerp(revealDistance, guideDistance, distance));
+        float pulse = 0.7f + Mathf.Sin(Time.time * guidePulseSpeed) * 0.3f;
+
+        return Mathf.Clamp01(guideMinIntensity + facingGate * guideFacingBoost + closeness * guideDistanceBoost) * pulse;
+    }
+
     private void SetVisualIntensity(float t)
     {
+        SetVisualIntensity(t, t);
+    }
+
+    private void SetVisualIntensity(float playerT, float gateT)
+    {
+        playerT = Mathf.Clamp01(playerT);
+        gateT = Mathf.Clamp01(gateT);
+
         EnsurePlayerLight();
         EnsureGateGlow();
+        ConfigurePlayerLightMode(playerT > 0.01f && gateT <= 0.01f && !IsCutsceneActive);
+        PositionPlayerGuideLight();
 
         if (playerGateLight != null)
         {
-            playerGateLight.enabled = t > 0.01f;
-            playerGateLight.intensity = Mathf.Lerp(0f, maxPlayerLightIntensity, t);
-            playerGateLight.range = Mathf.Lerp(1.2f, 6f, t);
+            playerGateLight.enabled = playerT > 0.01f;
+            playerGateLight.intensity = Mathf.Lerp(0f, maxPlayerLightIntensity, playerT);
+            playerGateLight.range = Mathf.Lerp(1.2f, 6f, playerT);
         }
 
         if (gateGlow != null)
         {
-            gateGlow.enabled = t > 0.01f;
-            gateGlow.intensity = Mathf.Lerp(0f, maxGateLightIntensity, t);
-            gateGlow.range = Mathf.Lerp(2f, 9f, t);
+            gateGlow.enabled = gateT > 0.01f;
+            gateGlow.intensity = Mathf.Lerp(0f, maxGateLightIntensity, gateT);
+            gateGlow.range = Mathf.Lerp(2f, 9f, gateT);
         }
+    }
+
+    private void PositionPlayerGuideLight()
+    {
+        if (playerGateLight == null || player == null) return;
+
+        Vector3 toGate = Planar(transform.position - player.transform.position);
+        if (toGate.sqrMagnitude > 0.001f)
+        {
+            Vector3 direction = toGate.normalized;
+            playerGateLight.transform.position = player.transform.position
+                                                 + Vector3.up * 1.15f
+                                                 + direction * guideLightForwardOffset;
+            playerGateLight.transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
+        }
+        else
+        {
+            playerGateLight.transform.localPosition = new Vector3(0f, 1.15f, 0.18f);
+        }
+    }
+
+    private void ConfigurePlayerLightMode(bool guideOnly)
+    {
+        if (playerGateLight == null) return;
+
+        playerGateLight.type = guideOnly ? LightType.Spot : LightType.Point;
+        if (guideOnly) playerGateLight.spotAngle = guideSpotAngle;
     }
 
     private void TryStartFromTrigger(Collider other)

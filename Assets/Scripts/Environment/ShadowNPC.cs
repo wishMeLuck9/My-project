@@ -10,6 +10,15 @@ public class ShadowNPC : Interactable
     [SerializeField] private string peacefulLine;
     [SerializeField] private string violentLine;
 
+    private ExteriorPursuer exteriorPursuer;
+    private PrototypeShadowActor shadowActor;
+
+    private void Awake()
+    {
+        exteriorPursuer = GetComponentInParent<ExteriorPursuer>();
+        shadowActor = GetComponentInParent<PrototypeShadowActor>();
+    }
+
     public void Configure(string newName, string[] newLines, bool choices)
     {
         npcName = newName;
@@ -30,6 +39,7 @@ public class ShadowNPC : Interactable
     public override void Interact()
     {
         if (DialogueController.Instance == null || WorldState.Instance == null) return;
+        if (TryShowHostileInteraction()) return;
 
         if (reactsToNightPath)
         {
@@ -83,6 +93,27 @@ public class ShadowNPC : Interactable
         {
             DialogueController.Instance.ShowDialogue(npcName, lines[Random.Range(0, lines.Length)]);
         }
+    }
+
+    private bool TryShowHostileInteraction()
+    {
+        if (exteriorPursuer != null && exteriorPursuer.IsHunting)
+        {
+            exteriorPursuer.ShowHuntingInteractionResponse();
+            return true;
+        }
+
+        if (shadowActor != null && shadowActor.IsHunting)
+        {
+            RuntimeHudController.Instance?.ShowSystemMessage(
+                LocalizationManager.EnsureInstance().Get(Random.value > 0.5f
+                    ? "raw.shadow.hunt.interact.close"
+                    : "raw.shadow.hunt.interact.angry"),
+                1.8f);
+            return true;
+        }
+
+        return false;
     }
 
     private string GetLineOrFallback(string fallback)

@@ -11,12 +11,15 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
     private float duration;
     private float elapsed;
     private float radius;
+    private int hitMask;
     private bool resolveGameplayHit;
     private Transform attackSource;
     private bool impactResolved;
+    private Vector3 previousPosition;
 
     private TrailRenderer trail;
     private Light glow;
+    private readonly RaycastHit[] travelHits = new RaycastHit[24];
 
     public static CorruptionSpellProjectile Spawn(
         Vector3 start,
@@ -26,14 +29,15 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
         float speed,
         float radius,
         bool resolveGameplayHit = false,
-        Transform attackSource = null)
+        Transform attackSource = null,
+        int hitMask = Physics.DefaultRaycastLayers)
     {
         GameObject projectileObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         projectileObject.name = "Corruption_Spell_Projectile";
         Destroy(projectileObject.GetComponent<Collider>());
 
         CorruptionSpellProjectile projectile = projectileObject.AddComponent<CorruptionSpellProjectile>();
-        projectile.Initialize(start, destination, impactNormal, impactTarget, speed, radius, resolveGameplayHit, attackSource);
+        projectile.Initialize(start, destination, impactNormal, impactTarget, speed, radius, resolveGameplayHit, attackSource, hitMask);
         return projectile;
     }
 
@@ -45,7 +49,8 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
         float speed,
         float radius,
         bool resolveGameplayHit,
-        Transform attackSource)
+        Transform attackSource,
+        int hitMask)
     {
         this.start = start;
         this.destination = destination;
@@ -54,8 +59,10 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
         this.radius = Mathf.Max(0.04f, radius);
         this.resolveGameplayHit = resolveGameplayHit;
         this.attackSource = attackSource;
+        this.hitMask = hitMask == 0 ? Physics.DefaultRaycastLayers : hitMask;
 
         transform.position = start;
+        previousPosition = start;
         transform.localScale = Vector3.one * this.radius * 2f;
         duration = Mathf.Max(MinimumTravelTime, Vector3.Distance(start, destination) / Mathf.Max(1f, speed));
 
@@ -82,7 +89,16 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
         elapsed += Time.deltaTime;
         float t = Mathf.Clamp01(elapsed / duration);
         float arc = CorruptionVfxUtility.ReduceMotion ? 0f : Mathf.Sin(t * Mathf.PI) * 0.35f;
-        transform.position = Vector3.Lerp(start, destination, t) + Vector3.up * arc;
+        Vector3 nextPosition = Vector3.Lerp(start, destination, t) + Vector3.up * arc;
+        if (TryResolveTravelImpact(previousPosition, nextPosition))
+        {
+            CorruptionImpactEffect.Spawn(destination, impactNormal, impactTarget);
+            Destroy(gameObject);
+            return;
+        }
+
+        transform.position = nextPosition;
+        previousPosition = nextPosition;
         if (!CorruptionVfxUtility.ReduceMotion)
         {
             transform.Rotate(180f * Time.deltaTime, 260f * Time.deltaTime, 120f * Time.deltaTime, Space.Self);
@@ -96,6 +112,52 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
             CorruptionImpactEffect.Spawn(destination, impactNormal, impactTarget);
             Destroy(gameObject);
         }
+    }
+
+    private bool TryResolveTravelImpact(Vector3 from, Vector3 to)
+    {
+        if (!resolveGameplayHit || impactResolved) return false;
+
+        Vector3 delta = to - from;
+        float distance = delta.magnitude;
+        if (distance <= 0.001f) return false;
+
+        int hitCount = Physics.SphereCastNonAlloc(
+            from,
+            radius,
+            delta / distance,
+            travelHits,
+            distance,
+            hitMask,
+            QueryTriggerInteraction.Collide);
+
+        RaycastHit bestHit = default;
+        float nearestDistance = float.MaxValue;
+        bool found = false;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit candidate = travelHits[i];
+            Collider collider = candidate.collider;
+            if (collider == null || IsPartOfSource(collider.transform)) continue;
+            if (collider.isTrigger && !IsCombatTarget(collider.transform)) continue;
+            if (candidate.distance >= nearestDistance) continue;
+
+            nearestDistance = candidate.distance;
+            bestHit = candidate;
+            found = true;
+        }
+
+        if (!found) return false;
+
+        destination = bestHit.point;
+        impactNormal = bestHit.normal.sqrMagnitude > 0.001f ? bestHit.normal.normalized : -delta.normalized;
+        impactTarget = bestHit.collider.transform;
+        transform.position = destination;
+        previousPosition = destination;
+
+        ResolveGameplayImpact();
+        return true;
     }
 
     private void ResolveGameplayImpact()
@@ -112,5 +174,19 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
 
         GuardianController guardian = impactTarget.GetComponentInParent<GuardianController>();
         guardian?.ReceiveAttack();
+    }
+
+    private static bool IsCombatTarget(Transform target)
+    {
+        if (target == null) return false;
+        return target.GetComponentInParent<PrototypeShadowActor>() != null ||
+               target.GetComponentInParent<GuardianController>() != null;
+    }
+
+    private bool IsPartOfSource(Transform candidate)
+    {
+        return candidate != null
+            && attackSource != null
+            && (candidate == attackSource || candidate.IsChildOf(attackSource) || attackSource.IsChildOf(candidate));
     }
 }

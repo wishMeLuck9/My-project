@@ -13,6 +13,7 @@ public class PlayerAttackController : MonoBehaviour
     [SerializeField] private Vector3 fallbackCastOffset = new Vector3(0.35f, 1.15f, 0.45f);
 
     private readonly Collider[] hitBuffer = new Collider[16];
+    private readonly RaycastHit[] spellCastHits = new RaycastHit[24];
     private float nextAttackTime;
     private bool canAttack = true;
     private PlayerInputReader inputReader;
@@ -106,7 +107,7 @@ public class PlayerAttackController : MonoBehaviour
         Transform target = null;
         bool canResolveProjectileHit = false;
 
-        if (Physics.SphereCast(origin, spellRadius, direction, out RaycastHit hit, spellRange, mask, QueryTriggerInteraction.Ignore))
+        if (TryFindSpellImpact(origin, direction, spellRange, mask, out RaycastHit hit))
         {
             destination = hit.point;
             normal = hit.normal;
@@ -121,9 +122,41 @@ public class PlayerAttackController : MonoBehaviour
             target,
             spellSpeed,
             spellRadius,
-            canResolveProjectileHit,
-            transform);
+            resolveGameplayHit,
+            transform,
+            mask);
         return canResolveProjectileHit;
+    }
+
+    private bool TryFindSpellImpact(Vector3 origin, Vector3 direction, float range, int mask, out RaycastHit bestHit)
+    {
+        int hitCount = Physics.SphereCastNonAlloc(
+            origin,
+            spellRadius,
+            direction,
+            spellCastHits,
+            range,
+            mask,
+            QueryTriggerInteraction.Collide);
+
+        bestHit = default;
+        float nearestDistance = float.MaxValue;
+        bool found = false;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit candidate = spellCastHits[i];
+            Collider collider = candidate.collider;
+            if (collider == null || IsPartOfSource(collider.transform)) continue;
+            if (collider.isTrigger && !IsCombatTarget(collider.transform)) continue;
+            if (candidate.distance >= nearestDistance) continue;
+
+            nearestDistance = candidate.distance;
+            bestHit = candidate;
+            found = true;
+        }
+
+        return found;
     }
 
     private Vector3 ResolveCastOrigin()
@@ -166,5 +199,10 @@ public class PlayerAttackController : MonoBehaviour
         if (target == null) return false;
         return target.GetComponentInParent<PrototypeShadowActor>() != null ||
                target.GetComponentInParent<GuardianController>() != null;
+    }
+
+    private bool IsPartOfSource(Transform candidate)
+    {
+        return candidate != null && (candidate == transform || candidate.IsChildOf(transform) || transform.IsChildOf(candidate));
     }
 }

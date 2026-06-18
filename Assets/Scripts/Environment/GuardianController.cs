@@ -9,6 +9,8 @@ public class GuardianController : Interactable
     [SerializeField] private int maxHealth = 3;
     [SerializeField] private float chaseSpeed = 3.8f;
     [SerializeField] private float catchDistance = 1.45f;
+    [SerializeField] private float maxCatchHeightDifference = 0.75f;
+    [SerializeField] private LayerMask catchLineOfSightMask = ~0;
 
     private FinalGateOutcomeController arena;
     private Transform player;
@@ -22,6 +24,12 @@ public class GuardianController : Interactable
     private bool battling;
     private bool defeated;
     private float nextRecoveryTime;
+
+    private static readonly string[] BattleInteractionKeys =
+    {
+        "raw.guardian.battle.interact.judgement",
+        "raw.guardian.battle.interact.silence"
+    };
 
     public string GuardianName => string.IsNullOrWhiteSpace(guardianName) ? name : guardianName;
     public bool IsDefeated => defeated;
@@ -59,6 +67,14 @@ public class GuardianController : Interactable
 
     public override void Interact()
     {
+        if (battling && !defeated)
+        {
+            RuntimeHudController.Instance?.ShowSystemMessage(
+                LocalizationManager.EnsureInstance().Get(BattleInteractionKeys[Random.Range(0, BattleInteractionKeys.Length)]),
+                1.8f);
+            return;
+        }
+
         if (!battling && DialogueController.Instance != null)
         {
             DialogueController.Instance.ShowDialogue(GuardianName, BuildEvaluationMessage());
@@ -110,15 +126,29 @@ public class GuardianController : Interactable
             if (!agent.isStopped) agent.SetDestination(player.position);
         }
 
-        Vector3 distance = player.position - transform.position;
-        distance.y = 0f;
         jumper?.TickAutoJump(player, true, true);
         attacks?.TickBattle();
 
-        if (attacks == null && distance.sqrMagnitude <= catchDistance * catchDistance)
+        if (attacks == null && IsPlayerCatchable())
         {
             arena.ResetArenaAfterPlayerHit();
         }
+    }
+
+    private bool IsPlayerCatchable()
+    {
+        if (player == null) return false;
+
+        Vector3 separation = player.position - transform.position;
+        if (Mathf.Abs(separation.y) > maxCatchHeightDifference) return false;
+
+        separation.y = 0f;
+        if (separation.sqrMagnitude > catchDistance * catchDistance) return false;
+
+        int mask = catchLineOfSightMask.value == 0 ? Physics.DefaultRaycastLayers : catchLineOfSightMask.value;
+        Vector3 origin = transform.position + Vector3.up * 1.0f;
+        Vector3 destination = player.position + Vector3.up * 0.8f;
+        return PhysicsLineOfSight.HasClearPath(transform, player, origin, destination, mask);
     }
 
     public void ReceiveAttack()
