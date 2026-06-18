@@ -69,7 +69,7 @@ public class GuardianController : Interactable
     {
         if (battling && !defeated)
         {
-            RuntimeHudController.Instance?.ShowSystemMessage(
+            RuntimeHudController.Instance?.ShowAmbientMessage(
                 LocalizationManager.EnsureInstance().Get(BattleInteractionKeys[Random.Range(0, BattleInteractionKeys.Length)]),
                 1.8f);
             return;

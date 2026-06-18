@@ -10,6 +10,9 @@ public class RuntimeHudController : MonoBehaviour
     private const string ExteriorScene = "LOCATION_01_EXTERIOR_DAY";
     private const string NightScene = "LOCATION_02_PROTECTED_ALLEYS_NIGHT";
     private const float ExteriorHintDelay = 45f;
+    private const float ControlsFullDisplaySeconds = 10f;
+    private const float AmbientSystemMessageCooldown = 3.2f;
+    private const float DuplicateAmbientMessageCooldown = 6f;
 
     public static RuntimeHudController Instance { get; private set; }
 
@@ -22,6 +25,7 @@ public class RuntimeHudController : MonoBehaviour
     private TextMeshProUGUI systemText;
     private TextMeshProUGUI purgatoryText;
     private GameObject controlsPanel;
+    private RectTransform controlsPanelRect;
     private GameObject interactionPanel;
     private GameObject stabilityPanel;
     private GameObject healthPanel;
@@ -53,6 +57,9 @@ public class RuntimeHudController : MonoBehaviour
     private string lastHealthText;
     private string lastBossText;
     private Coroutine clearSystemMessageRoutine;
+    private float sceneStartedAt;
+    private float nextAmbientSystemMessageAllowedAt;
+    private readonly Dictionary<string, float> recentAmbientMessages = new Dictionary<string, float>();
     private CanvasScaler canvasScaler;
 
     public bool IsPaused => PauseMenuController.Instance != null && PauseMenuController.Instance.IsPaused;
@@ -125,10 +132,30 @@ public class RuntimeHudController : MonoBehaviour
 
     public void ShowSystemMessage(string message, float duration = 3.5f)
     {
+        string translatedMessage = LocalizationManager.EnsureInstance().TranslateRaw(message);
+        if (string.IsNullOrWhiteSpace(translatedMessage)) return;
+
         if (clearSystemMessageRoutine != null) StopCoroutine(clearSystemMessageRoutine);
 
-        SetSystemMessage(LocalizationManager.EnsureInstance().TranslateRaw(message));
+        SetSystemMessage(translatedMessage);
         clearSystemMessageRoutine = StartCoroutine(ClearSystemMessageAfterDelay(duration));
+    }
+
+    public void ShowAmbientMessage(string message, float duration = 1.8f)
+    {
+        string translatedMessage = LocalizationManager.EnsureInstance().TranslateRaw(message);
+        if (string.IsNullOrWhiteSpace(translatedMessage)) return;
+
+        if (Time.unscaledTime < nextAmbientSystemMessageAllowedAt) return;
+        if (recentAmbientMessages.TryGetValue(translatedMessage, out float lastShownAt) &&
+            Time.unscaledTime - lastShownAt < DuplicateAmbientMessageCooldown)
+        {
+            return;
+        }
+
+        recentAmbientMessages[translatedMessage] = Time.unscaledTime;
+        nextAmbientSystemMessageAllowedAt = Time.unscaledTime + AmbientSystemMessageCooldown;
+        ShowSystemMessage(translatedMessage, duration);
     }
 
     public void ShowPurgatoryTransition(string message)
@@ -150,6 +177,9 @@ public class RuntimeHudController : MonoBehaviour
     private void ApplyScene(Scene scene)
     {
         currentScene = scene.name;
+        sceneStartedAt = Time.unscaledTime;
+        nextAmbientSystemMessageAllowedAt = 0f;
+        recentAmbientMessages.Clear();
         player = null;
         playerHealth = null;
         bossDirector = null;
@@ -239,13 +269,20 @@ public class RuntimeHudController : MonoBehaviour
             return;
         }
 
+        bool showFullControls = Time.unscaledTime - sceneStartedAt < ControlsFullDisplaySeconds;
+        controlsPanel.SetActive(true);
+        controlsText.gameObject.SetActive(showFullControls);
+        if (controlsPanelRect != null)
+        {
+            controlsPanelRect.sizeDelta = showFullControls ? new Vector2(380f, 220f) : new Vector2(380f, 76f);
+        }
+
         string key = currentScene == NightScene ? "hud.controls.night" : "hud.controls.day";
-        string text = LocalizationManager.EnsureInstance().Get(key);
+        string text = showFullControls ? LocalizationManager.EnsureInstance().Get(key) : string.Empty;
         if (lastControlsText == text) return;
 
         lastControlsText = text;
         controlsText.text = text;
-        controlsPanel.SetActive(true);
     }
 
     private void UpdateObjective()
@@ -438,6 +475,7 @@ public class RuntimeHudController : MonoBehaviour
         gameObject.AddComponent<GraphicRaycaster>();
 
         controlsPanel = CreatePanel("ControlsPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(18f, -18f), new Vector2(380f, 220f), new Vector2(0f, 1f));
+        controlsPanelRect = controlsPanel.GetComponent<RectTransform>();
         objectiveText = CreateText("Objective", controlsPanel.transform, string.Empty, 18f, new Vector2(12f, -10f), new Vector2(356f, 52f), new Vector2(0f, 1f));
         controlsText = CreateText("Controls", controlsPanel.transform, string.Empty, 18f, new Vector2(12f, -68f), new Vector2(356f, 144f), new Vector2(0f, 1f));
 

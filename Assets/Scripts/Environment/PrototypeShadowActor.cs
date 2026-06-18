@@ -396,7 +396,7 @@ public class PrototypeShadowActor : MonoBehaviour
         string key = playerIsAbove
             ? "raw.shadow.hunt.reaction.above"
             : HuntReactionKeys[UnityEngine.Random.Range(0, HuntReactionKeys.Length)];
-        RuntimeHudController.Instance?.ShowSystemMessage(LocalizationManager.EnsureInstance().Get(key), 1.8f);
+        RuntimeHudController.Instance?.ShowAmbientMessage(LocalizationManager.EnsureInstance().Get(key), 1.8f);
 
         float cooldown = UnityEngine.Random.Range(reactionCooldownMin, reactionCooldownMax);
         nextReactionTime = Time.time + cooldown;

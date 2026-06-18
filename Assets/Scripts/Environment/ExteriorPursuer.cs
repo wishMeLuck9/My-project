@@ -137,7 +137,7 @@ public class ExteriorPursuer : MonoBehaviour
     {
         if (!isHunting) return;
 
-        RuntimeHudController.Instance?.ShowSystemMessage(
+        RuntimeHudController.Instance?.ShowAmbientMessage(
             LocalizationManager.EnsureInstance().Get(Random.value > 0.5f
                 ? "raw.hunt.interact.close"
                 : "raw.hunt.interact.run"),
@@ -166,7 +166,7 @@ public class ExteriorPursuer : MonoBehaviour
         string key = playerIsAbove
             ? "raw.hunt.reaction.above"
             : HuntReactionKeys[Random.Range(0, HuntReactionKeys.Length)];
-        RuntimeHudController.Instance?.ShowSystemMessage(LocalizationManager.EnsureInstance().Get(key), 1.8f);
+        RuntimeHudController.Instance?.ShowAmbientMessage(LocalizationManager.EnsureInstance().Get(key), 1.8f);
 
         float cooldown = Random.Range(reactionCooldownMin, reactionCooldownMax);
         nextReactionTime = Time.time + cooldown;
@@ -288,7 +288,7 @@ public class ExteriorPursuer : MonoBehaviour
 
         if (Time.time >= nextSharedShoveMessageTime)
         {
-            RuntimeHudController.Instance?.ShowSystemMessage(
+            RuntimeHudController.Instance?.ShowAmbientMessage(
                 LocalizationManager.EnsureInstance().Get("raw.hunt.reaction.shove"),
                 1.6f);
             nextSharedShoveMessageTime = Time.time + 2.8f;

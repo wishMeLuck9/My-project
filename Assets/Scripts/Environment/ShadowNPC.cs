@@ -105,7 +105,7 @@ public class ShadowNPC : Interactable
 
         if (shadowActor != null && shadowActor.IsHunting)
         {
-            RuntimeHudController.Instance?.ShowSystemMessage(
+            RuntimeHudController.Instance?.ShowAmbientMessage(
                 LocalizationManager.EnsureInstance().Get(Random.value > 0.5f
                     ? "raw.shadow.hunt.interact.close"
                     : "raw.shadow.hunt.interact.angry"),
