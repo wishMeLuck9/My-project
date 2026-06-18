@@ -58,6 +58,7 @@ public class PrototypeShadowActor : MonoBehaviour
     private bool defeated;
     private bool hunting;
     private bool fleeing;
+    private float nextGuardianProxyHitFeedbackTime;
 
     private static float nextSharedReactionTime;
     private static readonly string[] HuntReactionKeys =
@@ -126,6 +127,9 @@ public class PrototypeShadowActor : MonoBehaviour
         healthComponent.Configure(health);
         SetHunting(true);
         ApplyRoleColor();
+        RuntimeHudController.Instance?.ShowSystemMessage(
+            LocalizationManager.EnsureInstance().Get("hud.shadow_guardian_promoted"),
+            3.2f);
     }
 
     private void Start()
@@ -157,12 +161,17 @@ public class PrototypeShadowActor : MonoBehaviour
 
     public void ReceiveAttack(Transform attacker)
     {
+        ReceiveAttack(attacker, 1);
+    }
+
+    public void ReceiveAttack(Transform attacker, int damage)
+    {
         if (defeated) return;
 
         WasAttacked = true;
         hunting = true;
         fleeing = false;
-        if (!healthComponent.ApplyDamage(1, attacker != null ? attacker.gameObject : null)) return;
+        if (!healthComponent.ApplyDamage(Mathf.Max(1, damage), attacker != null ? attacker.gameObject : null)) return;
         health = healthComponent.CurrentHealth;
         fearUntil = Time.time + fearDuration;
 
@@ -176,10 +185,30 @@ public class PrototypeShadowActor : MonoBehaviour
         else
         {
             PlayHitScaleFeedback();
+            if (role == ShadowRole.GuardianProxy)
+            {
+                ShowGuardianProxyHitFeedback();
+            }
         }
 
         ApplyRoleColor();
-        ShowReaction(nowDefeated);
+        if (role != ShadowRole.GuardianProxy || nowDefeated)
+        {
+            ShowReaction(nowDefeated);
+        }
+    }
+
+    private void ShowGuardianProxyHitFeedback()
+    {
+        if (Time.time < nextGuardianProxyHitFeedbackTime) return;
+
+        nextGuardianProxyHitFeedbackTime = Time.time + 0.85f;
+        RuntimeHudController.Instance?.ShowSystemMessage(
+            LocalizationManager.EnsureInstance().Format(
+                "hud.shadow_guardian_hit",
+                healthComponent.CurrentHealth,
+                healthComponent.MaxHealth),
+            1.6f);
     }
 
     public void RestoreForEvent()

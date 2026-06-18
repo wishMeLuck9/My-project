@@ -138,6 +138,8 @@ public class LocalizationManager : MonoBehaviour
         AddBuiltInEntry("hud.damage", "Страж попал. Жизнь {0}/{1}", "Guardian hit. HP {0}/{1}", "O guardiao acertou. Vida {0}/{1}");
         AddBuiltInEntry("boss.intro", "Стражи проснулись. Выживи в суде.", "The guardians wake. Survive the judgement.", "Os guardioes acordaram. Sobrevive ao julgamento.");
         AddBuiltInEntry("boss.phase2", "Врата отвечают силой.", "The gate answers with force.", "Os portoes respondem com forca.");
+        AddBuiltInEntry("hud.shadow_guardian_promoted", "Тень стала стражем. Ей нужно больше одного удара.", "A shadow hardens into a guardian. It takes more than one strike.", "Uma sombra endurece num guardiao. Precisa de mais de um golpe.");
+        AddBuiltInEntry("hud.shadow_guardian_hit", "Страж-тень выдержал удар. Осталось {0}/{1}.", "Guardian-shadow resisted. HP {0}/{1}.", "Guardiao-sombra resistiu. Vida {0}/{1}.");
         AddBuiltInEntry("raw.hunt.reaction.seen", "Они видят тебя.", "They see you.", "Eles veem-te.");
         AddBuiltInEntry("raw.hunt.reaction.close", "Они идут за твоим светом.", "They follow your light.", "Eles seguem a tua luz.");
         AddBuiltInEntry("raw.hunt.reaction.above", "Они ждут, когда ты спустишься.", "They wait for you to come down.", "Eles esperam que desças.");

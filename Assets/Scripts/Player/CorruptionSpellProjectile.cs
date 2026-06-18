@@ -11,7 +11,9 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
     private float duration;
     private float elapsed;
     private float radius;
+    private float hitRadius;
     private int hitMask;
+    private int shadowDamage = 1;
     private bool resolveGameplayHit;
     private Transform attackSource;
     private bool impactResolved;
@@ -20,6 +22,7 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
     private TrailRenderer trail;
     private Light glow;
     private readonly RaycastHit[] travelHits = new RaycastHit[24];
+    private readonly Collider[] impactHits = new Collider[16];
 
     public static CorruptionSpellProjectile Spawn(
         Vector3 start,
@@ -30,14 +33,16 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
         float radius,
         bool resolveGameplayHit = false,
         Transform attackSource = null,
-        int hitMask = Physics.DefaultRaycastLayers)
+        int hitMask = Physics.DefaultRaycastLayers,
+        float hitRadius = -1f,
+        int shadowDamage = 1)
     {
         GameObject projectileObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         projectileObject.name = "Corruption_Spell_Projectile";
         Destroy(projectileObject.GetComponent<Collider>());
 
         CorruptionSpellProjectile projectile = projectileObject.AddComponent<CorruptionSpellProjectile>();
-        projectile.Initialize(start, destination, impactNormal, impactTarget, speed, radius, resolveGameplayHit, attackSource, hitMask);
+        projectile.Initialize(start, destination, impactNormal, impactTarget, speed, radius, resolveGameplayHit, attackSource, hitMask, hitRadius, shadowDamage);
         return projectile;
     }
 
@@ -50,16 +55,20 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
         float radius,
         bool resolveGameplayHit,
         Transform attackSource,
-        int hitMask)
+        int hitMask,
+        float hitRadius,
+        int shadowDamage)
     {
         this.start = start;
         this.destination = destination;
         this.impactNormal = impactNormal.sqrMagnitude > 0.001f ? impactNormal.normalized : Vector3.up;
         this.impactTarget = impactTarget;
         this.radius = Mathf.Max(0.04f, radius);
+        this.hitRadius = Mathf.Max(this.radius, hitRadius > 0f ? hitRadius : radius);
         this.resolveGameplayHit = resolveGameplayHit;
         this.attackSource = attackSource;
         this.hitMask = hitMask == 0 ? Physics.DefaultRaycastLayers : hitMask;
+        this.shadowDamage = Mathf.Max(1, shadowDamage);
 
         transform.position = start;
         previousPosition = start;
@@ -124,7 +133,7 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
 
         int hitCount = Physics.SphereCastNonAlloc(
             from,
-            radius,
+            hitRadius,
             delta / distance,
             travelHits,
             distance,
@@ -134,13 +143,17 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
         RaycastHit bestHit = default;
         float nearestDistance = float.MaxValue;
         bool found = false;
+        Transform lockedCombatRoot = ResolveCombatRoot(impactTarget);
 
         for (int i = 0; i < hitCount; i++)
         {
             RaycastHit candidate = travelHits[i];
             Collider collider = candidate.collider;
             if (collider == null || IsPartOfSource(collider.transform)) continue;
-            if (collider.isTrigger && !IsCombatTarget(collider.transform)) continue;
+            if (collider.isTrigger) continue;
+
+            Transform candidateCombatRoot = ResolveCombatRoot(collider.transform);
+            if (lockedCombatRoot != null && candidateCombatRoot != lockedCombatRoot) continue;
             if (candidate.distance >= nearestDistance) continue;
 
             nearestDistance = candidate.distance;
@@ -162,25 +175,139 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
 
     private void ResolveGameplayImpact()
     {
-        if (!resolveGameplayHit || impactResolved || impactTarget == null) return;
+        if (!resolveGameplayHit || impactResolved) return;
 
         impactResolved = true;
-        PrototypeShadowActor shadow = impactTarget.GetComponentInParent<PrototypeShadowActor>();
-        if (shadow != null)
+        if (TryApplyGameplayHit(impactTarget, out Transform appliedTarget))
         {
-            shadow.ReceiveAttack(attackSource);
+            SnapImpactToVisualTarget(appliedTarget);
             return;
         }
 
-        GuardianController guardian = impactTarget.GetComponentInParent<GuardianController>();
-        guardian?.ReceiveAttack();
+        if (impactTarget != null && !IsCombatTarget(impactTarget)) return;
+
+        if (TryApplyNearbyGameplayHit(out Transform nearbyTarget))
+        {
+            SnapImpactToVisualTarget(nearbyTarget);
+        }
+    }
+
+    private bool TryApplyNearbyGameplayHit(out Transform appliedTarget)
+    {
+        appliedTarget = null;
+        int hitCount = Physics.OverlapSphereNonAlloc(transform.position, hitRadius, impactHits, hitMask, QueryTriggerInteraction.Collide);
+        Transform bestTarget = null;
+        float bestDistance = float.MaxValue;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider candidate = impactHits[i];
+            if (candidate == null || IsPartOfSource(candidate.transform)) continue;
+
+            Transform combatRoot = ResolveCombatRoot(candidate.transform);
+            if (combatRoot == null) continue;
+
+            float distance = Vector3.Distance(candidate.ClosestPoint(transform.position), transform.position);
+            if (distance >= bestDistance) continue;
+
+            bestDistance = distance;
+            bestTarget = combatRoot;
+        }
+
+        return TryApplyGameplayHit(bestTarget, out appliedTarget);
+    }
+
+    private bool TryApplyGameplayHit(Transform target, out Transform appliedTarget)
+    {
+        appliedTarget = null;
+        if (target == null) return false;
+
+        PrototypeShadowActor shadow = target.GetComponentInParent<PrototypeShadowActor>();
+        if (shadow != null)
+        {
+            shadow.ReceiveAttack(attackSource, shadowDamage);
+            appliedTarget = shadow.transform;
+            return true;
+        }
+
+        GuardianController guardian = target.GetComponentInParent<GuardianController>();
+        if (guardian == null) return false;
+
+        guardian.ReceiveAttack();
+        appliedTarget = guardian.transform;
+        return true;
+    }
+
+    private void SnapImpactToVisualTarget(Transform target)
+    {
+        if (!TryResolveVisualImpact(target, out Vector3 visualPoint, out Vector3 visualNormal, out Transform visualTarget)) return;
+
+        destination = visualPoint;
+        impactNormal = visualNormal;
+        impactTarget = visualTarget != null ? visualTarget : target;
+        transform.position = destination;
+        previousPosition = destination;
+    }
+
+    private bool TryResolveVisualImpact(Transform target, out Vector3 visualPoint, out Vector3 visualNormal, out Transform visualTarget)
+    {
+        visualPoint = destination;
+        visualNormal = impactNormal.sqrMagnitude > 0.001f ? impactNormal.normalized : Vector3.up;
+        visualTarget = target;
+        if (target == null) return false;
+
+        Renderer[] renderers = target.GetComponentsInChildren<Renderer>(true);
+        Bounds bounds = default;
+        bool hasBounds = false;
+        Renderer bestRenderer = null;
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy) continue;
+
+            if (!hasBounds)
+            {
+                bounds = renderer.bounds;
+                hasBounds = true;
+                bestRenderer = renderer;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        if (!hasBounds) return false;
+
+        visualPoint = bounds.ClosestPoint(start);
+        Vector3 fromSurfaceToCaster = start - visualPoint;
+        if (fromSurfaceToCaster.sqrMagnitude <= 0.001f)
+        {
+            fromSurfaceToCaster = start - bounds.center;
+        }
+
+        visualNormal = fromSurfaceToCaster.sqrMagnitude > 0.001f
+            ? fromSurfaceToCaster.normalized
+            : (impactNormal.sqrMagnitude > 0.001f ? impactNormal.normalized : Vector3.up);
+        visualTarget = bestRenderer != null ? bestRenderer.transform : target;
+        return true;
     }
 
     private static bool IsCombatTarget(Transform target)
     {
-        if (target == null) return false;
-        return target.GetComponentInParent<PrototypeShadowActor>() != null ||
-               target.GetComponentInParent<GuardianController>() != null;
+        return ResolveCombatRoot(target) != null;
+    }
+
+    private static Transform ResolveCombatRoot(Transform target)
+    {
+        if (target == null) return null;
+
+        PrototypeShadowActor shadow = target.GetComponentInParent<PrototypeShadowActor>();
+        if (shadow != null) return shadow.transform;
+
+        GuardianController guardian = target.GetComponentInParent<GuardianController>();
+        return guardian != null ? guardian.transform : null;
     }
 
     private bool IsPartOfSource(Transform candidate)

@@ -44,11 +44,24 @@ public sealed class CorruptionImpactEffect : MonoBehaviour
         tendrils = CreateTendrils(safeNormal);
         propertyBlock = new MaterialPropertyBlock();
 
-        Renderer targetRenderer = target != null ? target.GetComponentInParent<Renderer>() : null;
+        Renderer targetRenderer = ResolveTargetRenderer(target);
         if (targetRenderer != null)
         {
             transform.SetParent(targetRenderer.transform, true);
         }
+    }
+
+    private static Renderer ResolveTargetRenderer(Transform target)
+    {
+        if (target == null) return null;
+
+        Renderer renderer = target.GetComponent<Renderer>();
+        if (renderer != null) return renderer;
+
+        renderer = target.GetComponentInParent<Renderer>();
+        if (renderer != null) return renderer;
+
+        return target.GetComponentInChildren<Renderer>(true);
     }
 
     private void Update()
