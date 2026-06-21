@@ -14,6 +14,8 @@ public class SettingsPanelController : MonoBehaviour
 
     private const float FallbackRootWidth = 1040f;
     private const float FallbackRootHeight = 620f;
+    private const float MaxRootWidth = 1080f;
+    private const float MaxRootHeight = 650f;
     private const float MinContentHeight = 340f;
 
     [Header("Navigation")]
@@ -145,6 +147,7 @@ public class SettingsPanelController : MonoBehaviour
         normalizingLayout = true;
         try
         {
+            Canvas.ForceUpdateCanvases();
             FitRootToParent();
             RecalculateLayoutMetrics();
             LayoutTabButtons();
@@ -163,18 +166,15 @@ public class SettingsPanelController : MonoBehaviour
         if (rootRect == null) rootRect = GetComponent<RectTransform>();
         if (rootRect == null) return;
 
-        RectTransform parentRect = rootRect.parent as RectTransform;
-        if (parentRect == null) return;
-
-        Rect parent = parentRect.rect;
-        float parentWidth = parent.width > 1f ? parent.width : Screen.width;
-        float parentHeight = parent.height > 1f ? parent.height : Screen.height;
+        Vector2 parentSize = ResolveParentSize();
+        float parentWidth = parentSize.x;
+        float parentHeight = parentSize.y;
         if (parentWidth <= 1f || parentHeight <= 1f) return;
 
         float padding = Mathf.Clamp(Mathf.Min(parentWidth, parentHeight) * 0.035f, 12f, 24f);
         Vector2 targetSize = new Vector2(
-            Mathf.Max(1f, parentWidth - padding * 2f),
-            Mathf.Max(1f, parentHeight - padding * 2f));
+            Mathf.Clamp(parentWidth - padding * 2f, 1f, MaxRootWidth),
+            Mathf.Clamp(parentHeight - padding * 2f, 1f, MaxRootHeight));
 
         rootRect.anchorMin = CenterAnchor;
         rootRect.anchorMax = CenterAnchor;
@@ -182,6 +182,25 @@ public class SettingsPanelController : MonoBehaviour
         rootRect.anchoredPosition = Vector2.zero;
         rootRect.sizeDelta = targetSize;
         rootRect.localScale = Vector3.one;
+    }
+
+    private Vector2 ResolveParentSize()
+    {
+        RectTransform parentRect = rootRect != null ? rootRect.parent as RectTransform : null;
+        if (parentRect != null)
+        {
+            Rect rect = parentRect.rect;
+            if (rect.width > 1f && rect.height > 1f) return rect.size;
+        }
+
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas != null && canvas.pixelRect.width > 1f && canvas.pixelRect.height > 1f)
+        {
+            float scaleFactor = Mathf.Max(0.01f, canvas.scaleFactor);
+            return canvas.pixelRect.size / scaleFactor;
+        }
+
+        return new Vector2(FallbackRootWidth, FallbackRootHeight);
     }
 
     private void RecalculateLayoutMetrics()
@@ -192,7 +211,7 @@ public class SettingsPanelController : MonoBehaviour
         float rootWidth = root.width > 1f ? root.width : FallbackRootWidth;
         float rootHeight = root.height > 1f ? root.height : FallbackRootHeight;
         float margin = Mathf.Clamp(rootWidth * 0.025f, 16f, 32f);
-        float gap = Mathf.Clamp(rootWidth * 0.032f, 20f, 48f);
+        float gap = Mathf.Clamp(rootWidth * 0.032f, 18f, 48f);
         float topClearance = Mathf.Clamp(rootHeight * 0.16f, 86f, 112f);
         float bottomClearance = Mathf.Clamp(rootHeight * 0.13f, 74f, 94f);
 
@@ -210,7 +229,7 @@ public class SettingsPanelController : MonoBehaviour
 
         float padX = Mathf.Clamp(contentSize.x * 0.06f, 24f, 42f);
         float innerWidth = Mathf.Max(1f, contentSize.x - padX * 2f);
-        controlWidth = Mathf.Clamp(innerWidth * 0.46f, 210f, 340f);
+        controlWidth = Mathf.Clamp(innerWidth * 0.46f, 190f, 340f);
         labelWidth = Mathf.Max(140f, innerWidth - controlWidth - 28f);
         labelColumnX = -contentSize.x * 0.5f + padX + labelWidth * 0.5f;
         controlColumnX = contentSize.x * 0.5f - padX - controlWidth * 0.5f;

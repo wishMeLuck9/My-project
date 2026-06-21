@@ -3,6 +3,13 @@ using UnityEngine.SceneManagement;
 
 public static class PrototypeSceneBootstrap
 {
+    private const float DefaultMoveSpeed = 5f;
+    private const float DefaultRotationSpeed = 10f;
+    private const float DefaultMaxTurnDegreesPerSecond = 240f;
+    private const float LateSceneMoveSpeed = 5.75f;
+    private const float LateSceneRotationSpeed = 12.5f;
+    private const float LateSceneMaxTurnDegreesPerSecond = 300f;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Register()
     {
@@ -42,5 +49,26 @@ public static class PrototypeSceneBootstrap
         PauseMenuController.EnsureInstance();
         GameplayIntroController.EnsureInstance();
         ExteriorBoundaryController.EnsureForCurrentScene();
+        ConfigureGameplayPlayer(SceneManager.GetActiveScene().name);
+    }
+
+    private static void ConfigureGameplayPlayer(string sceneName)
+    {
+        PlayerController3D player = Object.FindFirstObjectByType<PlayerController3D>();
+        if (player == null) return;
+
+        player.ConfigureTraversal(true);
+        if (player.GetComponent<PlayerClimbController>() == null)
+        {
+            player.gameObject.AddComponent<PlayerClimbController>();
+        }
+
+        if (sceneName == SceneIds.Night || sceneName == SceneIds.Final)
+        {
+            player.ConfigureLocomotion(LateSceneMoveSpeed, LateSceneRotationSpeed, LateSceneMaxTurnDegreesPerSecond);
+            return;
+        }
+
+        player.ConfigureLocomotion(DefaultMoveSpeed, DefaultRotationSpeed, DefaultMaxTurnDegreesPerSecond);
     }
 }

@@ -23,6 +23,7 @@ public class OpeningCutsceneController : MonoBehaviour
     public static OpeningCutsceneController Instance { get; private set; }
 
     private CanvasGroup canvasGroup;
+    private CanvasGroup contentGroup;
     private GameObject rootObject;
     private TextMeshProUGUI titleText;
     private TextMeshProUGUI bodyText;
@@ -103,6 +104,11 @@ public class OpeningCutsceneController : MonoBehaviour
         canvasGroup.blocksRaycasts = true;
         canvasGroup.interactable = true;
         canvasGroup.alpha = 0f;
+        if (contentGroup != null)
+        {
+            contentGroup.alpha = 1f;
+            contentGroup.gameObject.SetActive(true);
+        }
 
         if (titleText != null) titleText.text = LocalizationManager.EnsureInstance().Get("speaker.system", "SYSTEM");
         yield return FadeTo(1f, fadeSeconds);
@@ -122,7 +128,9 @@ public class OpeningCutsceneController : MonoBehaviour
             if (skipRequested) break;
         }
 
-        yield return FadeTo(0f, fadeSeconds);
+        canvasGroup.interactable = false;
+        yield return FadeContentTo(0f, fadeSeconds);
+        PrepareSceneHandoff(reduceMotion);
         Complete();
     }
 
@@ -187,6 +195,41 @@ public class OpeningCutsceneController : MonoBehaviour
         }
 
         canvasGroup.alpha = targetAlpha;
+    }
+
+    private IEnumerator FadeContentTo(float targetAlpha, float seconds)
+    {
+        if (contentGroup == null) yield break;
+
+        if (seconds <= 0f)
+        {
+            contentGroup.alpha = targetAlpha;
+            contentGroup.gameObject.SetActive(targetAlpha > 0.001f);
+            yield break;
+        }
+
+        float startAlpha = contentGroup.alpha;
+        float elapsed = 0f;
+        while (elapsed < seconds)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            contentGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, Mathf.Clamp01(elapsed / seconds));
+            yield return null;
+        }
+
+        contentGroup.alpha = targetAlpha;
+        contentGroup.gameObject.SetActive(targetAlpha > 0.001f);
+    }
+
+    private void PrepareSceneHandoff(bool reduceMotion)
+    {
+        SceneFadeController fade = SceneFadeController.EnsureInstance();
+        if (fade == null) return;
+
+        fade.HoldBlack();
+        fade.FadeOutAfterNextGameplayScene(
+            reduceMotion ? 0f : 0.18f,
+            reduceMotion ? 0f : 0.9f);
     }
 
     private void RefreshLabels(int pageIndex)
@@ -265,26 +308,29 @@ public class OpeningCutsceneController : MonoBehaviour
         Image backgroundImage = background.AddComponent<Image>();
         backgroundImage.color = Color.black;
 
-        titleText = CreateText("Title", canvasObject.transform, "SYSTEM", 28f, new Color32(255, 58, 58, 255));
+        GameObject contentObject = CreateRect("Content", canvasObject.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        contentGroup = contentObject.AddComponent<CanvasGroup>();
+
+        titleText = CreateText("Title", contentObject.transform, "SYSTEM", 28f, new Color32(255, 58, 58, 255));
         ConfigureRect(titleText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -78f), new Vector2(980f, 48f));
         titleText.alignment = TextAlignmentOptions.Center;
 
-        bodyText = CreateText("Body", canvasObject.transform, string.Empty, 30f, Color.white);
+        bodyText = CreateText("Body", contentObject.transform, string.Empty, 30f, Color.white);
         ConfigureRect(bodyText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 24f), new Vector2(900f, 300f));
         bodyText.alignment = TextAlignmentOptions.Center;
         bodyText.textWrappingMode = TextWrappingModes.Normal;
         bodyText.overflowMode = TextOverflowModes.Overflow;
 
-        pageText = CreateText("Page", canvasObject.transform, string.Empty, 16f, new Color32(170, 178, 190, 255));
+        pageText = CreateText("Page", contentObject.transform, string.Empty, 16f, new Color32(170, 178, 190, 255));
         ConfigureRect(pageText.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 122f), new Vector2(180f, 28f));
         pageText.alignment = TextAlignmentOptions.Center;
 
-        continueButton = CreateButton("ContinueButton", canvasObject.transform, new Vector2(152f, 64f));
+        continueButton = CreateButton("ContinueButton", contentObject.transform, new Vector2(152f, 64f));
         ConfigureRect(continueButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(1f, 0f), new Vector2(-16f, 48f), new Vector2(220f, 52f));
         continueButtonText = continueButton.GetComponentInChildren<TextMeshProUGUI>();
         continueButton.onClick.AddListener(RequestAdvance);
 
-        skipButton = CreateButton("SkipButton", canvasObject.transform, new Vector2(152f, 64f));
+        skipButton = CreateButton("SkipButton", contentObject.transform, new Vector2(152f, 64f));
         ConfigureRect(skipButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 0f), new Vector2(16f, 48f), new Vector2(160f, 52f));
         skipButtonText = skipButton.GetComponentInChildren<TextMeshProUGUI>();
         skipButton.onClick.AddListener(RequestSkip);

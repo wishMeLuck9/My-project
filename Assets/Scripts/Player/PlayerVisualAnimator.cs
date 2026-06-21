@@ -7,6 +7,7 @@ public class PlayerVisualAnimator : MonoBehaviour
     private static readonly int JumpHash = Animator.StringToHash("Jump");
     private static readonly int RunningJumpHash = Animator.StringToHash("RunningJump");
     private static readonly int AttackHash = Animator.StringToHash("Attack");
+    private static readonly int ClimbHash = Animator.StringToHash("Climb");
 
     [SerializeField] private Animator animator;
     [SerializeField] private PlayerController3D player;
@@ -46,6 +47,11 @@ public class PlayerVisualAnimator : MonoBehaviour
     public void PlayAttack()
     {
         if (animator != null) animator.SetTrigger(AttackHash);
+    }
+
+    public void PlayClimb()
+    {
+        if (animator != null) animator.SetTrigger(ClimbHash);
     }
 
     private void AlignVisualBottomToCollider()

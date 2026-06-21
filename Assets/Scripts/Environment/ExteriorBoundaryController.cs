@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -8,8 +9,10 @@ public class ExteriorBoundaryController : MonoBehaviour
 
     private static ExteriorBoundaryController instance;
 
-    [SerializeField] private Vector2 minimumHalfExtents = new Vector2(44f, 44f);
-    [SerializeField] private float anchorMargin = 20f;
+    [SerializeField] private Vector2 minimumHalfExtents = new Vector2(28f, 28f);
+    [SerializeField] private float anchorMargin = 3f;
+    [SerializeField] private float wallInnerPadding = 0.65f;
+    [SerializeField] private float clampInset = 0.08f;
     [SerializeField] private float wallThickness = 5f;
     [SerializeField] private float wallHeight = 40f;
     [SerializeField] private float escapePadding = 10f;
@@ -46,6 +49,20 @@ public class ExteriorBoundaryController : MonoBehaviour
         }
 
         instance.Initialize();
+    }
+
+    public static bool TryValidateTargetPosition(Vector3 targetPosition, out Vector3 clampedPosition, bool showMessage = true)
+    {
+        clampedPosition = targetPosition;
+        if (SceneManager.GetActiveScene().name != SceneIds.Exterior) return true;
+
+        EnsureForCurrentScene();
+        if (instance == null || !instance.EnsureRuntimeReady()) return false;
+
+        clampedPosition = instance.ClampInside(targetPosition);
+        bool isAllowed = instance.IsInsidePlayableBounds(targetPosition) && !instance.IsEscaped(targetPosition);
+        if (!isAllowed && showMessage) instance.ShowBoundaryMessage();
+        return isAllowed;
     }
 
     private void Awake()
@@ -154,6 +171,104 @@ public class ExteriorBoundaryController : MonoBehaviour
 
     private void RebuildBounds()
     {
+        if (TryRebuildBoundsFromSceneWalls()) return;
+        RebuildFallbackAnchorBounds();
+    }
+
+    private bool TryRebuildBoundsFromSceneWalls()
+    {
+        float minX = float.NegativeInfinity;
+        float maxX = float.PositiveInfinity;
+        float minZ = float.NegativeInfinity;
+        float maxZ = float.PositiveInfinity;
+        bool hasMinX = false;
+        bool hasMaxX = false;
+        bool hasMinZ = false;
+        bool hasMaxZ = false;
+
+        Renderer[] renderers = FindObjectsByType<Renderer>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (Renderer sceneRenderer in renderers)
+        {
+            if (sceneRenderer == null || !sceneRenderer.name.StartsWith("Wall_", StringComparison.OrdinalIgnoreCase)) continue;
+
+            Bounds bounds = sceneRenderer.bounds;
+            bool isVerticalWall = bounds.size.z > bounds.size.x * 2f;
+            bool isHorizontalWall = bounds.size.x > bounds.size.z * 2f;
+
+            if (isVerticalWall)
+            {
+                if (bounds.center.x < 0f)
+                {
+                    minX = Mathf.Max(minX, bounds.max.x);
+                    hasMinX = true;
+                }
+                else if (bounds.center.x > 0f)
+                {
+                    maxX = Mathf.Min(maxX, bounds.min.x);
+                    hasMaxX = true;
+                }
+            }
+
+            if (isHorizontalWall)
+            {
+                if (bounds.center.z < 0f)
+                {
+                    minZ = Mathf.Max(minZ, bounds.max.z);
+                    hasMinZ = true;
+                }
+                else if (bounds.center.z > 0f)
+                {
+                    maxZ = Mathf.Min(maxZ, bounds.min.z);
+                    hasMaxZ = true;
+                }
+            }
+        }
+
+        if (!hasMinX || !hasMaxX || !hasMinZ || !hasMaxZ) return TryRebuildBoundsFromGroundRenderer(renderers);
+
+        float padding = Mathf.Max(0f, wallInnerPadding);
+        minX += padding;
+        maxX -= padding;
+        minZ += padding;
+        maxZ -= padding;
+        if (minX >= maxX || minZ >= maxZ) return false;
+
+        playableBounds = CreatePlanarBounds(minX, maxX, minZ, maxZ);
+        return true;
+    }
+
+    private bool TryRebuildBoundsFromGroundRenderer(Renderer[] renderers)
+    {
+        Renderer groundRenderer = null;
+        float largestArea = 0f;
+        foreach (Renderer sceneRenderer in renderers)
+        {
+            if (sceneRenderer == null || !sceneRenderer.name.Equals("Ground", StringComparison.OrdinalIgnoreCase)) continue;
+
+            Bounds bounds = sceneRenderer.bounds;
+            float area = bounds.size.x * bounds.size.z;
+            if (area <= largestArea) continue;
+
+            groundRenderer = sceneRenderer;
+            largestArea = area;
+        }
+
+        if (groundRenderer == null) return false;
+
+        Bounds groundBounds = groundRenderer.bounds;
+        float padding = Mathf.Max(0f, wallInnerPadding);
+        float minX = groundBounds.min.x + padding;
+        float maxX = groundBounds.max.x - padding;
+        float minZ = groundBounds.min.z + padding;
+        float maxZ = groundBounds.max.z - padding;
+        if (minX >= maxX || minZ >= maxZ) return false;
+
+        playableBounds = CreatePlanarBounds(minX, maxX, minZ, maxZ);
+        return true;
+    }
+
+    private void RebuildFallbackAnchorBounds()
+    {
         Bounds anchorBounds = new Bounds(player != null ? player.transform.position : Vector3.zero, Vector3.zero);
         bool hasAnchor = player != null;
 
@@ -185,9 +300,16 @@ public class ExteriorBoundaryController : MonoBehaviour
         Vector3 center = anchorBounds.center;
         float halfX = Mathf.Max(minimumHalfExtents.x, anchorBounds.extents.x + anchorMargin);
         float halfZ = Mathf.Max(minimumHalfExtents.y, anchorBounds.extents.z + anchorMargin);
-        playableBounds = new Bounds(
-            new Vector3(center.x, 0f, center.z),
-            new Vector3(halfX * 2f, wallHeight, halfZ * 2f));
+        playableBounds = CreatePlanarBounds(center.x - halfX, center.x + halfX, center.z - halfZ, center.z + halfZ);
+    }
+
+    private Bounds CreatePlanarBounds(float minX, float maxX, float minZ, float maxZ)
+    {
+        float centerX = (minX + maxX) * 0.5f;
+        float centerZ = (minZ + maxZ) * 0.5f;
+        return new Bounds(
+            new Vector3(centerX, 0f, centerZ),
+            new Vector3(maxX - minX, wallHeight, maxZ - minZ));
     }
 
     private static void EncapsulateComponentTransforms<T>(ref Bounds bounds, ref bool hasAnchor, T[] components) where T : Component
@@ -267,11 +389,18 @@ public class ExteriorBoundaryController : MonoBehaviour
 
     private Vector3 ClampInside(Vector3 position)
     {
-        float inset = Mathf.Max(0.25f, wallThickness);
+        float inset = Mathf.Max(0.02f, clampInset);
+        float minX = playableBounds.min.x + inset;
+        float maxX = playableBounds.max.x - inset;
+        float minZ = playableBounds.min.z + inset;
+        float maxZ = playableBounds.max.z - inset;
+        if (minX > maxX) minX = maxX = playableBounds.center.x;
+        if (minZ > maxZ) minZ = maxZ = playableBounds.center.z;
+
         return new Vector3(
-            Mathf.Clamp(position.x, playableBounds.min.x + inset, playableBounds.max.x - inset),
+            Mathf.Clamp(position.x, minX, maxX),
             position.y,
-            Mathf.Clamp(position.z, playableBounds.min.z + inset, playableBounds.max.z - inset));
+            Mathf.Clamp(position.z, minZ, maxZ));
     }
 
     private void ReturnEscapedPlayer()

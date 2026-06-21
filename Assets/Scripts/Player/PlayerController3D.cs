@@ -19,6 +19,7 @@ public class PlayerController3D : MonoBehaviour
     private Collider playerCollider;
     private PlayerInputReader inputReader;
     private PlayerVisualAnimator visualAnimator;
+    private PlayerClimbController climbController;
     private Vector2 moveInput;
     private bool canMove = true;
     private float movementMultiplier = 1f;
@@ -62,6 +63,7 @@ public class PlayerController3D : MonoBehaviour
 
         playerCollider = GetComponent<Collider>();
         inputReader = GetComponent<PlayerInputReader>();
+        climbController = GetComponent<PlayerClimbController>();
         visualAnimator = GetComponentInChildren<PlayerVisualAnimator>(true);
         if (cameraTransform == null && Camera.main != null)
             cameraTransform = Camera.main.transform;
@@ -172,10 +174,14 @@ public class PlayerController3D : MonoBehaviour
         allowJump = jumpEnabled;
     }
 
-    public void ConfigureLocomotion(float newMoveSpeed, float newRotationSpeed)
+    public void ConfigureLocomotion(float newMoveSpeed, float newRotationSpeed, float newMaxTurnDegreesPerSecond = -1f)
     {
         moveSpeed = Mathf.Max(0f, newMoveSpeed);
         rotationSpeed = Mathf.Max(0f, newRotationSpeed);
+        if (newMaxTurnDegreesPerSecond >= 0f)
+        {
+            maxTurnDegreesPerSecond = newMaxTurnDegreesPerSecond;
+        }
     }
 
     public void Teleport(Vector3 position, Quaternion rotation)
@@ -233,12 +239,20 @@ public class PlayerController3D : MonoBehaviour
 
     private void HandleJumpPressed()
     {
-        if (allowJump) TryJump();
+        if (!allowJump) return;
+        if (ResolveClimbController()?.TryStartClimb() == true) return;
+        TryJump();
     }
 
     private PlayerVisualAnimator ResolveVisualAnimator()
     {
         if (visualAnimator == null) visualAnimator = GetComponentInChildren<PlayerVisualAnimator>(true);
         return visualAnimator;
+    }
+
+    private PlayerClimbController ResolveClimbController()
+    {
+        if (climbController == null) climbController = GetComponent<PlayerClimbController>();
+        return climbController;
     }
 }
