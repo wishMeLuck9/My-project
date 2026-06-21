@@ -29,6 +29,11 @@ public class PauseMenuController : MonoBehaviour
 
     public bool IsPaused { get; private set; }
 
+    private bool HasOpenSubPanel =>
+        (settingsPanel != null && settingsPanel.gameObject.activeSelf) ||
+        (saveSlotPanel != null && saveSlotPanel.gameObject.activeSelf) ||
+        (confirmPanel != null && confirmPanel.activeSelf);
+
     public static PauseMenuController EnsureInstance()
     {
         if (Instance != null) return Instance;
@@ -99,6 +104,7 @@ public class PauseMenuController : MonoBehaviour
     {
         IsPaused = false;
         Time.timeScale = 1f;
+        HideSubPanels();
         if (pauseDimmer != null) pauseDimmer.SetActive(false);
         if (rootPanel != null) rootPanel.SetActive(false);
         UpdateCursor();
@@ -120,8 +126,19 @@ public class PauseMenuController : MonoBehaviour
 
     private void Toggle()
     {
-        if (IsPaused) Close();
-        else Open();
+        if (!IsPaused)
+        {
+            Open();
+            return;
+        }
+
+        if (HasOpenSubPanel)
+        {
+            BackOutOfSubPanel();
+            return;
+        }
+
+        Close();
     }
 
     private void OpenSettings()
@@ -177,12 +194,42 @@ public class PauseMenuController : MonoBehaviour
         confirmAction = null;
     }
 
+    private void BackOutOfSubPanel()
+    {
+        if (confirmPanel != null && confirmPanel.activeSelf)
+        {
+            ConfirmNo();
+            if (rootPanel != null) rootPanel.SetActive(true);
+            return;
+        }
+
+        if (settingsPanel != null && settingsPanel.gameObject.activeSelf)
+        {
+            settingsPanel.Close();
+            return;
+        }
+
+        if (saveSlotPanel != null && saveSlotPanel.gameObject.activeSelf)
+        {
+            saveSlotPanel.Close();
+            return;
+        }
+
+        ShowRootOnly();
+    }
+
     private void ShowRootOnly()
+    {
+        HideSubPanels();
+        if (rootPanel != null) rootPanel.SetActive(true);
+    }
+
+    private void HideSubPanels()
     {
         if (settingsPanel != null) settingsPanel.gameObject.SetActive(false);
         if (saveSlotPanel != null) saveSlotPanel.gameObject.SetActive(false);
         if (confirmPanel != null) confirmPanel.SetActive(false);
-        if (rootPanel != null) rootPanel.SetActive(true);
+        confirmAction = null;
     }
 
     private void ReturnToMainMenu()

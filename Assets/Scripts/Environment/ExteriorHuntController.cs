@@ -17,6 +17,7 @@ public class ExteriorHuntController : MonoBehaviour
     private Coroutine beginAfterDialogueRoutine;
 
     public bool IsHunting => hunting;
+    public Transform RespawnPoint => respawnPoint;
 
     private void Start()
     {

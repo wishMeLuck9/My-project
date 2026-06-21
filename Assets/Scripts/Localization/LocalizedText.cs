@@ -9,6 +9,8 @@ public class LocalizedText : MonoBehaviour
 
     private TMP_Text label;
 
+    public string Key => key;
+
     public void Configure(string newKey, string newFallback = null)
     {
         key = newKey;

@@ -5,9 +5,9 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
+  - enabled: 1
     path: Assets/Scenes/Frontend/MENU_BOOT.unity
-    guid: 603369d677def6c4b8552020549c90aa
+    guid: d6643e7340a6eef40bcbf5c18b6bdb87
   - enabled: 1
     path: Assets/Scenes/Playable/LOCATION_01_EXTERIOR_DAY.unity
     guid: bed3b9f041db7ff4c9fa731e75067f76

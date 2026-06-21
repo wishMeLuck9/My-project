@@ -137,10 +137,11 @@ public class SaveGameManager : MonoBehaviour
         return slot >= FirstManualSlot && slot <= LastManualSlot && SaveSlot(slot);
     }
 
-    public void StartNewGame()
+    public void StartNewGame(bool skipGameplayIntro = false)
     {
         WorldState state = EnsureWorldState();
         state.ResetRun();
+        if (skipGameplayIntro) state.introShown = true;
         pendingLoad = null;
         StartCoroutine(StartNewGameRoutine());
     }

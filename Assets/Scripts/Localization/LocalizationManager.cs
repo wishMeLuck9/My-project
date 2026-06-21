@@ -140,6 +140,8 @@ public class LocalizationManager : MonoBehaviour
         AddBuiltInEntry("boss.phase2", "Врата отвечают силой.", "The gate answers with force.", "Os portoes respondem com forca.");
         AddBuiltInEntry("hud.shadow_guardian_promoted", "Тень стала стражем. Ей нужно больше одного удара.", "A shadow hardens into a guardian. It takes more than one strike.", "Uma sombra endurece num guardiao. Precisa de mais de um golpe.");
         AddBuiltInEntry("hud.shadow_guardian_hit", "Страж-тень выдержал удар. Осталось {0}/{1}.", "Guardian-shadow resisted. HP {0}/{1}.", "Guardiao-sombra resistiu. Vida {0}/{1}.");
+        AddBuiltInEntry("hud.boundary.exterior.blocked", "Сила высших не дает тебе двинуться дальше, хотя ты прекрасно видишь эту возможность.", "A higher force will not let you move farther, even though the way is clearly there.", "Uma forca superior nao te deixa avancar, mesmo vendo claramente essa possibilidade.");
+        AddBuiltInEntry("hud.boundary.exterior.escape", "Невероятно, куда могут привести пути. Но сейчас тебя вернет к началу.", "It is incredible where paths can lead. But not now. You are returned to the start.", "E incrivel onde os caminhos podem levar. Mas agora voltas ao inicio.");
         AddBuiltInEntry("raw.hunt.reaction.seen", "Они видят тебя.", "They see you.", "Eles veem-te.");
         AddBuiltInEntry("raw.hunt.reaction.close", "Они идут за твоим светом.", "They follow your light.", "Eles seguem a tua luz.");
         AddBuiltInEntry("raw.hunt.reaction.above", "Они ждут, когда ты спустишься.", "They wait for you to come down.", "Eles esperam que desças.");

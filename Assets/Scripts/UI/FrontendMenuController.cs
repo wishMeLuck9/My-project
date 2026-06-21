@@ -27,6 +27,7 @@ public class FrontendMenuController : MonoBehaviour
     [SerializeField] private SaveSlotPanelController saveSlotPanel;
 
     private System.Action confirmAction;
+    private bool newGameStarting;
 
     private void Awake()
     {
@@ -40,7 +41,7 @@ public class FrontendMenuController : MonoBehaviour
 
         startButton?.onClick.AddListener(() => ShowOnly(mainMenuPanel));
         introContinueButton?.onClick.AddListener(() => ShowOnly(mainMenuPanel));
-        newGameButton?.onClick.AddListener(() => SaveGameManager.Instance.StartNewGame());
+        newGameButton?.onClick.AddListener(StartNewGameFromMenu);
         continueButton?.onClick.AddListener(() => SaveGameManager.Instance.ContinueLatest());
         loadSaveButton?.onClick.AddListener(() => OpenSaveSlots(false));
         settingsButton?.onClick.AddListener(OpenSettings);
@@ -73,6 +74,20 @@ public class FrontendMenuController : MonoBehaviour
 
         HideBasePanels();
         settingsPanel.Open(() => ShowOnly(mainMenuPanel));
+    }
+
+    private void StartNewGameFromMenu()
+    {
+        if (newGameStarting) return;
+
+        newGameStarting = true;
+        if (newGameButton != null) newGameButton.interactable = false;
+
+        OpeningCutsceneController cutscene = OpeningCutsceneController.EnsureInstance();
+        if (cutscene == null || !cutscene.Play(() => SaveGameManager.EnsureInstance().StartNewGame(true)))
+        {
+            SaveGameManager.EnsureInstance().StartNewGame();
+        }
     }
 
     private void OpenSaveSlots(bool canSave)

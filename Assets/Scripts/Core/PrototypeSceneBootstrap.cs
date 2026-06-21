@@ -41,5 +41,6 @@ public static class PrototypeSceneBootstrap
         RuntimeHudController.EnsureInstance();
         PauseMenuController.EnsureInstance();
         GameplayIntroController.EnsureInstance();
+        ExteriorBoundaryController.EnsureForCurrentScene();
     }
 }

@@ -13,6 +13,12 @@ public class RuntimeHudController : MonoBehaviour
     private const float ControlsFullDisplaySeconds = 10f;
     private const float AmbientSystemMessageCooldown = 3.2f;
     private const float DuplicateAmbientMessageCooldown = 6f;
+    private const float HudReferenceWidth = 1280f;
+    private const float HudReferenceHeight = 720f;
+    private const float HudMargin = 24f;
+    private const float HudGap = 14f;
+    private const float MinLeftPanelWidth = 320f;
+    private const float MaxLeftPanelWidth = 430f;
 
     public static RuntimeHudController Instance { get; private set; }
 
@@ -25,14 +31,21 @@ public class RuntimeHudController : MonoBehaviour
     private TextMeshProUGUI systemText;
     private TextMeshProUGUI purgatoryText;
     private GameObject controlsPanel;
+    private RectTransform canvasRect;
     private RectTransform controlsPanelRect;
     private GameObject interactionPanel;
+    private RectTransform interactionPanelRect;
     private GameObject stabilityPanel;
+    private RectTransform stabilityPanelRect;
     private GameObject healthPanel;
+    private RectTransform healthPanelRect;
     private GameObject bossPanel;
+    private RectTransform bossPanelRect;
     private GameObject systemPanel;
+    private RectTransform systemPanelRect;
     private GameObject purgatoryPanel;
     private GameObject minimapPanel;
+    private RectTransform minimapPanelRect;
     private RectTransform minimapExitMarker;
     private RawImage minimapImage;
     private Camera minimapCamera;
@@ -61,6 +74,7 @@ public class RuntimeHudController : MonoBehaviour
     private float nextAmbientSystemMessageAllowedAt;
     private readonly Dictionary<string, float> recentAmbientMessages = new Dictionary<string, float>();
     private CanvasScaler canvasScaler;
+    private bool lastFullControlsVisible = true;
 
     public bool IsPaused => PauseMenuController.Instance != null && PauseMenuController.Instance.IsPaused;
 
@@ -263,19 +277,17 @@ public class RuntimeHudController : MonoBehaviour
 
     private void UpdateControls()
     {
+        bool showFullControls = Time.unscaledTime - sceneStartedAt < ControlsFullDisplaySeconds;
+        ApplyResponsiveLayout(showFullControls);
+
         if (SettingsManager.Instance != null && !SettingsManager.Instance.TutorialHints)
         {
             controlsPanel.SetActive(false);
             return;
         }
 
-        bool showFullControls = Time.unscaledTime - sceneStartedAt < ControlsFullDisplaySeconds;
         controlsPanel.SetActive(true);
         controlsText.gameObject.SetActive(showFullControls);
-        if (controlsPanelRect != null)
-        {
-            controlsPanelRect.sizeDelta = showFullControls ? new Vector2(380f, 220f) : new Vector2(380f, 76f);
-        }
 
         string key = currentScene == NightScene ? "hud.controls.night" : "hud.controls.day";
         string text = showFullControls ? LocalizationManager.EnsureInstance().Get(key) : string.Empty;
@@ -444,7 +456,9 @@ public class RuntimeHudController : MonoBehaviour
         if (minimapExitMarker == null || minimapExit == null) return;
 
         Vector3 delta = minimapExit.position - playerPosition;
-        float halfSize = 82f;
+        float halfSize = minimapPanelRect != null
+            ? Mathf.Max(40f, (minimapPanelRect.rect.width - 26f) * 0.5f)
+            : 82f;
         float scale = halfSize / minimapCamera.orthographicSize;
         minimapExitMarker.anchoredPosition = new Vector2(
             Mathf.Clamp(delta.x * scale, -halfSize, halfSize),
@@ -467,11 +481,14 @@ public class RuntimeHudController : MonoBehaviour
     private void BuildRuntimeUi()
     {
         Canvas canvas = gameObject.AddComponent<Canvas>();
+        canvasRect = GetComponent<RectTransform>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 400;
         canvasScaler = gameObject.AddComponent<CanvasScaler>();
         canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        canvasScaler.referenceResolution = new Vector2(1280f, 720f);
+        canvasScaler.referenceResolution = new Vector2(HudReferenceWidth, HudReferenceHeight);
+        canvasScaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        canvasScaler.matchWidthOrHeight = 0.5f;
         gameObject.AddComponent<GraphicRaycaster>();
 
         controlsPanel = CreatePanel("ControlsPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(18f, -18f), new Vector2(380f, 220f), new Vector2(0f, 1f));
@@ -480,30 +497,36 @@ public class RuntimeHudController : MonoBehaviour
         controlsText = CreateText("Controls", controlsPanel.transform, string.Empty, 18f, new Vector2(12f, -68f), new Vector2(356f, 144f), new Vector2(0f, 1f));
 
         healthPanel = CreatePanel("HealthPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(18f, -252f), new Vector2(170f, 48f), new Vector2(0f, 1f));
+        healthPanelRect = healthPanel.GetComponent<RectTransform>();
         healthText = CreateText("Health", healthPanel.transform, string.Empty, 22f, Vector2.zero, new Vector2(150f, 38f), new Vector2(0.5f, 0.5f));
         healthText.alignment = TextAlignmentOptions.Center;
         healthPanel.SetActive(false);
 
         bossPanel = CreatePanel("BossPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.95f), new Vector2(0f, -82f), new Vector2(520f, 48f), new Vector2(0.5f, 1f));
+        bossPanelRect = bossPanel.GetComponent<RectTransform>();
         bossText = CreateText("BossHealth", bossPanel.transform, string.Empty, 22f, Vector2.zero, new Vector2(500f, 38f), new Vector2(0.5f, 0.5f));
         bossText.alignment = TextAlignmentOptions.Center;
         bossPanel.SetActive(false);
 
         interactionPanel = CreatePanel("InteractionPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(0f, 18f), new Vector2(420f, 54f), new Vector2(0.5f, 0f));
+        interactionPanelRect = interactionPanel.GetComponent<RectTransform>();
         interactionText = CreateText("InteractionPrompt", interactionPanel.transform, "[E] \u0412\u0437\u0430\u0438\u043c\u043e\u0434\u0435\u0439\u0441\u0442\u0432\u043e\u0432\u0430\u0442\u044c", 22f, Vector2.zero, new Vector2(400f, 44f), new Vector2(0.5f, 0.5f));
         interactionText.alignment = TextAlignmentOptions.Center;
         interactionPanel.SetActive(false);
 
         stabilityPanel = CreatePanel("StabilityPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(0f, -18f), new Vector2(500f, 54f), new Vector2(0.5f, 1f));
+        stabilityPanelRect = stabilityPanel.GetComponent<RectTransform>();
         stabilityText = CreateText("Stability", stabilityPanel.transform, string.Empty, 24f, Vector2.zero, new Vector2(480f, 44f), new Vector2(0.5f, 0.5f));
         stabilityText.alignment = TextAlignmentOptions.Center;
         stabilityPanel.SetActive(false);
 
         systemPanel = CreatePanel("SystemPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(18f, -308f), new Vector2(680f, 112f), new Vector2(0f, 1f));
+        systemPanelRect = systemPanel.GetComponent<RectTransform>();
         systemText = CreateText("SystemMessage", systemPanel.transform, string.Empty, 22f, new Vector2(12f, -10f), new Vector2(656f, 92f), new Vector2(0f, 1f));
         systemPanel.SetActive(false);
 
         minimapPanel = CreatePanel("MinimapPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.95f), new Vector2(-18f, 18f), new Vector2(190f, 190f), new Vector2(1f, 0f));
+        minimapPanelRect = minimapPanel.GetComponent<RectTransform>();
         GameObject minimapImageObject = CreateRect("MinimapImage", minimapPanel.transform, Vector2.zero, new Vector2(174f, 174f), new Vector2(0.5f, 0.5f));
         minimapImage = minimapImageObject.AddComponent<RawImage>();
         CreateImage("PlayerMarker", minimapPanel.transform, new Color(0.95f, 0.9f, 0.35f, 1f), Vector2.zero, new Vector2(8f, 8f), new Vector2(0.5f, 0.5f)).SetAsLastSibling();
@@ -515,6 +538,7 @@ public class RuntimeHudController : MonoBehaviour
         purgatoryText.alignment = TextAlignmentOptions.Center;
         purgatoryPanel.SetActive(false);
         ApplySettingsPresentation();
+        ApplyResponsiveLayout(true);
     }
 
     private void ApplySettingsPresentation()
@@ -523,7 +547,10 @@ public class RuntimeHudController : MonoBehaviour
         float uiScale = settings != null ? settings.UiScale : 1f;
         if (canvasScaler != null)
         {
-            canvasScaler.referenceResolution = new Vector2(1280f, 720f) / Mathf.Max(0.1f, uiScale);
+            canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            canvasScaler.referenceResolution = new Vector2(HudReferenceWidth, HudReferenceHeight) / Mathf.Max(0.1f, uiScale);
+            canvasScaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            canvasScaler.matchWidthOrHeight = 0.5f;
         }
 
         float textScale = settings == null
@@ -558,11 +585,127 @@ public class RuntimeHudController : MonoBehaviour
             Image marker = minimapExitMarker.GetComponent<Image>();
             if (marker != null) marker.color = colorblind ? new Color(1f, 0.75f, 0.15f, 1f) : new Color(0.35f, 0.85f, 1f, 1f);
         }
+
+        ApplyResponsiveLayout(lastFullControlsVisible);
+    }
+
+    private void ApplyResponsiveLayout(bool fullControlsVisible)
+    {
+        lastFullControlsVisible = fullControlsVisible;
+
+        Rect safe = GetCanvasSafeRect();
+        float safeWidth = Mathf.Max(1f, safe.width);
+        float safeHeight = Mathf.Max(1f, safe.height);
+        float leftInset = safe.xMin;
+        float rightInset = GetCanvasWidth() - safe.xMax;
+        float topInset = GetCanvasHeight() - safe.yMax;
+        float bottomInset = safe.yMin;
+        float availableWidth = Mathf.Max(1f, safeWidth - HudMargin * 2f);
+
+        float leftPanelWidth = ClampToAvailable(safeWidth * 0.38f, MinLeftPanelWidth, MaxLeftPanelWidth, availableWidth);
+        float controlsPanelHeight = fullControlsVisible
+            ? Mathf.Clamp(safeHeight * 0.31f, 190f, 236f)
+            : 88f;
+        float objectiveHeight = fullControlsVisible ? Mathf.Clamp(controlsPanelHeight * 0.31f, 58f, 74f) : controlsPanelHeight - 20f;
+
+        SetRect(controlsPanelRect, new Vector2(0f, 1f),
+            new Vector2(leftInset + HudMargin, -(topInset + HudMargin)),
+            new Vector2(leftPanelWidth, controlsPanelHeight));
+        SetRect(objectiveText != null ? objectiveText.rectTransform : null, new Vector2(0f, 1f),
+            new Vector2(12f, -10f),
+            new Vector2(Mathf.Max(1f, leftPanelWidth - 24f), objectiveHeight));
+        SetRect(controlsText != null ? controlsText.rectTransform : null, new Vector2(0f, 1f),
+            new Vector2(12f, -(objectiveHeight + 18f)),
+            new Vector2(Mathf.Max(1f, leftPanelWidth - 24f), Mathf.Max(48f, controlsPanelHeight - objectiveHeight - 28f)));
+
+        float healthWidth = ClampToAvailable(safeWidth * 0.17f, 170f, 230f, availableWidth);
+        SetRect(healthPanelRect, new Vector2(0f, 1f),
+            new Vector2(leftInset + HudMargin, -(topInset + HudMargin + controlsPanelHeight + HudGap)),
+            new Vector2(healthWidth, 48f));
+        SetRect(healthText != null ? healthText.rectTransform : null, new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            new Vector2(Mathf.Max(1f, healthWidth - 20f), 38f));
+
+        float systemWidth = ClampToAvailable(safeWidth * 0.56f, 360f, 680f, availableWidth);
+        SetRect(systemPanelRect, new Vector2(0f, 1f),
+            new Vector2(leftInset + HudMargin, -(topInset + HudMargin + controlsPanelHeight + HudGap + 48f + HudGap)),
+            new Vector2(systemWidth, 112f));
+        SetRect(systemText != null ? systemText.rectTransform : null, new Vector2(0f, 1f),
+            new Vector2(12f, -10f),
+            new Vector2(Mathf.Max(1f, systemWidth - 24f), 92f));
+
+        float centerWidth = ClampToAvailable(safeWidth * 0.45f, 360f, 520f, availableWidth);
+        SetRect(stabilityPanelRect, new Vector2(0.5f, 1f),
+            new Vector2(0f, -(topInset + HudMargin)),
+            new Vector2(centerWidth, 54f));
+        SetRect(stabilityText != null ? stabilityText.rectTransform : null, new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            new Vector2(Mathf.Max(1f, centerWidth - 20f), 44f));
+
+        SetRect(bossPanelRect, new Vector2(0.5f, 1f),
+            new Vector2(0f, -(topInset + HudMargin + 64f)),
+            new Vector2(centerWidth, 48f));
+        SetRect(bossText != null ? bossText.rectTransform : null, new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            new Vector2(Mathf.Max(1f, centerWidth - 20f), 38f));
+
+        float interactionWidth = ClampToAvailable(safeWidth * 0.42f, 340f, 460f, availableWidth);
+        SetRect(interactionPanelRect, new Vector2(0.5f, 0f),
+            new Vector2(0f, bottomInset + HudMargin),
+            new Vector2(interactionWidth, 54f));
+        SetRect(interactionText != null ? interactionText.rectTransform : null, new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            new Vector2(Mathf.Max(1f, interactionWidth - 20f), 44f));
+
+        float minimapSize = Mathf.Clamp(safeWidth * 0.17f, 160f, 190f);
+        SetRect(minimapPanelRect, new Vector2(1f, 0f),
+            new Vector2(-(rightInset + HudMargin), bottomInset + HudMargin),
+            new Vector2(minimapSize, minimapSize));
+        SetRect(minimapImage != null ? minimapImage.rectTransform : null, new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            new Vector2(Mathf.Max(1f, minimapSize - 16f), Mathf.Max(1f, minimapSize - 16f)));
+    }
+
+    private Rect GetCanvasSafeRect()
+    {
+        float canvasWidth = GetCanvasWidth();
+        float canvasHeight = GetCanvasHeight();
+        if (Screen.width <= 0 || Screen.height <= 0)
+        {
+            return new Rect(0f, 0f, canvasWidth, canvasHeight);
+        }
+
+        Rect safeArea = Screen.safeArea;
+        float scaleX = canvasWidth / Screen.width;
+        float scaleY = canvasHeight / Screen.height;
+        return new Rect(safeArea.x * scaleX, safeArea.y * scaleY, safeArea.width * scaleX, safeArea.height * scaleY);
+    }
+
+    private float GetCanvasWidth()
+    {
+        return canvasRect != null && canvasRect.rect.width > 1f ? canvasRect.rect.width : HudReferenceWidth;
+    }
+
+    private float GetCanvasHeight()
+    {
+        return canvasRect != null && canvasRect.rect.height > 1f ? canvasRect.rect.height : HudReferenceHeight;
+    }
+
+    private static float ClampToAvailable(float value, float min, float max, float available)
+    {
+        float upper = Mathf.Min(max, Mathf.Max(1f, available));
+        float lower = Mathf.Min(min, upper);
+        return Mathf.Clamp(value, lower, upper);
     }
 
     private static void SetFontSize(TMP_Text label, float size)
     {
-        if (label != null) label.fontSize = size;
+        if (label == null) return;
+
+        label.enableAutoSizing = true;
+        label.fontSize = size;
+        label.fontSizeMax = size;
+        label.fontSizeMin = Mathf.Max(10f, size - 6f);
     }
 
     private static GameObject CreatePanel(string name, Transform parent, Color color, Vector2 position, Vector2 size, Vector2 anchor, bool stretch = false)
@@ -592,6 +735,9 @@ public class RuntimeHudController : MonoBehaviour
         label.outlineColor = Color.black;
         label.outlineWidth = 0.14f;
         label.raycastTarget = false;
+        label.alignment = TextAlignmentOptions.TopLeft;
+        label.textWrappingMode = TextWrappingModes.Normal;
+        label.overflowMode = TextOverflowModes.Ellipsis;
         return label;
     }
 
@@ -600,6 +746,18 @@ public class RuntimeHudController : MonoBehaviour
         GameObject obj = CreateRect(name, parent, position, size, anchor);
         obj.AddComponent<Image>().color = color;
         return obj.GetComponent<RectTransform>();
+    }
+
+    private static void SetRect(RectTransform rect, Vector2 anchor, Vector2 position, Vector2 size)
+    {
+        if (rect == null) return;
+
+        rect.anchorMin = anchor;
+        rect.anchorMax = anchor;
+        rect.pivot = anchor;
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+        rect.localScale = Vector3.one;
     }
 
     private static GameObject CreateRect(string name, Transform parent, Vector2 position, Vector2 size, Vector2 anchor)
