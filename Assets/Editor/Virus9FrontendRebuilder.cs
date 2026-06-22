@@ -19,6 +19,9 @@ public static class Virus9FrontendRebuilder
     private const string UiFontAssetPath = "Assets/Fonts/UI/VIRUS9_NotoSans_UI.asset";
     private const string UiBoldFontAssetPath = "Assets/Fonts/UI/VIRUS9_NotoSans_Bold_UI.asset";
     private const string PortugueseFontAssetPath = "Assets/Fonts/UI/VIRUS9_NotoSans_Portuguese.asset";
+    private const string TmpDefaultFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset";
+    private const string TmpFallbackFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset";
+    private const string TmpLiberationSansFontPath = "Assets/TextMesh Pro/Fonts/LiberationSans.ttf";
     private const string MenuMusicPath = "Assets/Audio/Music/YouMayLive2.mp3";
     private const string MenuBackgroundPath = "Assets/Art/UI/Menu/MenuBackgroundGrunge.png";
     private const string MenuBorderPath = "Assets/Art/UI/Menu/MenuPanelBorder.png";
@@ -37,10 +40,15 @@ public static class Virus9FrontendRebuilder
     private const string PauseIconPath = "Assets/UI button pack 2/Black/Pause-black.png";
     private const string ContinueIconPath = "Assets/UI button pack 2/Black/continue-black.png";
     private const string MenuIconPath = "Assets/UI button pack 2/Black/Menu-Black.png";
+    private const string InfoIconPath = "Assets/UI button pack 2/Black/info-black.png";
     private const string PauseFogTexturePath = "Assets/Art/VFX/JohnLemon/perlinNoise.png";
     private const string PauseDustTexturePath = "Assets/Art/VFX/JohnLemon/DustMote.png";
     private const string PauseAmbiencePath = "Assets/Audio/Ambience/JohnLemon/SFXHouseAmbience.wav";
     private const string PauseBuzzPath = "Assets/Audio/Ambience/JohnLemon/SFXBuzzingLight.wav";
+    private const string RequiredUiFontCharacters =
+        " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" +
+        "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя" +
+        "ÀÁÂÃÇÉÊÍÓÔÕÚÜàáâãçéêíóôõúüÊêÍíÓóÚúÇçÃãÕõ";
 
     private static readonly Vector2 ReferenceResolution = new Vector2(1280f, 720f);
     private static readonly Color BackgroundColor = new Color(0.006f, 0.008f, 0.007f, 1f);
@@ -61,6 +69,7 @@ public static class Virus9FrontendRebuilder
         TMP_FontAsset uiFont = EnsureFontAsset("VIRUS9_NotoSans_UI", UiFontAssetPath, NotoSansRegularPath);
         TMP_FontAsset uiBoldFont = EnsureFontAsset("VIRUS9_NotoSans_Bold_UI", UiBoldFontAssetPath, NotoSansBoldPath);
         TMP_FontAsset portugueseFont = EnsureFontAsset("VIRUS9_NotoSans_Portuguese", PortugueseFontAssetPath, NotoSansRegularPath);
+        EnsureTmpFallbackFontAsset();
 
         FrontendSkin skin = new FrontendSkin(uiFont, uiBoldFont, portugueseFont);
         RebuildLocalizationCatalog();
@@ -103,6 +112,7 @@ public static class Virus9FrontendRebuilder
             PauseIcon = LoadSprite(PauseIconPath, Vector4.zero);
             ContinueIcon = LoadSprite(ContinueIconPath, Vector4.zero);
             MenuIcon = LoadSprite(MenuIconPath, Vector4.zero);
+            InfoIcon = LoadSprite(InfoIconPath, Vector4.zero);
             PauseFogTexture = LoadRepeatingTexture(PauseFogTexturePath);
             PauseDustTexture = LoadRepeatingTexture(PauseDustTexturePath);
             MenuMusic = AssetDatabase.LoadAssetAtPath<AudioClip>(MenuMusicPath);
@@ -130,6 +140,7 @@ public static class Virus9FrontendRebuilder
         public Sprite PauseIcon { get; }
         public Sprite ContinueIcon { get; }
         public Sprite MenuIcon { get; }
+        public Sprite InfoIcon { get; }
         public Texture2D PauseFogTexture { get; }
         public Texture2D PauseDustTexture { get; }
         public AudioClip MenuMusic { get; }
@@ -157,7 +168,7 @@ public static class Virus9FrontendRebuilder
         }
 
         TMP_FontAsset fontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
-        if (fontAsset != null && !HasUsableAtlas(fontAsset))
+        if (fontAsset != null && !HasValidUiFontAsset(fontAsset))
         {
             AssetDatabase.DeleteAsset(assetPath);
             fontAsset = null;
@@ -175,12 +186,18 @@ public static class Virus9FrontendRebuilder
                 AtlasPopulationMode.Dynamic,
                 true);
             fontAsset.name = assetName;
+            if (!fontAsset.TryAddCharacters(RequiredUiFontCharacters, out string missingCharacters) && !string.IsNullOrEmpty(missingCharacters))
+            {
+                Debug.LogWarning($"{assetName} could not pack UI characters: {missingCharacters}");
+            }
+
+            fontAsset.atlasPopulationMode = AtlasPopulationMode.Static;
             AssetDatabase.CreateAsset(fontAsset, assetPath);
             AddFontSubAssets(fontAsset);
         }
 
         fontAsset.name = assetName;
-        fontAsset.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+        fontAsset.atlasPopulationMode = AtlasPopulationMode.Static;
         if (fontAsset.fallbackFontAssetTable != null)
         {
             fontAsset.fallbackFontAssetTable.Clear();
@@ -188,6 +205,108 @@ public static class Virus9FrontendRebuilder
 
         EditorUtility.SetDirty(fontAsset);
         return fontAsset;
+    }
+
+    [MenuItem("VIRUS9/Repair TMP Fallback Font")]
+    public static void RepairTmpFallbackFont()
+    {
+        EnsureFolders();
+        AssetDatabase.Refresh();
+        EnsureTmpFallbackFontAsset();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+    }
+
+    private static TMP_FontAsset EnsureTmpFallbackFontAsset()
+    {
+        Font sourceFont = AssetDatabase.LoadAssetAtPath<Font>(TmpLiberationSansFontPath);
+        if (sourceFont == null)
+        {
+            Debug.LogWarning($"TMP fallback repair skipped because source font is missing at {TmpLiberationSansFontPath}.");
+            return null;
+        }
+
+        TMP_FontAsset fallbackFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(TmpFallbackFontPath);
+        if (fallbackFont != null && !HasValidStaticFontAsset(fallbackFont, 1024))
+        {
+            AssetDatabase.DeleteAsset(TmpFallbackFontPath);
+            fallbackFont = null;
+        }
+
+        if (fallbackFont == null)
+        {
+            fallbackFont = TMP_FontAsset.CreateFontAsset(
+                sourceFont,
+                90,
+                9,
+                GlyphRenderMode.SDFAA,
+                2048,
+                2048,
+                AtlasPopulationMode.Dynamic,
+                true);
+
+            if (fallbackFont == null)
+            {
+                Debug.LogWarning("TMP fallback repair skipped because LiberationSans font asset creation failed.");
+                return null;
+            }
+
+            fallbackFont.name = "LiberationSans SDF - Fallback";
+            if (!fallbackFont.TryAddCharacters(RequiredUiFontCharacters, out string missingCharacters) && !string.IsNullOrEmpty(missingCharacters))
+            {
+                Debug.LogWarning($"TMP fallback font could not pack UI characters: {missingCharacters}");
+            }
+
+            fallbackFont.atlasPopulationMode = AtlasPopulationMode.Static;
+            AssetDatabase.CreateAsset(fallbackFont, TmpFallbackFontPath);
+            AddFontSubAssets(fallbackFont);
+        }
+
+        fallbackFont.name = "LiberationSans SDF - Fallback";
+        fallbackFont.atlasPopulationMode = AtlasPopulationMode.Static;
+        if (fallbackFont.fallbackFontAssetTable != null)
+        {
+            fallbackFont.fallbackFontAssetTable.Clear();
+        }
+
+        TMP_FontAsset defaultFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(TmpDefaultFontPath);
+        if (defaultFont != null)
+        {
+            if (defaultFont.fallbackFontAssetTable == null)
+            {
+                defaultFont.fallbackFontAssetTable = new List<TMP_FontAsset>();
+            }
+
+            defaultFont.fallbackFontAssetTable.Clear();
+            defaultFont.fallbackFontAssetTable.Add(fallbackFont);
+            EditorUtility.SetDirty(defaultFont);
+        }
+
+        EditorUtility.SetDirty(fallbackFont);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.ImportAsset(TmpFallbackFontPath, ImportAssetOptions.ForceUpdate);
+        AssetDatabase.ImportAsset(TmpDefaultFontPath, ImportAssetOptions.ForceUpdate);
+        return fallbackFont;
+    }
+
+    private static bool HasValidStaticFontAsset(TMP_FontAsset fontAsset, int minimumAtlasSize)
+    {
+        if (fontAsset == null ||
+            fontAsset.atlasPopulationMode != AtlasPopulationMode.Static ||
+            fontAsset.atlasTextures == null ||
+            fontAsset.atlasTextures.Length == 0 ||
+            fontAsset.atlasTextures[0] == null ||
+            fontAsset.atlasTextures[0].width < minimumAtlasSize ||
+            fontAsset.atlasTextures[0].height < minimumAtlasSize ||
+            fontAsset.glyphTable == null ||
+            fontAsset.glyphTable.Count == 0 ||
+            fontAsset.characterTable == null ||
+            fontAsset.characterTable.Count == 0)
+        {
+            return false;
+        }
+
+        return ContainsRequiredCharacters(fontAsset);
     }
 
     private static void AddFontSubAssets(TMP_FontAsset fontAsset)
@@ -209,12 +328,43 @@ public static class Virus9FrontendRebuilder
         }
     }
 
-    private static bool HasUsableAtlas(TMP_FontAsset fontAsset)
+    private static bool HasValidUiFontAsset(TMP_FontAsset fontAsset)
     {
-        return fontAsset != null &&
-               fontAsset.atlasTextures != null &&
-               fontAsset.atlasTextures.Length > 0 &&
-               fontAsset.atlasTextures[0] != null;
+        if (fontAsset == null ||
+            fontAsset.atlasTextures == null ||
+            fontAsset.atlasTextures.Length == 0 ||
+            fontAsset.atlasTextures[0] == null ||
+            fontAsset.atlasTextures[0].width < 1024 ||
+            fontAsset.atlasTextures[0].height < 1024)
+        {
+            return false;
+        }
+
+        return ContainsRequiredCharacters(fontAsset);
+    }
+
+    private static bool ContainsRequiredCharacters(TMP_FontAsset fontAsset)
+    {
+        for (int i = 0; i < RequiredUiFontCharacters.Length; i++)
+        {
+            if (!ContainsCharacter(fontAsset, RequiredUiFontCharacters[i])) return false;
+        }
+
+        return true;
+    }
+
+    private static bool ContainsCharacter(TMP_FontAsset fontAsset, char character)
+    {
+        if (fontAsset == null || fontAsset.characterTable == null) return false;
+
+        uint unicode = character;
+        for (int i = 0; i < fontAsset.characterTable.Count; i++)
+        {
+            TMP_Character entry = fontAsset.characterTable[i];
+            if (entry != null && entry.unicode == unicode) return true;
+        }
+
+        return false;
     }
 
     private static Sprite LoadSprite(string path, Vector4 border)
@@ -312,10 +462,33 @@ public static class Virus9FrontendRebuilder
         Upsert(entries, "settings.video", "ВИДЕО", "VIDEO", "VÍDEO");
         Upsert(entries, "settings.controls", "УПРАВЛЕНИЕ", "CONTROLS", "CONTROLOS");
         Upsert(entries, "settings.accessibility", "ДОСТУПНОСТЬ", "ACCESSIBILITY", "ACESSIBILIDADE");
+        Upsert(entries, "settings.master", "ОБЩАЯ ГРОМКОСТЬ", "MASTER VOLUME", "VOLUME GERAL");
+        Upsert(entries, "settings.music", "МУЗЫКА", "MUSIC", "MÚSICA");
+        Upsert(entries, "settings.sfx", "ЭФФЕКТЫ", "SFX", "EFEITOS");
+        Upsert(entries, "settings.voice", "ДИАЛОГИ", "VOICE / DIALOGUE", "VOZ / DIÁLOGO");
+        Upsert(entries, "settings.mute", "ВЫКЛЮЧИТЬ ВЕСЬ ЗВУК", "MUTE ALL", "SILENCIAR TUDO");
+        Upsert(entries, "settings.resolution", "РАЗРЕШЕНИЕ", "RESOLUTION", "RESOLUÇÃO");
+        Upsert(entries, "settings.fullscreen", "ПОЛНЫЙ ЭКРАН", "FULLSCREEN", "ECRÃ INTEIRO");
+        Upsert(entries, "settings.brightness", "ЯРКОСТЬ", "BRIGHTNESS", "BRILHO");
+        Upsert(entries, "settings.quality", "КАЧЕСТВО", "QUALITY", "QUALIDADE");
+        Upsert(entries, "settings.vsync", "ВЕРТИКАЛЬНАЯ СИНХРОНИЗАЦИЯ", "VSYNC", "SINCRONIZAÇÃO VERTICAL");
+        Upsert(entries, "settings.mouse_sensitivity", "ЧУВСТВИТЕЛЬНОСТЬ МЫШИ", "MOUSE SENSITIVITY", "SENSIBILIDADE DO RATO");
+        Upsert(entries, "settings.invert_y", "ИНВЕРТИРОВАТЬ ОСЬ Y", "INVERT Y AXIS", "INVERTER EIXO Y");
         Upsert(entries, "settings.static_controls",
             "WASD - бег\nSHIFT - ходьба\nSPACE - прыжок / карабканье у препятствия\nE - взаимодействие\nLMB - атака ночью\nESC - пауза",
             "WASD - run\nSHIFT - walk\nSPACE - jump / climb near an obstacle\nE - interact\nLMB - night attack\nESC - pause",
             "WASD - correr\nSHIFT - andar\nSPACE - saltar / trepar junto a obstáculo\nE - interagir\nLMB - atacar à noite\nESC - pausa");
+        Upsert(entries, "settings.subtitles", "СУБТИТРЫ", "SUBTITLES", "LEGENDAS");
+        Upsert(entries, "settings.subtitle_size", "РАЗМЕР СУБТИТРОВ", "SUBTITLE SIZE", "TAMANHO DAS LEGENDAS");
+        Upsert(entries, "settings.ui_scale", "МАСШТАБ ИНТЕРФЕЙСА", "UI SCALE", "ESCALA DA INTERFACE");
+        Upsert(entries, "settings.high_contrast", "ВЫСОКИЙ КОНТРАСТ", "HIGH CONTRAST UI", "ALTO CONTRASTE");
+        Upsert(entries, "settings.colorblind", "РЕЖИМ ДЛЯ ДАЛЬТОНИЗМА", "COLORBLIND-FRIENDLY MODE", "MODO PARA DALTONISMO");
+        Upsert(entries, "settings.reduce_shake", "УМЕНЬШИТЬ ТРЯСКУ ЭКРАНА", "REDUCE SCREEN SHAKE", "REDUZIR TREMER DO ECRÃ");
+        Upsert(entries, "settings.reduce_motion", "УМЕНЬШИТЬ ДВИЖЕНИЕ", "REDUCE MOTION", "REDUZIR MOVIMENTO");
+        Upsert(entries, "settings.tutorial_hints", "ПОКАЗЫВАТЬ ПОДСКАЗКИ", "TUTORIAL HINTS", "DICAS DO TUTORIAL");
+        Upsert(entries, "settings.hold_mode", "УДЕРЖАНИЕ ВМЕСТО ПОВТОРНЫХ НАЖАТИЙ", "HOLD INSTEAD OF REPEATED PRESS", "MANTER EM VEZ DE PREMIR REPETIDAMENTE");
+        Upsert(entries, "settings.toggle_run", "ПЕРЕКЛЮЧАТЕЛЬ БЕГА", "TOGGLE RUN", "ALTERNAR CORRIDA");
+        Upsert(entries, "settings.simple_prompts", "ПРОСТЫЕ ПОДСКАЗКИ ВЗАИМОДЕЙСТВИЯ", "SIMPLE INTERACTION PROMPTS", "INDICAÇÕES SIMPLES DE INTERAÇÃO");
         Upsert(entries, "settings.small", "МАЛЕНЬКИЙ", "SMALL", "PEQUENO");
         Upsert(entries, "settings.medium", "СРЕДНИЙ", "MEDIUM", "MÉDIO");
         Upsert(entries, "settings.large", "БОЛЬШОЙ", "LARGE", "GRANDE");
@@ -518,8 +691,8 @@ public static class Virus9FrontendRebuilder
         CanvasGroup group = background.GetComponent<CanvasGroup>();
         if (group == null) group = background.AddComponent<CanvasGroup>();
 
-        RawImage fog = EnsureRawOverlay(rect, "MenuAtmosphereFog", skin.PauseFogTexture, new Color(0.12f, 0.31f, 0.21f, 0.24f));
-        RawImage dust = EnsureRawOverlay(rect, "MenuAtmosphereDust", skin.PauseDustTexture, new Color(0.82f, 0.92f, 0.62f, 0.15f));
+        RawImage fog = EnsureRawOverlay(rect, "MenuAtmosphereFog", skin.PauseFogTexture, new Color(0.12f, 0.31f, 0.21f, 0.11f));
+        RawImage dust = EnsureRawOverlay(rect, "MenuAtmosphereDust", skin.PauseDustTexture, new Color(0.82f, 0.92f, 0.62f, 0.045f));
 
         Type atmosphereType = Type.GetType("PauseMenuAtmosphereController, Assembly-CSharp");
         if (atmosphereType == null)
@@ -539,9 +712,9 @@ public static class Virus9FrontendRebuilder
         SetObject(serialized, "buzzSource", null);
         SetFloat(serialized, "ambienceVolumeScale", 0f);
         SetFloat(serialized, "buzzVolumeScale", 0f);
-        SetFloat(serialized, "flickerStrength", 0.035f);
-        SetVector2(serialized, "fogTiling", new Vector2(2.7f, 1.55f));
-        SetVector2(serialized, "dustTiling", new Vector2(5.6f, 2.9f));
+        SetFloat(serialized, "flickerStrength", 0.018f);
+        SetVector2(serialized, "fogTiling", new Vector2(5.2f, 3.1f));
+        SetVector2(serialized, "dustTiling", new Vector2(14f, 8f));
         serialized.ApplyModifiedPropertiesWithoutUndo();
     }
 
@@ -986,6 +1159,7 @@ public static class Virus9FrontendRebuilder
         subtitle.textWrappingMode = TextWrappingModes.Normal;
 
         Button startButton = CreateMenuButton(panel.transform, "StartButton", "menu.start", "START", skin, new Vector2(102f, -116f), new Vector2(260f, 48f));
+        AddIconToButton(startButton, skin.ContinueIcon, skin);
         startButton.navigation = Navigation.defaultNavigation;
         return panel;
     }
@@ -1022,6 +1196,12 @@ public static class Virus9FrontendRebuilder
         settingsButton = CreateMenuButton(rail.transform, "SettingsButton", "menu.settings", "SETTINGS", skin, new Vector2(24f, startY - step * 3f), new Vector2(300f, 43f));
         creditsButton = CreateMenuButton(rail.transform, "CreditsButton", "menu.credits", "CREDITS", skin, new Vector2(24f, startY - step * 4f), new Vector2(300f, 43f));
         exitButton = CreateMenuButton(rail.transform, "ExitButton", "menu.exit", "EXIT", skin, new Vector2(24f, startY - step * 5f), new Vector2(300f, 43f));
+        AddIconToButton(newGameButton, skin.ContinueIcon, skin);
+        AddIconToButton(continueButton, skin.ContinueIcon, skin);
+        AddIconToButton(loadSaveButton, skin.MenuIcon, skin);
+        AddIconToButton(settingsButton, skin.ControlsIcon, skin);
+        AddIconToButton(creditsButton, skin.InfoIcon, skin);
+        AddIconToButton(exitButton, skin.CloseIcon, skin);
         return panel;
     }
 
@@ -1059,41 +1239,177 @@ public static class Virus9FrontendRebuilder
 
     private static GameObject CreateSettingsPanel(Transform parent, FrontendSkin skin)
     {
-        GameObject panel = CreateCenteredPanel(parent, "SettingsPanel", new Vector2(880f, 560f), skin);
+        GameObject panel = CreateCenteredPanel(parent, "SettingsPanel", new Vector2(920f, 560f), skin);
         AddPanelTexture(panel.GetComponent<RectTransform>(), skin);
         SettingsPanelController controller = panel.AddComponent<SettingsPanelController>();
 
         TMP_Text title = CreateLocalizedText(panel.transform, "SettingsTitle", "settings.title", "SETTINGS", skin.DisplayFont, 34f, TextAlignmentOptions.Center, TextColor);
         SetRect(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -24f), new Vector2(700f, 50f));
 
-        Button languageTab = CreateMenuButton(panel.transform, "LanguageTabButton", "settings.language", "LANGUAGE", skin, new Vector2(24f, -112f), new Vector2(170f, 38f));
-        AddIconToButton(languageTab, skin.LanguageIcon, skin);
-        GameObject languagePanel = CreateUiObject("LanguageContentPanel", panel.transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(228f, -112f), new Vector2(590f, 330f));
-        Image languageImage = languagePanel.AddComponent<Image>();
-        languageImage.sprite = skin.PanelBorder;
-        languageImage.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
-        languageImage.color = new Color(0.022f, 0.052f, 0.04f, 0.92f);
-        AddPanelTexture(languagePanel.GetComponent<RectTransform>(), skin);
+        Button audioTab = CreateSettingsTab(panel.transform, "AudioTabButton", "settings.audio", "AUDIO", skin.SoundIcon, skin, 0);
+        Button videoTab = CreateSettingsTab(panel.transform, "VideoTabButton", "settings.video", "VIDEO", skin.VideoIcon, skin, 1);
+        Button controlsTab = CreateSettingsTab(panel.transform, "ControlsTabButton", "settings.controls", "CONTROLS", skin.ControlsIcon, skin, 2);
+        Button languageTab = CreateSettingsTab(panel.transform, "LanguageTabButton", "settings.language", "LANGUAGE", skin.LanguageIcon, skin, 3);
+        Button accessibilityTab = CreateSettingsTab(panel.transform, "AccessibilityTabButton", "settings.accessibility", "ACCESSIBILITY", skin.AccessibilityIcon, skin, 4);
 
-        TMP_Text label = CreateLocalizedText(languagePanel.transform, "language_Label", "settings.language", "LANGUAGE", skin.BodyFont, 17f, TextAlignmentOptions.MidlineLeft, TextColor);
-        SetRect(label.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-165f, 104f), new Vector2(220f, 32f));
+        GameObject audioPanel = CreateSettingsContentPanel(panel.transform, "AudioContentPanel", skin);
+        GameObject videoPanel = CreateSettingsContentPanel(panel.transform, "VideoContentPanel", skin);
+        GameObject controlsPanel = CreateSettingsContentPanel(panel.transform, "ControlsContentPanel", skin);
+        GameObject languagePanel = CreateSettingsContentPanel(panel.transform, "LanguageContentPanel", skin);
+        GameObject accessibilityPanel = CreateSettingsContentPanel(panel.transform, "AccessibilityContentPanel", skin);
 
-        TMP_Dropdown languageDropdown = CreateDropdown(languagePanel.transform, "language_Dropdown", skin, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(145f, 104f), new Vector2(260f, 36f));
+        Slider masterVolume = CreateSettingsSlider(audioPanel.transform, "masterVolume", "settings.master", "MASTER VOLUME", skin);
+        Slider musicVolume = CreateSettingsSlider(audioPanel.transform, "musicVolume", "settings.music", "MUSIC", skin);
+        Slider sfxVolume = CreateSettingsSlider(audioPanel.transform, "sfxVolume", "settings.sfx", "SFX", skin);
+        Slider voiceVolume = CreateSettingsSlider(audioPanel.transform, "voiceVolume", "settings.voice", "VOICE / DIALOGUE", skin);
+        Toggle muteAll = CreateSettingsToggle(audioPanel.transform, "muteAll", "settings.mute", "MUTE ALL", skin);
 
-        TMP_Text controls = CreateLocalizedText(languagePanel.transform, "StaticControls", "settings.static_controls", "WASD - run", skin.BodyFont, 16f, TextAlignmentOptions.TopLeft, MutedTextColor);
-        SetRect(controls.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -58f), new Vector2(500f, 170f));
+        TMP_Dropdown resolution = CreateSettingsDropdown(videoPanel.transform, "resolution", "settings.resolution", "RESOLUTION", skin);
+        Toggle fullscreen = CreateSettingsToggle(videoPanel.transform, "fullscreen", "settings.fullscreen", "FULLSCREEN", skin);
+        Slider brightness = CreateSettingsSlider(videoPanel.transform, "brightness", "settings.brightness", "BRIGHTNESS", skin);
+        TMP_Dropdown quality = CreateSettingsDropdown(videoPanel.transform, "quality", "settings.quality", "QUALITY", skin);
+        Toggle vSync = CreateSettingsToggle(videoPanel.transform, "vSync", "settings.vsync", "VSYNC", skin);
+
+        Slider mouseSensitivity = CreateSettingsSlider(controlsPanel.transform, "mouseSensitivity", "settings.mouse_sensitivity", "MOUSE SENSITIVITY", skin);
+        Toggle invertY = CreateSettingsToggle(controlsPanel.transform, "invertY", "settings.invert_y", "INVERT Y AXIS", skin);
+        TMP_Text controls = CreateLocalizedText(controlsPanel.transform, "StaticControls", "settings.static_controls", "WASD - run", skin.BodyFont, 16f, TextAlignmentOptions.TopLeft, MutedTextColor);
         controls.textWrappingMode = TextWrappingModes.Normal;
+
+        TMP_Dropdown languageDropdown = CreateSettingsDropdown(languagePanel.transform, "language", "settings.language", "LANGUAGE", skin);
+
+        Toggle subtitles = CreateSettingsToggle(accessibilityPanel.transform, "subtitles", "settings.subtitles", "SUBTITLES", skin);
+        TMP_Dropdown subtitleSize = CreateSettingsDropdown(accessibilityPanel.transform, "subtitleSize", "settings.subtitle_size", "SUBTITLE SIZE", skin);
+        Slider uiScale = CreateSettingsSlider(accessibilityPanel.transform, "uiScale", "settings.ui_scale", "UI SCALE", skin);
+        Toggle highContrast = CreateSettingsToggle(accessibilityPanel.transform, "highContrast", "settings.high_contrast", "HIGH CONTRAST UI", skin);
+        Toggle colorblindFriendly = CreateSettingsToggle(accessibilityPanel.transform, "colorblindFriendly", "settings.colorblind", "COLORBLIND-FRIENDLY MODE", skin);
+        Toggle reduceScreenShake = CreateSettingsToggle(accessibilityPanel.transform, "reduceScreenShake", "settings.reduce_shake", "REDUCE SCREEN SHAKE", skin);
+        Toggle reduceMotion = CreateSettingsToggle(accessibilityPanel.transform, "reduceMotion", "settings.reduce_motion", "REDUCE MOTION", skin);
+        Toggle tutorialHints = CreateSettingsToggle(accessibilityPanel.transform, "tutorialHints", "settings.tutorial_hints", "TUTORIAL HINTS", skin);
+        Toggle holdInsteadOfRepeat = CreateSettingsToggle(accessibilityPanel.transform, "holdInsteadOfRepeat", "settings.hold_mode", "HOLD INSTEAD OF REPEATED PRESS", skin);
+        Toggle toggleRun = CreateSettingsToggle(accessibilityPanel.transform, "toggleRun", "settings.toggle_run", "TOGGLE RUN", skin);
+        Toggle simplePrompts = CreateSettingsToggle(accessibilityPanel.transform, "simplePrompts", "settings.simple_prompts", "SIMPLE INTERACTION PROMPTS", skin);
 
         Button backButton = CreateMenuButton(panel.transform, "SettingsBackButton", "menu.back", "BACK", skin, new Vector2(0f, 30f), new Vector2(220f, 40f), true);
         AddIconToButton(backButton, skin.BackIcon, skin);
 
+        SetActiveForPrefab(audioPanel, true);
+        SetActiveForPrefab(videoPanel, false);
+        SetActiveForPrefab(controlsPanel, false);
+        SetActiveForPrefab(languagePanel, false);
+        SetActiveForPrefab(accessibilityPanel, false);
+
         SerializedObject serialized = new SerializedObject(controller);
-        SetArray(serialized, "tabPanels", new UnityEngine.Object[] { languagePanel });
-        SetArray(serialized, "tabButtons", new UnityEngine.Object[] { languageTab });
+        SetArray(serialized, "tabPanels", new UnityEngine.Object[] { audioPanel, videoPanel, controlsPanel, languagePanel, accessibilityPanel });
+        SetArray(serialized, "tabButtons", new UnityEngine.Object[] { audioTab, videoTab, controlsTab, languageTab, accessibilityTab });
         SetObject(serialized, "backButton", backButton);
+        SetObject(serialized, "masterVolume", masterVolume);
+        SetObject(serialized, "musicVolume", musicVolume);
+        SetObject(serialized, "sfxVolume", sfxVolume);
+        SetObject(serialized, "voiceVolume", voiceVolume);
+        SetObject(serialized, "muteAll", muteAll);
+        SetObject(serialized, "resolution", resolution);
+        SetObject(serialized, "fullscreen", fullscreen);
+        SetObject(serialized, "brightness", brightness);
+        SetObject(serialized, "quality", quality);
+        SetObject(serialized, "vSync", vSync);
+        SetObject(serialized, "mouseSensitivity", mouseSensitivity);
+        SetObject(serialized, "invertY", invertY);
         SetObject(serialized, "language", languageDropdown);
+        SetObject(serialized, "subtitles", subtitles);
+        SetObject(serialized, "subtitleSize", subtitleSize);
+        SetObject(serialized, "uiScale", uiScale);
+        SetObject(serialized, "highContrast", highContrast);
+        SetObject(serialized, "colorblindFriendly", colorblindFriendly);
+        SetObject(serialized, "reduceScreenShake", reduceScreenShake);
+        SetObject(serialized, "reduceMotion", reduceMotion);
+        SetObject(serialized, "tutorialHints", tutorialHints);
+        SetObject(serialized, "holdInsteadOfRepeat", holdInsteadOfRepeat);
+        SetObject(serialized, "toggleRun", toggleRun);
+        SetObject(serialized, "simplePrompts", simplePrompts);
         serialized.ApplyModifiedPropertiesWithoutUndo();
         return panel;
+    }
+
+    private static Button CreateSettingsTab(Transform parent, string name, string key, string fallback, Sprite icon, FrontendSkin skin, int index)
+    {
+        Button button = CreateMenuButton(parent, name, key, fallback, skin, new Vector2(24f, -112f - index * 56f), new Vector2(210f, 42f));
+        AddIconToButton(button, icon, skin);
+        return button;
+    }
+
+    private static GameObject CreateSettingsContentPanel(Transform parent, string name, FrontendSkin skin)
+    {
+        GameObject panel = CreateUiObject(name, parent, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(260f, -112f), new Vector2(620f, 378f));
+        Image image = panel.AddComponent<Image>();
+        image.sprite = skin.PanelBorder;
+        image.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
+        image.color = new Color(0.022f, 0.052f, 0.04f, 0.92f);
+        AddPanelTexture(panel.GetComponent<RectTransform>(), skin);
+        return panel;
+    }
+
+    private static Slider CreateSettingsSlider(Transform parent, string baseName, string key, string fallback, FrontendSkin skin)
+    {
+        CreateLocalizedText(parent, baseName + "_Label", key, fallback, skin.BodyFont, 16f, TextAlignmentOptions.MidlineLeft, TextColor);
+
+        GameObject root = CreateUiObject(baseName + "_Slider", parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300f, 24f));
+        Slider slider = root.AddComponent<Slider>();
+        slider.minValue = 0f;
+        slider.maxValue = 1f;
+        slider.value = 1f;
+
+        GameObject background = CreateUiObject("Background", root.transform, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(0f, 8f));
+        Image backgroundImage = background.AddComponent<Image>();
+        backgroundImage.color = new Color(0.035f, 0.12f, 0.14f, 1f);
+
+        GameObject fillArea = CreateUiObject("Fill Area", root.transform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(-18f, 0f));
+        GameObject fill = CreateUiObject("Fill", fillArea.transform, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(0f, 10f));
+        Image fillImage = fill.AddComponent<Image>();
+        fillImage.color = AccentColor;
+
+        GameObject handleArea = CreateUiObject("Handle Slide Area", root.transform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(-18f, 0f));
+        GameObject handle = CreateUiObject("Handle", handleArea.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(18f, 42f));
+        Image handleImage = handle.AddComponent<Image>();
+        handleImage.color = new Color(1f, 0.58f, 0.14f, 1f);
+
+        slider.targetGraphic = handleImage;
+        slider.fillRect = fill.GetComponent<RectTransform>();
+        slider.handleRect = handle.GetComponent<RectTransform>();
+        return slider;
+    }
+
+    private static TMP_Dropdown CreateSettingsDropdown(Transform parent, string baseName, string key, string fallback, FrontendSkin skin)
+    {
+        CreateLocalizedText(parent, baseName + "_Label", key, fallback, skin.BodyFont, 16f, TextAlignmentOptions.MidlineLeft, TextColor);
+        TMP_Dropdown dropdown = CreateDropdown(parent, baseName + "_Dropdown", skin, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300f, 36f));
+        dropdown.options.Clear();
+        dropdown.options.Add(new TMP_Dropdown.OptionData(fallback));
+        dropdown.RefreshShownValue();
+        return dropdown;
+    }
+
+    private static Toggle CreateSettingsToggle(Transform parent, string baseName, string key, string fallback, FrontendSkin skin)
+    {
+        GameObject root = CreateUiObject(baseName + "_Toggle", parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(580f, 30f));
+        Toggle toggle = root.AddComponent<Toggle>();
+
+        GameObject background = CreateUiObject("Background", root.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(22f, 22f));
+        Image backgroundImage = background.AddComponent<Image>();
+        backgroundImage.color = new Color(0.06f, 0.18f, 0.12f, 1f);
+
+        GameObject checkmark = CreateUiObject("Checkmark", background.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(16f, 16f));
+        Image checkmarkImage = checkmark.AddComponent<Image>();
+        checkmarkImage.sprite = skin.TickIcon;
+        checkmarkImage.preserveAspect = true;
+        checkmarkImage.color = new Color(1f, 0.58f, 0.14f, 1f);
+
+        TMP_Text label = CreateLocalizedText(root.transform, "Label", key, fallback, skin.BodyFont, 16f, TextAlignmentOptions.MidlineLeft, TextColor);
+        SetRect(label.rectTransform, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 0.5f), new Vector2(34f, 0f), new Vector2(-34f, 30f));
+
+        toggle.targetGraphic = backgroundImage;
+        toggle.graphic = checkmarkImage;
+        toggle.isOn = false;
+        return toggle;
     }
 
     private static GameObject CreateSaveSlotPanel(Transform parent, FrontendSkin skin)

@@ -14,7 +14,9 @@ public class PlayerClimbController : MonoBehaviour
     [SerializeField] private float topProbeForwardOffset = 0.55f;
     [SerializeField] private float landingInset = 0.55f;
     [SerializeField] private float climbDuration = 0.55f;
+    [SerializeField] private bool debugDraw;
 
+    private const float ClearanceSkin = 0.03f;
     private readonly Collider[] clearanceHits = new Collider[12];
     private PlayerController3D player;
     private PlayerVisualAnimator visualAnimator;
@@ -25,8 +27,23 @@ public class PlayerClimbController : MonoBehaviour
     private bool hasStoredBodyState;
     private bool storedKinematic;
     private bool storedGravity;
+    private bool hasDebugTarget;
+    private Vector3 debugWallPoint;
+    private Vector3 debugTopPoint;
+    private Vector3 debugTargetPosition;
 
     public bool IsClimbing => isClimbing;
+
+    private struct ClimbTarget
+    {
+        public Vector3 Position;
+        public Quaternion Rotation;
+        public Collider WallCollider;
+        public Collider SupportCollider;
+        public Vector3 WallPoint;
+        public Vector3 TopPoint;
+        public float Height;
+    }
 
     private void Awake()
     {
@@ -51,16 +68,15 @@ public class PlayerClimbController : MonoBehaviour
     {
         if (isClimbing || player == null || body == null || playerCollider == null) return false;
         if (!player.CanMove || !player.IsGrounded) return false;
-        if (!TryFindClimbTarget(out Vector3 targetPosition, out Quaternion targetRotation)) return false;
+        if (!TryFindClimbTarget(out ClimbTarget target)) return false;
 
-        climbRoutine = StartCoroutine(ClimbRoutine(targetPosition, targetRotation));
+        climbRoutine = StartCoroutine(ClimbRoutine(target));
         return true;
     }
 
-    private bool TryFindClimbTarget(out Vector3 targetPosition, out Quaternion targetRotation)
+    private bool TryFindClimbTarget(out ClimbTarget target)
     {
-        targetPosition = transform.position;
-        targetRotation = transform.rotation;
+        target = default;
 
         Bounds bounds = playerCollider.bounds;
         Vector3 forward = transform.forward;
@@ -71,7 +87,11 @@ public class PlayerClimbController : MonoBehaviour
         float bodyRadius = Mathf.Max(0.15f, Mathf.Min(bounds.extents.x, bounds.extents.z));
         if (!TryFindWallHit(bounds, forward, bodyRadius, out RaycastHit wallHit)) return false;
 
-        Vector3 topOrigin = wallHit.point + forward * topProbeForwardOffset + Vector3.up * topProbeHeight;
+        Vector3 climbForward = Vector3.ProjectOnPlane(-wallHit.normal, Vector3.up);
+        if (climbForward.sqrMagnitude <= 0.0001f) climbForward = forward;
+        climbForward.Normalize();
+
+        Vector3 topOrigin = wallHit.point + climbForward * topProbeForwardOffset + Vector3.up * topProbeHeight;
         float topProbeDistance = topProbeHeight + 0.35f;
         if (!Physics.Raycast(topOrigin, Vector3.down, out RaycastHit topHit, topProbeDistance, climbMask, QueryTriggerInteraction.Ignore)) return false;
         if (topHit.collider == null || IsSelfCollider(topHit.collider)) return false;
@@ -80,13 +100,28 @@ public class PlayerClimbController : MonoBehaviour
         float climbHeight = topHit.point.y - bounds.min.y;
         if (climbHeight < minClimbHeight || climbHeight > maxClimbHeight) return false;
 
-        Vector3 landingPoint = topHit.point + forward * landingInset;
+        float horizontalInset = Mathf.Max(landingInset, bodyRadius + 0.25f);
+        Vector3 landingPoint = topHit.point + climbForward * horizontalInset;
         Vector3 bottomToRootOffset = transform.position - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
-        targetPosition = new Vector3(landingPoint.x, topHit.point.y, landingPoint.z) + bottomToRootOffset;
-        targetRotation = Quaternion.LookRotation(forward, Vector3.up);
+        Vector3 targetPosition = new Vector3(landingPoint.x, topHit.point.y, landingPoint.z) + bottomToRootOffset;
+        Quaternion targetRotation = Quaternion.LookRotation(climbForward, Vector3.up);
 
         if (!ExteriorBoundaryController.TryValidateTargetPosition(targetPosition, out _, true)) return false;
-        return HasClearanceAt(targetPosition);
+        if (!HasClearanceAt(targetPosition, targetRotation, wallHit.collider, topHit.collider)) return false;
+
+        target = new ClimbTarget
+        {
+            Position = targetPosition,
+            Rotation = targetRotation,
+            WallCollider = wallHit.collider,
+            SupportCollider = topHit.collider,
+            WallPoint = wallHit.point,
+            TopPoint = topHit.point,
+            Height = climbHeight
+        };
+
+        StoreDebugTarget(target);
+        return true;
     }
 
     private bool TryFindWallHit(Bounds bounds, Vector3 forward, float bodyRadius, out RaycastHit wallHit)
@@ -110,31 +145,45 @@ public class PlayerClimbController : MonoBehaviour
         return false;
     }
 
-    private bool HasClearanceAt(Vector3 targetRootPosition)
+    private bool HasClearanceAt(Vector3 targetRootPosition, Quaternion targetRotation, Collider wallCollider, Collider supportCollider)
     {
-        GetTargetCapsule(targetRootPosition, out Vector3 bottom, out Vector3 top, out float radius);
+        GetTargetCapsule(targetRootPosition, targetRotation, out Vector3 bottom, out Vector3 top, out float radius);
         int hitCount = Physics.OverlapCapsuleNonAlloc(bottom, top, radius, clearanceHits, climbMask, QueryTriggerInteraction.Ignore);
         for (int i = 0; i < hitCount; i++)
         {
             Collider hit = clearanceHits[i];
             if (hit == null || IsSelfCollider(hit)) continue;
-            return false;
+            if (hit == wallCollider || hit == supportCollider) continue;
+            if (Physics.ComputePenetration(
+                    playerCollider,
+                    targetRootPosition,
+                    targetRotation,
+                    hit,
+                    hit.transform.position,
+                    hit.transform.rotation,
+                    out _,
+                    out float distance) &&
+                distance > ClearanceSkin)
+            {
+                return false;
+            }
         }
 
         return true;
     }
 
-    private void GetTargetCapsule(Vector3 targetRootPosition, out Vector3 bottom, out Vector3 top, out float radius)
+    private void GetTargetCapsule(Vector3 targetRootPosition, Quaternion targetRotation, out Vector3 bottom, out Vector3 top, out float radius)
     {
+        Vector3 up = targetRotation * Vector3.up;
         if (playerCollider is CapsuleCollider capsule)
         {
             Vector3 scale = capsule.transform.lossyScale;
             radius = Mathf.Max(0.05f, capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z)) - 0.03f);
             float capsuleHeight = Mathf.Max(radius * 2f, capsule.height * Mathf.Abs(scale.y));
-            Vector3 center = targetRootPosition + transform.rotation * capsule.center;
+            Vector3 center = targetRootPosition + targetRotation * capsule.center;
             float halfLine = Mathf.Max(0f, capsuleHeight * 0.5f - radius);
-            bottom = center + Vector3.up * (-halfLine + 0.08f);
-            top = center + Vector3.up * halfLine;
+            bottom = center - up * Mathf.Max(0f, halfLine - ClearanceSkin);
+            top = center + up * Mathf.Max(0f, halfLine - ClearanceSkin);
             return;
         }
 
@@ -144,11 +193,11 @@ public class PlayerClimbController : MonoBehaviour
         Vector3 centerOffset = bounds.center - transform.position;
         Vector3 centerAtTarget = targetRootPosition + centerOffset;
         float halfLineFallback = Mathf.Max(0f, fallbackHeight * 0.5f - radius);
-        bottom = centerAtTarget + Vector3.up * (-halfLineFallback + 0.08f);
-        top = centerAtTarget + Vector3.up * halfLineFallback;
+        bottom = centerAtTarget - up * Mathf.Max(0f, halfLineFallback - ClearanceSkin);
+        top = centerAtTarget + up * Mathf.Max(0f, halfLineFallback - ClearanceSkin);
     }
 
-    private IEnumerator ClimbRoutine(Vector3 targetPosition, Quaternion targetRotation)
+    private IEnumerator ClimbRoutine(ClimbTarget target)
     {
         isClimbing = true;
         storedKinematic = body.isKinematic;
@@ -165,20 +214,24 @@ public class PlayerClimbController : MonoBehaviour
 
         float elapsed = 0f;
         float duration = Mathf.Max(0.05f, climbDuration);
+        float arcHeight = Mathf.Clamp(target.Height * 0.35f, 0.22f, 0.75f);
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
             float eased = t * t * (3f - 2f * t);
-            transform.SetPositionAndRotation(
-                Vector3.Lerp(startPosition, targetPosition, eased),
-                Quaternion.Slerp(startRotation, targetRotation, eased));
+            Vector3 position = Vector3.Lerp(startPosition, target.Position, eased) + Vector3.up * (Mathf.Sin(eased * Mathf.PI) * arcHeight);
+            Quaternion rotation = Quaternion.Slerp(startRotation, target.Rotation, eased);
+            body.position = position;
+            body.rotation = rotation;
+            transform.SetPositionAndRotation(position, rotation);
             yield return null;
         }
 
-        transform.SetPositionAndRotation(targetPosition, targetRotation);
-        body.position = targetPosition;
-        body.rotation = targetRotation;
+        transform.SetPositionAndRotation(target.Position, target.Rotation);
+        body.position = target.Position;
+        body.rotation = target.Rotation;
+        Physics.SyncTransforms();
         ClearVelocityIfDynamic(body);
 
         RestoreMovement();
@@ -214,6 +267,27 @@ public class PlayerClimbController : MonoBehaviour
     private bool IsSelfCollider(Collider other)
     {
         return other != null && (other == playerCollider || other.transform == transform || other.transform.IsChildOf(transform));
+    }
+
+    private void StoreDebugTarget(ClimbTarget target)
+    {
+        hasDebugTarget = true;
+        debugWallPoint = target.WallPoint;
+        debugTopPoint = target.TopPoint;
+        debugTargetPosition = target.Position;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (!debugDraw || !hasDebugTarget) return;
+
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(debugWallPoint, 0.08f);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(debugTopPoint, 0.08f);
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(debugTargetPosition, 0.12f);
+        Gizmos.DrawLine(debugTopPoint, debugTargetPosition);
     }
 
     private PlayerVisualAnimator ResolveVisualAnimator()
