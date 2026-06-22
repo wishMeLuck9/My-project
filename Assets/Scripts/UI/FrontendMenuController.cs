@@ -6,13 +6,11 @@ using UnityEngine.UI;
 public class FrontendMenuController : MonoBehaviour
 {
     [SerializeField] private GameObject startPanel;
-    [SerializeField] private GameObject introductionPanel;
     [SerializeField] private GameObject mainMenuPanel;
     [SerializeField] private GameObject creditsPanel;
     [SerializeField] private GameObject confirmPanel;
     [SerializeField] private TMP_Text confirmText;
     [SerializeField] private Button startButton;
-    [SerializeField] private Button introContinueButton;
     [SerializeField] private Button newGameButton;
     [SerializeField] private Button continueButton;
     [SerializeField] private Button loadSaveButton;
@@ -40,7 +38,6 @@ public class FrontendMenuController : MonoBehaviour
         SaveGameManager.EnsureInstance();
 
         startButton?.onClick.AddListener(() => ShowOnly(mainMenuPanel));
-        introContinueButton?.onClick.AddListener(() => ShowOnly(mainMenuPanel));
         newGameButton?.onClick.AddListener(StartNewGameFromMenu);
         continueButton?.onClick.AddListener(() => SaveGameManager.Instance.ContinueLatest());
         loadSaveButton?.onClick.AddListener(() => OpenSaveSlots(false));
@@ -132,7 +129,6 @@ public class FrontendMenuController : MonoBehaviour
     private void HideBasePanels()
     {
         startPanel?.SetActive(false);
-        introductionPanel?.SetActive(false);
         mainMenuPanel?.SetActive(false);
         creditsPanel?.SetActive(false);
         confirmPanel?.SetActive(false);

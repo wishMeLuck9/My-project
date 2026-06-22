@@ -239,8 +239,8 @@ public class PlayerController3D : MonoBehaviour
 
     private void HandleJumpPressed()
     {
-        if (!allowJump) return;
         if (ResolveClimbController()?.TryStartClimb() == true) return;
+        if (!allowJump) return;
         TryJump();
     }
 

@@ -32,7 +32,7 @@ public class ExteriorBoundaryController : MonoBehaviour
 
     public static void EnsureForCurrentScene()
     {
-        if (SceneManager.GetActiveScene().name != SceneIds.Exterior)
+        if (!SceneIds.IsGameplay(SceneManager.GetActiveScene()))
         {
             if (instance != null) Destroy(instance.gameObject);
             return;
@@ -54,7 +54,7 @@ public class ExteriorBoundaryController : MonoBehaviour
     public static bool TryValidateTargetPosition(Vector3 targetPosition, out Vector3 clampedPosition, bool showMessage = true)
     {
         clampedPosition = targetPosition;
-        if (SceneManager.GetActiveScene().name != SceneIds.Exterior) return true;
+        if (!SceneIds.IsGameplay(SceneManager.GetActiveScene())) return true;
 
         EnsureForCurrentScene();
         if (instance == null || !instance.EnsureRuntimeReady()) return false;
@@ -119,7 +119,7 @@ public class ExteriorBoundaryController : MonoBehaviour
             if (!initialized) return false;
         }
 
-        if (SceneManager.GetActiveScene().name != SceneIds.Exterior)
+        if (!SceneIds.IsGameplay(SceneManager.GetActiveScene()))
         {
             Destroy(gameObject);
             return false;
@@ -275,6 +275,13 @@ public class ExteriorBoundaryController : MonoBehaviour
         EncapsulateComponentTransforms(ref anchorBounds, ref hasAnchor, FindObjectsByType<LightFragmentPickup>(FindObjectsInactive.Include, FindObjectsSortMode.None));
         EncapsulateComponentTransforms(ref anchorBounds, ref hasAnchor, FindObjectsByType<LocationTransition>(FindObjectsInactive.Include, FindObjectsSortMode.None));
         EncapsulateComponentTransforms(ref anchorBounds, ref hasAnchor, FindObjectsByType<ExteriorPursuer>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+        EncapsulateComponentTransforms(ref anchorBounds, ref hasAnchor, FindObjectsByType<SquarePortalController>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+        EncapsulateComponentTransforms(ref anchorBounds, ref hasAnchor, FindObjectsByType<NightFragmentEncounter>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+        EncapsulateComponentTransforms(ref anchorBounds, ref hasAnchor, FindObjectsByType<PriceAltar>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+        EncapsulateComponentTransforms(ref anchorBounds, ref hasAnchor, FindObjectsByType<ShadowNPC>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+        EncapsulateComponentTransforms(ref anchorBounds, ref hasAnchor, FindObjectsByType<FinalGateEntryTrigger>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+        EncapsulateComponentTransforms(ref anchorBounds, ref hasAnchor, FindObjectsByType<FinalGateOutcomeController>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+        EncapsulateComponentTransforms(ref anchorBounds, ref hasAnchor, FindObjectsByType<GuardianController>(FindObjectsInactive.Include, FindObjectsSortMode.None));
 
         ExteriorHuntController hunt = FindFirstObjectByType<ExteriorHuntController>(FindObjectsInactive.Include);
         if (hunt != null)

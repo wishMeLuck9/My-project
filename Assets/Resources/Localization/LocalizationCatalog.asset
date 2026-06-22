@@ -30,34 +30,90 @@ MonoBehaviour:
 
       BUT THE SYSTEM RECORDS
       EVERY STEP YOU TAKE.'
-    portuguese: 'O MUNDO DAS ALMAS NAO DA INSTRUCOES.
-
-      MAS O SISTEMA REGISTA
-      CADA PASSO TEU.'
+    portuguese: "O MUNDO DAS ALMAS N\xC3O D\xC1 INSTRU\xC7\xD5ES.\nMAS O SISTEMA
+      REGISTA CADA PASSO TEU."
   - key: menu.continue_intro
     russian: "\u041F\u0420\u041E\u0414\u041E\u041B\u0416\u0418\u0422\u042C"
     english: CONTINUE
     portuguese: CONTINUAR
   - key: intro.gameplay.1
-    russian: "ANTBORN // ЗОНА ДО РОЖДЕНИЯ.\nЗдесь тени ждут, пока мир признает их существование."
-    english: "ANTBORN // PRE-BIRTH ZONE.\nShadows wait here until the world recognizes their existence."
-    portuguese: "ANTBORN // ZONA ANTES DO NASCIMENTO.\nAs sombras esperam aqui ate o mundo reconhecer a sua existencia."
+    russian: "ANTBORN // \u0417\u041E\u041D\u0410 \u0414\u041E \u0420\u041E\u0416\u0414\u0415\u041D\u0418\u042F.\n\u0417\u0434\u0435\u0441\u044C
+      \u0442\u0435\u043D\u0438 \u0436\u0434\u0443\u0442, \u043F\u043E\u043A\u0430
+      \u043C\u0438\u0440 \u043F\u0440\u0438\u0437\u043D\u0430\u0435\u0442 \u0438\u0445
+      \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E\u0432\u0430\u043D\u0438\u0435."
+    english: 'ANTBORN // PRE-BIRTH ZONE.
+
+      Shadows wait here until the world
+      recognizes their existence.'
+    portuguese: 'ANTBORN // ZONA ANTES DO NASCIMENTO.
+
+      As sombras esperam aqui
+      ate o mundo reconhecer a sua existencia.'
   - key: intro.gameplay.2
-    russian: "Ты — ФРАГМЕНТ.\nТы появился из ошибки: случайная доброта стала душой, которую система не умеет зарегистрировать."
-    english: "You are the FRAGMENT.\nYou came from an error: accidental kindness became a soul the system cannot register."
-    portuguese: "Tu es o FRAGMENTO.\nVieste de um erro: uma bondade acidental tornou-se uma alma que o sistema nao consegue registar."
+    russian: "\u0422\u044B \u2014 \u0424\u0420\u0410\u0413\u041C\u0415\u041D\u0422.\n\u0422\u044B
+      \u043F\u043E\u044F\u0432\u0438\u043B\u0441\u044F \u0438\u0437 \u043E\u0448\u0438\u0431\u043A\u0438:
+      \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u0430\u044F \u0434\u043E\u0431\u0440\u043E\u0442\u0430
+      \u0441\u0442\u0430\u043B\u0430 \u0434\u0443\u0448\u043E\u0439, \u043A\u043E\u0442\u043E\u0440\u0443\u044E
+      \u0441\u0438\u0441\u0442\u0435\u043C\u0430 \u043D\u0435 \u0443\u043C\u0435\u0435\u0442
+      \u0437\u0430\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C."
+    english: 'You are the FRAGMENT.
+
+      You came from an error: accidental kindness
+      became a soul the system cannot register.'
+    portuguese: 'Tu es o FRAGMENTO.
+
+      Vieste de um erro: uma bondade acidental
+      tornou-se uma alma que o sistema nao consegue registar.'
   - key: intro.gameplay.3
-    russian: "Система не ненавидит тебя.\nОна проверяет, сверяет, отказывает и исправляет. Для нее ты не враг. Ты запись без права на существование."
-    english: "The System does not hate you.\nIt checks, validates, denies, and corrects. To it, you are not an enemy. You are a record with no right to exist."
-    portuguese: "O Sistema nao te odeia.\nEle verifica, valida, recusa e corrige. Para ele, nao es inimigo. Es um registo sem direito a existir."
+    russian: "\u0421\u0438\u0441\u0442\u0435\u043C\u0430 \u043D\u0435 \u043D\u0435\u043D\u0430\u0432\u0438\u0434\u0438\u0442
+      \u0442\u0435\u0431\u044F.\n\u041E\u043D\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0435\u0442,
+      \u0441\u0432\u0435\u0440\u044F\u0435\u0442, \u043E\u0442\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442
+      \u0438 \u0438\u0441\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442. \u0414\u043B\u044F
+      \u043D\u0435\u0435 \u0442\u044B \u043D\u0435 \u0432\u0440\u0430\u0433. \u0422\u044B
+      \u0437\u0430\u043F\u0438\u0441\u044C \u0431\u0435\u0437 \u043F\u0440\u0430\u0432\u0430
+      \u043D\u0430 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E\u0432\u0430\u043D\u0438\u0435."
+    english: 'The System does not hate you.
+
+      It checks, validates, denies,
+      and corrects. To it, you are not an enemy. You are a record with no right to
+      exist.'
+    portuguese: 'O Sistema nao te odeia.
+
+      Ele verifica, valida, recusa e corrige.
+      Para ele, nao es inimigo. Es um registo sem direito a existir.'
   - key: intro.gameplay.4
-    russian: "Тени проходят через Врата, потому что они признаны.\nТы должен идти тем же путем, но правильное действие не откроет проход. Врата потребуют цену."
-    english: "Shadows pass through the Gate because they are recognized.\nYou must walk the same route, but the correct action will not open the passage. The Gate will demand a price."
-    portuguese: "As sombras passam pelo Portao porque sao reconhecidas.\nTens de seguir o mesmo percurso, mas a acao correta nao abrira a passagem. O Portao exigira um preco."
+    russian: "\u0422\u0435\u043D\u0438 \u043F\u0440\u043E\u0445\u043E\u0434\u044F\u0442
+      \u0447\u0435\u0440\u0435\u0437 \u0412\u0440\u0430\u0442\u0430, \u043F\u043E\u0442\u043E\u043C\u0443
+      \u0447\u0442\u043E \u043E\u043D\u0438 \u043F\u0440\u0438\u0437\u043D\u0430\u043D\u044B.\n\u0422\u044B
+      \u0434\u043E\u043B\u0436\u0435\u043D \u0438\u0434\u0442\u0438 \u0442\u0435\u043C
+      \u0436\u0435 \u043F\u0443\u0442\u0435\u043C, \u043D\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u043E\u0435
+      \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043D\u0435 \u043E\u0442\u043A\u0440\u043E\u0435\u0442
+      \u043F\u0440\u043E\u0445\u043E\u0434. \u0412\u0440\u0430\u0442\u0430 \u043F\u043E\u0442\u0440\u0435\u0431\u0443\u044E\u0442
+      \u0446\u0435\u043D\u0443."
+    english: 'Shadows pass through the Gate because they are recognized.
+
+      You
+      must walk the same route, but the correct action will not open the passage.
+      The Gate will demand a price.'
+    portuguese: 'As sombras passam pelo Portao porque sao reconhecidas.
+
+      Tens
+      de seguir o mesmo percurso, mas a acao correta nao abrira a passagem. O Portao
+      exigira um preco.'
   - key: intro.gameplay.5
-    russian: "ПРОТОКОЛ: ПРОБУДИТЬ ФРАГМЕНТ.\nИди. Собери свет. Дойди до Врат. Узнай, что у тебя можно отнять."
-    english: "PROTOCOL: WAKE THE FRAGMENT.\nMove. Gather the light. Reach the Gate. Learn what can be taken from you."
-    portuguese: "PROTOCOLO: DESPERTAR O FRAGMENTO.\nAvanca. Recolhe a luz. Chega ao Portao. Descobre o que te podem tirar."
+    russian: "\u041F\u0420\u041E\u0422\u041E\u041A\u041E\u041B: \u041F\u0420\u041E\u0411\u0423\u0414\u0418\u0422\u042C
+      \u0424\u0420\u0410\u0413\u041C\u0415\u041D\u0422.\n\u0418\u0434\u0438. \u0421\u043E\u0431\u0435\u0440\u0438
+      \u0441\u0432\u0435\u0442. \u0414\u043E\u0439\u0434\u0438 \u0434\u043E \u0412\u0440\u0430\u0442.
+      \u0423\u0437\u043D\u0430\u0439, \u0447\u0442\u043E \u0443 \u0442\u0435\u0431\u044F
+      \u043C\u043E\u0436\u043D\u043E \u043E\u0442\u043D\u044F\u0442\u044C."
+    english: 'PROTOCOL: WAKE THE FRAGMENT.
+
+      Move. Gather the light. Reach the
+      Gate. Learn what can be taken from you.'
+    portuguese: 'PROTOCOLO: DESPERTAR O FRAGMENTO.
+
+      Avanca. Recolhe a luz.
+      Chega ao Portao. Descobre o que te podem tirar.'
   - key: menu.new_game
     russian: "\u041D\u041E\u0412\u0410\u042F \u0418\u0413\u0420\u0410"
     english: NEW GAME
@@ -73,11 +129,11 @@ MonoBehaviour:
   - key: menu.settings
     russian: "\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418"
     english: SETTINGS
-    portuguese: DEFINICOES
+    portuguese: "DEFINI\xC7\xD5ES"
   - key: menu.credits
     russian: "\u0422\u0418\u0422\u0420\u042B"
     english: CREDITS
-    portuguese: CREDITOS
+    portuguese: "CR\xC9DITOS"
   - key: menu.exit
     russian: "\u0412\u042B\u0419\u0422\u0418"
     english: EXIT
@@ -99,9 +155,13 @@ MonoBehaviour:
     english: PAUSE
     portuguese: PAUSA
   - key: menu.credits_text
-    russian: VIRUS9
-    english: VIRUS9
-    portuguese: VIRUS9
+    russian: "VIRUS9\n\n\u0421\u043E\u0431\u0440\u0430\u043D\u043E \u0437\u0430\u043D\u043E\u0432\u043E
+      \u0434\u043B\u044F \u043F\u0440\u043E\u0442\u043E\u0442\u0438\u043F\u0430."
+    english: 'VIRUS9
+
+
+      Rebuilt for the prototype.'
+    portuguese: "VIRUS9\n\nReconstru\xEDdo para o prot\xF3tipo."
   - key: confirm.yes
     russian: "\u0414\u0410"
     english: YES
@@ -109,7 +169,7 @@ MonoBehaviour:
   - key: confirm.no
     russian: "\u041D\u0415\u0422"
     english: NO
-    portuguese: NAO
+    portuguese: "N\xC3O"
   - key: confirm.exit
     russian: "\u0412\u042B\u0419\u0422\u0418 \u0418\u0417 \u0418\u0413\u0420\u042B?"
     english: EXIT THE GAME?
@@ -128,15 +188,15 @@ MonoBehaviour:
   - key: settings.title
     russian: "\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418"
     english: SETTINGS
-    portuguese: DEFINICOES
+    portuguese: "DEFINI\xC7\xD5ES"
   - key: settings.audio
     russian: "\u0410\u0423\u0414\u0418\u041E"
     english: AUDIO
-    portuguese: AUDIO
+    portuguese: "\xC1UDIO"
   - key: settings.video
     russian: "\u0412\u0418\u0414\u0415\u041E"
     english: VIDEO
-    portuguese: VIDEO
+    portuguese: "V\xCDDEO"
   - key: settings.controls
     russian: "\u0423\u041F\u0420\u0410\u0412\u041B\u0415\u041D\u0418\u0415"
     english: CONTROLS
@@ -144,7 +204,7 @@ MonoBehaviour:
   - key: settings.language
     russian: "\u042F\u0417\u042B\u041A"
     english: LANGUAGE
-    portuguese: LINGUA
+    portuguese: "L\xCDNGUA"
   - key: settings.accessibility
     russian: "\u0414\u041E\u0421\u0422\u0423\u041F\u041D\u041E\u0421\u0422\u042C"
     english: ACCESSIBILITY
@@ -202,14 +262,25 @@ MonoBehaviour:
     english: INVERT Y AXIS
     portuguese: INVERTER EIXO Y
   - key: settings.static_controls
-    russian: "WASD \u2014 \u0411\u0415\u0413\nSHIFT \u2014 \u0425\u041E\u0414\u042C\u0411\u0410\nSPACE
-      \u2014 \u041F\u0420\u042B\u0416\u041E\u041A\nE \u2014 \u0412\u0417\u0410\u0418\u041C\u041E\u0414\u0415\u0419\u0421\u0422\u0412\u0418\u0415\nLMB
-      \u2014 \u0410\u0422\u0410\u041A\u0410 \u041D\u041E\u0427\u042C\u042E\nESC \u2014
-      \u041F\u0410\u0423\u0417\u0410"
-    english: "WASD \u2014 RUN\nSHIFT \u2014 WALK\nSPACE \u2014 JUMP\nE \u2014 INTERACT\nLMB
-      \u2014 ATTACK AT NIGHT\nESC \u2014 PAUSE"
-    portuguese: "WASD \u2014 CORRER\nSHIFT \u2014 ANDAR\nSPACE \u2014 SALTAR\nE \u2014
-      INTERAGIR\nLMB \u2014 ATACAR A NOITE\nESC \u2014 PAUSA"
+    russian: "WASD - \u0431\u0435\u0433\nSHIFT - \u0445\u043E\u0434\u044C\u0431\u0430\nSPACE
+      - \u043F\u0440\u044B\u0436\u043E\u043A / \u043A\u0430\u0440\u0430\u0431\u043A\u0430\u043D\u044C\u0435
+      \u0443 \u043F\u0440\u0435\u043F\u044F\u0442\u0441\u0442\u0432\u0438\u044F\nE
+      - \u0432\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435\nLMB
+      - \u0430\u0442\u0430\u043A\u0430 \u043D\u043E\u0447\u044C\u044E\nESC - \u043F\u0430\u0443\u0437\u0430"
+    english: 'WASD - run
+
+      SHIFT - walk
+
+      SPACE - jump / climb near an
+      obstacle
+
+      E - interact
+
+      LMB - night attack
+
+      ESC - pause'
+    portuguese: "WASD - correr\nSHIFT - andar\nSPACE - saltar / trepar junto a obst\xE1culo\nE
+      - interagir\nLMB - atacar \xE0 noite\nESC - pausa"
   - key: settings.subtitles
     russian: "\u0421\u0423\u0411\u0422\u0418\u0422\u0420\u042B"
     english: SUBTITLES
@@ -266,7 +337,7 @@ MonoBehaviour:
   - key: settings.medium
     russian: "\u0421\u0420\u0415\u0414\u041D\u0418\u0419"
     english: MEDIUM
-    portuguese: MEDIO
+    portuguese: "M\xC9DIO"
   - key: settings.large
     russian: "\u0411\u041E\u041B\u042C\u0428\u041E\u0419"
     english: LARGE
@@ -278,11 +349,11 @@ MonoBehaviour:
   - key: language.english
     russian: "\u0410\u041D\u0413\u041B\u0418\u0419\u0421\u041A\u0418\u0419"
     english: ENGLISH
-    portuguese: INGLES
+    portuguese: "INGL\xCAS"
   - key: language.portuguese
     russian: "\u041F\u041E\u0420\u0422\u0423\u0413\u0410\u041B\u042C\u0421\u041A\u0418\u0419"
     english: PORTUGUESE
-    portuguese: PORTUGUES
+    portuguese: "PORTUGU\xCAS"
   - key: save.title
     russian: "\u0417\u0410\u0413\u0420\u0423\u0417\u041A\u0410 / \u0421\u041E\u0425\u0420\u0410\u041D\u0415\u041D\u0418\u0415"
     english: LOAD / SAVE
@@ -296,14 +367,14 @@ MonoBehaviour:
     english: SAVE
     portuguese: GUARDAR
   - key: save.autosave
-    russian: "\u0421\u041B\u041E\u0422 1 \u2014 \u0410\u0412\u0422\u041E\u0421\u041E\u0425\u0420\u0410\u041D\u0415\u041D\u0418\u0415"
-    english: "SLOT 1 \u2014 AUTOSAVE"
-    portuguese: "SLOT 1 \u2014 AUTOSAVE"
+    russian: "\u0421\u041B\u041E\u0422 1 - \u0410\u0412\u0422\u041E\u0421\u041E\u0425\u0420\u0410\u041D\u0415\u041D\u0418\u0415"
+    english: SLOT 1 - AUTOSAVE
+    portuguese: SLOT 1 - AUTOGUARDAR
   - key: save.manual_slot
-    russian: "\u0421\u041B\u041E\u0422 {0} \u2014 \u0420\u0423\u0427\u041D\u041E\u0415
+    russian: "\u0421\u041B\u041E\u0422 {0} - \u0420\u0423\u0427\u041D\u041E\u0415
       \u0421\u041E\u0425\u0420\u0410\u041D\u0415\u041D\u0418\u0415"
-    english: "SLOT {0} \u2014 MANUAL SAVE"
-    portuguese: "SLOT {0} \u2014 GUARDAR MANUAL"
+    english: SLOT {0} - MANUAL SAVE
+    portuguese: SLOT {0} - GUARDAR MANUAL
   - key: save.empty
     russian: "\u041F\u0423\u0421\u0422\u041E"
     english: EMPTY
@@ -814,25 +885,162 @@ MonoBehaviour:
     english: Refusal recorded as unnecessary movement.
     portuguese: Recusa registada como movimento desnecessario.
   - key: raw.ending.force.title
-    russian: "ФИНАЛ: ПУТЬ ЯРОСТИ"
-    english: "ENDING: PATH OF RAGE"
-    portuguese: "FINAL: CAMINHO DA RAIVA"
+    russian: "\u0424\u0418\u041D\u0410\u041B: \u041F\u0423\u0422\u042C \u042F\u0420\u041E\u0421\u0422\u0418"
+    english: 'ENDING: PATH OF RAGE'
+    portuguese: 'FINAL: CAMINHO DA RAIVA'
   - key: raw.ending.force.text
-    russian: "Ты родился.\n\nТы не помнишь всего, что произошло до Врат. Но внутри тебя всё ещё кипит то, что не смогло умереть.\n\nТвой фрагмент остался с тобой — не как свет, а как ярость.\n\nТеперь ты заперт в новом теле вместе с собственным бессилием. Каким бы злым ты ни стал, ты никогда не превзойдёшь ярость того, что осталось внутри.\n\nИногда тебе будут сниться тени. Но они больше не будут просить о помощи.\n\nОни будут помнить."
-    english: "You are born.\n\nYou do not remember everything that happened before the Gate. But inside you, something that could not die is still boiling.\n\nYour fragment stayed with you, not as light, but as rage.\n\nNow you are locked inside a new body with your own helplessness. No matter how angry you become, you will never surpass the rage of what remains inside.\n\nSometimes you will dream of shadows. But they will no longer ask for help.\n\nThey will remember."
-    portuguese: "Nasceste.\n\nNao te lembras de tudo o que aconteceu antes dos Portoes. Mas dentro de ti ainda ferve algo que nao conseguiu morrer.\n\nO teu fragmento ficou contigo, nao como luz, mas como raiva.\n\nAgora estas preso num novo corpo com a tua propria impotencia. Por mais raiva que sintas, nunca vais ultrapassar a raiva daquilo que ficou dentro de ti.\n\nAs vezes vais sonhar com sombras. Mas elas ja nao vao pedir ajuda.\n\nElas vao lembrar-se."
+    russian: "\u0422\u044B \u0440\u043E\u0434\u0438\u043B\u0441\u044F.\n\n\u0422\u044B
+      \u043D\u0435 \u043F\u043E\u043C\u043D\u0438\u0448\u044C \u0432\u0441\u0435\u0433\u043E,
+      \u0447\u0442\u043E \u043F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u043E \u0434\u043E
+      \u0412\u0440\u0430\u0442. \u041D\u043E \u0432\u043D\u0443\u0442\u0440\u0438
+      \u0442\u0435\u0431\u044F \u0432\u0441\u0451 \u0435\u0449\u0451 \u043A\u0438\u043F\u0438\u0442
+      \u0442\u043E, \u0447\u0442\u043E \u043D\u0435 \u0441\u043C\u043E\u0433\u043B\u043E
+      \u0443\u043C\u0435\u0440\u0435\u0442\u044C.\n\n\u0422\u0432\u043E\u0439 \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442
+      \u043E\u0441\u0442\u0430\u043B\u0441\u044F \u0441 \u0442\u043E\u0431\u043E\u0439
+      \u2014 \u043D\u0435 \u043A\u0430\u043A \u0441\u0432\u0435\u0442, \u0430 \u043A\u0430\u043A
+      \u044F\u0440\u043E\u0441\u0442\u044C.\n\n\u0422\u0435\u043F\u0435\u0440\u044C
+      \u0442\u044B \u0437\u0430\u043F\u0435\u0440\u0442 \u0432 \u043D\u043E\u0432\u043E\u043C
+      \u0442\u0435\u043B\u0435 \u0432\u043C\u0435\u0441\u0442\u0435 \u0441 \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u044B\u043C
+      \u0431\u0435\u0441\u0441\u0438\u043B\u0438\u0435\u043C. \u041A\u0430\u043A\u0438\u043C
+      \u0431\u044B \u0437\u043B\u044B\u043C \u0442\u044B \u043D\u0438 \u0441\u0442\u0430\u043B,
+      \u0442\u044B \u043D\u0438\u043A\u043E\u0433\u0434\u0430 \u043D\u0435 \u043F\u0440\u0435\u0432\u0437\u043E\u0439\u0434\u0451\u0448\u044C
+      \u044F\u0440\u043E\u0441\u0442\u044C \u0442\u043E\u0433\u043E, \u0447\u0442\u043E
+      \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C \u0432\u043D\u0443\u0442\u0440\u0438.\n\n\u0418\u043D\u043E\u0433\u0434\u0430
+      \u0442\u0435\u0431\u0435 \u0431\u0443\u0434\u0443\u0442 \u0441\u043D\u0438\u0442\u044C\u0441\u044F
+      \u0442\u0435\u043D\u0438. \u041D\u043E \u043E\u043D\u0438 \u0431\u043E\u043B\u044C\u0448\u0435
+      \u043D\u0435 \u0431\u0443\u0434\u0443\u0442 \u043F\u0440\u043E\u0441\u0438\u0442\u044C
+      \u043E \u043F\u043E\u043C\u043E\u0449\u0438.\n\n\u041E\u043D\u0438 \u0431\u0443\u0434\u0443\u0442
+      \u043F\u043E\u043C\u043D\u0438\u0442\u044C."
+    english: 'You are born.
+
+
+      You do not remember everything that happened
+      before the Gate. But inside you, something that could not die is still boiling.
+
+
+      Your
+      fragment stayed with you, not as light, but as rage.
+
+
+      Now you are locked
+      inside a new body with your own helplessness. No matter how angry you become,
+      you will never surpass the rage of what remains inside.
+
+
+      Sometimes you
+      will dream of shadows. But they will no longer ask for help.
+
+
+      They will
+      remember.'
+    portuguese: 'Nasceste.
+
+
+      Nao te lembras de tudo o que aconteceu antes dos
+      Portoes. Mas dentro de ti ainda ferve algo que nao conseguiu morrer.
+
+
+      O
+      teu fragmento ficou contigo, nao como luz, mas como raiva.
+
+
+      Agora estas
+      preso num novo corpo com a tua propria impotencia. Por mais raiva que sintas,
+      nunca vais ultrapassar a raiva daquilo que ficou dentro de ti.
+
+
+      As vezes
+      vais sonhar com sombras. Mas elas ja nao vao pedir ajuda.
+
+
+      Elas vao
+      lembrar-se.'
   - key: raw.ending.paid.title
-    russian: "ФИНАЛ: ПУТЬ ХРАНИТЕЛЯ"
-    english: "ENDING: PATH OF THE KEEPER"
-    portuguese: "FINAL: CAMINHO DO GUARDIAO"
+    russian: "\u0424\u0418\u041D\u0410\u041B: \u041F\u0423\u0422\u042C \u0425\u0420\u0410\u041D\u0418\u0422\u0415\u041B\u042F"
+    english: 'ENDING: PATH OF THE KEEPER'
+    portuguese: 'FINAL: CAMINHO DO GUARDIAO'
   - key: raw.ending.paid.text
-    russian: "Ты родился.\n\nТы не помнишь всего, что произошло до Врат. Но иногда во сне ты видишь одинокую тень.\n\nОна смотрит на тебя из темноты — не с ненавистью, а с тихим пониманием. Будто всё ещё помогает тебе найти путь.\n\nТвой фрагмент остался внутри. В нём всё ещё живёт ярость, которую ты мог бы выпустить на мир.\n\nНо теперь ты не её пленник.\n\nТы её хранитель.\n\nИ однажды, когда придёт время, ты вспомнишь, зачем она была оставлена в тебе."
-    english: "You are born.\n\nYou do not remember everything that happened before the Gate. But sometimes, in sleep, you see a lone shadow.\n\nIt watches you from the dark, not with hatred, but with quiet understanding. As if it is still helping you find the way.\n\nYour fragment stayed inside. In it, the rage you could have released into the world is still alive.\n\nBut now you are not its prisoner.\n\nYou are its keeper.\n\nAnd one day, when the time comes, you will remember why it was left inside you."
-    portuguese: "Nasceste.\n\nNao te lembras de tudo o que aconteceu antes dos Portoes. Mas as vezes, no sono, ves uma sombra solitaria.\n\nEla olha para ti da escuridao, nao com odio, mas com uma compreensao silenciosa. Como se ainda te ajudasse a encontrar o caminho.\n\nO teu fragmento ficou dentro de ti. Nele ainda vive a raiva que poderias ter libertado sobre o mundo.\n\nMas agora nao es prisioneiro dela.\n\nEs o seu guardiao.\n\nE um dia, quando chegar a hora, vais lembrar-te porque ela foi deixada dentro de ti."
+    russian: "\u0422\u044B \u0440\u043E\u0434\u0438\u043B\u0441\u044F.\n\n\u0422\u044B
+      \u043D\u0435 \u043F\u043E\u043C\u043D\u0438\u0448\u044C \u0432\u0441\u0435\u0433\u043E,
+      \u0447\u0442\u043E \u043F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u043E \u0434\u043E
+      \u0412\u0440\u0430\u0442. \u041D\u043E \u0438\u043D\u043E\u0433\u0434\u0430
+      \u0432\u043E \u0441\u043D\u0435 \u0442\u044B \u0432\u0438\u0434\u0438\u0448\u044C
+      \u043E\u0434\u0438\u043D\u043E\u043A\u0443\u044E \u0442\u0435\u043D\u044C.\n\n\u041E\u043D\u0430
+      \u0441\u043C\u043E\u0442\u0440\u0438\u0442 \u043D\u0430 \u0442\u0435\u0431\u044F
+      \u0438\u0437 \u0442\u0435\u043C\u043D\u043E\u0442\u044B \u2014 \u043D\u0435
+      \u0441 \u043D\u0435\u043D\u0430\u0432\u0438\u0441\u0442\u044C\u044E, \u0430
+      \u0441 \u0442\u0438\u0445\u0438\u043C \u043F\u043E\u043D\u0438\u043C\u0430\u043D\u0438\u0435\u043C.
+      \u0411\u0443\u0434\u0442\u043E \u0432\u0441\u0451 \u0435\u0449\u0451 \u043F\u043E\u043C\u043E\u0433\u0430\u0435\u0442
+      \u0442\u0435\u0431\u0435 \u043D\u0430\u0439\u0442\u0438 \u043F\u0443\u0442\u044C.\n\n\u0422\u0432\u043E\u0439
+      \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442 \u043E\u0441\u0442\u0430\u043B\u0441\u044F
+      \u0432\u043D\u0443\u0442\u0440\u0438. \u0412 \u043D\u0451\u043C \u0432\u0441\u0451
+      \u0435\u0449\u0451 \u0436\u0438\u0432\u0451\u0442 \u044F\u0440\u043E\u0441\u0442\u044C,
+      \u043A\u043E\u0442\u043E\u0440\u0443\u044E \u0442\u044B \u043C\u043E\u0433
+      \u0431\u044B \u0432\u044B\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u043D\u0430
+      \u043C\u0438\u0440.\n\n\u041D\u043E \u0442\u0435\u043F\u0435\u0440\u044C \u0442\u044B
+      \u043D\u0435 \u0435\u0451 \u043F\u043B\u0435\u043D\u043D\u0438\u043A.\n\n\u0422\u044B
+      \u0435\u0451 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u044C.\n\n\u0418
+      \u043E\u0434\u043D\u0430\u0436\u0434\u044B, \u043A\u043E\u0433\u0434\u0430
+      \u043F\u0440\u0438\u0434\u0451\u0442 \u0432\u0440\u0435\u043C\u044F, \u0442\u044B
+      \u0432\u0441\u043F\u043E\u043C\u043D\u0438\u0448\u044C, \u0437\u0430\u0447\u0435\u043C
+      \u043E\u043D\u0430 \u0431\u044B\u043B\u0430 \u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D\u0430
+      \u0432 \u0442\u0435\u0431\u0435."
+    english: 'You are born.
+
+
+      You do not remember everything that happened
+      before the Gate. But sometimes, in sleep, you see a lone shadow.
+
+
+      It
+      watches you from the dark, not with hatred, but with quiet understanding. As
+      if it is still helping you find the way.
+
+
+      Your fragment stayed inside.
+      In it, the rage you could have released into the world is still alive.
+
+
+      But
+      now you are not its prisoner.
+
+
+      You are its keeper.
+
+
+      And one day,
+      when the time comes, you will remember why it was left inside you.'
+    portuguese: 'Nasceste.
+
+
+      Nao te lembras de tudo o que aconteceu antes dos
+      Portoes. Mas as vezes, no sono, ves uma sombra solitaria.
+
+
+      Ela olha
+      para ti da escuridao, nao com odio, mas com uma compreensao silenciosa. Como
+      se ainda te ajudasse a encontrar o caminho.
+
+
+      O teu fragmento ficou dentro
+      de ti. Nele ainda vive a raiva que poderias ter libertado sobre o mundo.
+
+
+      Mas
+      agora nao es prisioneiro dela.
+
+
+      Es o seu guardiao.
+
+
+      E um dia,
+      quando chegar a hora, vais lembrar-te porque ela foi deixada dentro de ti.'
   - key: raw.ending.restart.prompt
-    russian: "Конец записан. Цикл может начаться заново."
-    english: "The ending is recorded. The cycle can begin again."
-    portuguese: "O final foi registado. O ciclo pode recomecar."
+    russian: "\u041A\u043E\u043D\u0435\u0446 \u0437\u0430\u043F\u0438\u0441\u0430\u043D.
+      \u0426\u0438\u043A\u043B \u043C\u043E\u0436\u0435\u0442 \u043D\u0430\u0447\u0430\u0442\u044C\u0441\u044F
+      \u0437\u0430\u043D\u043E\u0432\u043E."
+    english: The ending is recorded. The cycle can begin again.
+    portuguese: O final foi registado. O ciclo pode recomecar.
   - key: raw.npc.queue.1
     russian: "\u0422\u044B \u043D\u0435 \u0438\u0437 \u043E\u0447\u0435\u0440\u0435\u0434\u0438."
     english: You are not in the queue.
@@ -930,162 +1138,570 @@ MonoBehaviour:
     english: The gate will know how many shadows you left lying down.
     portuguese: Os portoes saberao quantas sombras deixaste caidas.
   - key: raw.exterior.fragment.awakening
-    russian: "Ты чувствуешь: ты можешь. Ты не создан, чтобы вечно страдать. Ты уникален, и ты признаешь это. Среди всего квадрата есть место, которое зовет тебя. Иди к нему."
-    english: "You feel it: you can act. You were not made to suffer forever. You are unique, and you admit it. Somewhere in this square, a place is calling you. Go to it."
-    portuguese: "Sentes isto: podes agir. Nao foste feito para sofrer para sempre. Es unico, e admites isso. Algures neste quadrado, um lugar chama por ti. Vai ate ele."
+    russian: "\u0422\u044B \u0447\u0443\u0432\u0441\u0442\u0432\u0443\u0435\u0448\u044C:
+      \u0442\u044B \u043C\u043E\u0436\u0435\u0448\u044C. \u0422\u044B \u043D\u0435
+      \u0441\u043E\u0437\u0434\u0430\u043D, \u0447\u0442\u043E\u0431\u044B \u0432\u0435\u0447\u043D\u043E
+      \u0441\u0442\u0440\u0430\u0434\u0430\u0442\u044C. \u0422\u044B \u0443\u043D\u0438\u043A\u0430\u043B\u0435\u043D,
+      \u0438 \u0442\u044B \u043F\u0440\u0438\u0437\u043D\u0430\u0435\u0448\u044C
+      \u044D\u0442\u043E. \u0421\u0440\u0435\u0434\u0438 \u0432\u0441\u0435\u0433\u043E
+      \u043A\u0432\u0430\u0434\u0440\u0430\u0442\u0430 \u0435\u0441\u0442\u044C \u043C\u0435\u0441\u0442\u043E,
+      \u043A\u043E\u0442\u043E\u0440\u043E\u0435 \u0437\u043E\u0432\u0435\u0442 \u0442\u0435\u0431\u044F.
+      \u0418\u0434\u0438 \u043A \u043D\u0435\u043C\u0443."
+    english: 'You feel it: you can act. You were not made to suffer forever. You
+      are unique, and you admit it. Somewhere in this square, a place is calling
+      you. Go to it.'
+    portuguese: 'Sentes isto: podes agir. Nao foste feito para sofrer para sempre.
+      Es unico, e admites isso. Algures neste quadrado, um lugar chama por ti. Vai
+      ate ele.'
   - key: raw.exterior.gate.reveal
-    russian: "Огонек в твоей груди начинает сиять. Воздух складывается в дверь, которую ты не видел до этого шага."
-    english: "The light in your chest begins to shine. The air folds into a door you could not see before this step."
-    portuguese: "A luz no teu peito comeca a brilhar. O ar dobra-se numa porta que nao conseguias ver antes deste passo."
+    russian: "\u041E\u0433\u043E\u043D\u0435\u043A \u0432 \u0442\u0432\u043E\u0435\u0439
+      \u0433\u0440\u0443\u0434\u0438 \u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0442
+      \u0441\u0438\u044F\u0442\u044C. \u0412\u043E\u0437\u0434\u0443\u0445 \u0441\u043A\u043B\u0430\u0434\u044B\u0432\u0430\u0435\u0442\u0441\u044F
+      \u0432 \u0434\u0432\u0435\u0440\u044C, \u043A\u043E\u0442\u043E\u0440\u0443\u044E
+      \u0442\u044B \u043D\u0435 \u0432\u0438\u0434\u0435\u043B \u0434\u043E \u044D\u0442\u043E\u0433\u043E
+      \u0448\u0430\u0433\u0430."
+    english: The light in your chest begins to shine. The air folds into a door you
+      could not see before this step.
+    portuguese: A luz no teu peito comeca a brilhar. O ar dobra-se numa porta que
+      nao conseguias ver antes deste passo.
   - key: raw.exterior.gate.claim
-    russian: "Ты еще не был избран. Иди же и возьми."
-    english: "You have not been chosen yet. Go, then, and take."
-    portuguese: "Ainda nao foste escolhido. Vai, entao, e toma."
+    russian: "\u0422\u044B \u0435\u0449\u0435 \u043D\u0435 \u0431\u044B\u043B \u0438\u0437\u0431\u0440\u0430\u043D.
+      \u0418\u0434\u0438 \u0436\u0435 \u0438 \u0432\u043E\u0437\u044C\u043C\u0438."
+    english: You have not been chosen yet. Go, then, and take.
+    portuguese: Ainda nao foste escolhido. Vai, entao, e toma.
   - key: raw.exterior.gate.collapse
-    russian: "Огонек вспыхивает. Удар ломает контур двери, и квадрат на мгновение сворачивается внутрь себя."
-    english: "The light flares. The strike breaks the door's outline, and for a moment the square collapses into itself."
-    portuguese: "A luz irrompe. O golpe quebra o contorno da porta, e por um instante o quadrado colapsa para dentro de si."
+    russian: "\u041E\u0433\u043E\u043D\u0435\u043A \u0432\u0441\u043F\u044B\u0445\u0438\u0432\u0430\u0435\u0442.
+      \u0423\u0434\u0430\u0440 \u043B\u043E\u043C\u0430\u0435\u0442 \u043A\u043E\u043D\u0442\u0443\u0440
+      \u0434\u0432\u0435\u0440\u0438, \u0438 \u043A\u0432\u0430\u0434\u0440\u0430\u0442
+      \u043D\u0430 \u043C\u0433\u043D\u043E\u0432\u0435\u043D\u0438\u0435 \u0441\u0432\u043E\u0440\u0430\u0447\u0438\u0432\u0430\u0435\u0442\u0441\u044F
+      \u0432\u043D\u0443\u0442\u0440\u044C \u0441\u0435\u0431\u044F."
+    english: The light flares. The strike breaks the door's outline, and for a moment
+      the square collapses into itself.
+    portuguese: A luz irrompe. O golpe quebra o contorno da porta, e por um instante
+      o quadrado colapsa para dentro de si.
   - key: raw.exterior.gate.cutscene.found
-    russian: "Фрагмент найден. Тебе не место здесь. Все тут закрыто."
-    english: "Fragment found. You do not belong here. Everything here is closed."
-    portuguese: "Fragmento encontrado. Este nao e o teu lugar. Tudo aqui esta fechado."
+    russian: "\u0424\u0440\u0430\u0433\u043C\u0435\u043D\u0442 \u043D\u0430\u0439\u0434\u0435\u043D.
+      \u0422\u0435\u0431\u0435 \u043D\u0435 \u043C\u0435\u0441\u0442\u043E \u0437\u0434\u0435\u0441\u044C.
+      \u0412\u0441\u0435 \u0442\u0443\u0442 \u0437\u0430\u043A\u0440\u044B\u0442\u043E."
+    english: Fragment found. You do not belong here. Everything here is closed.
+    portuguese: Fragmento encontrado. Este nao e o teu lugar. Tudo aqui esta fechado.
   - key: raw.exterior.gate.cutscene.vision
-    russian: "Мне было видение: я чувствовал силу, способную разрывать, выводить и уничтожать миры. Я протянул руку свою и рассек пространство."
-    english: "I had a vision: I felt a power able to tear, extract, and destroy worlds. I reached out my hand and split space."
-    portuguese: "Tive uma visao: senti uma forca capaz de rasgar, retirar e destruir mundos. Estendi a minha mao e cortei o espaco."
+    russian: "\u041C\u043D\u0435 \u0431\u044B\u043B\u043E \u0432\u0438\u0434\u0435\u043D\u0438\u0435:
+      \u044F \u0447\u0443\u0432\u0441\u0442\u0432\u043E\u0432\u0430\u043B \u0441\u0438\u043B\u0443,
+      \u0441\u043F\u043E\u0441\u043E\u0431\u043D\u0443\u044E \u0440\u0430\u0437\u0440\u044B\u0432\u0430\u0442\u044C,
+      \u0432\u044B\u0432\u043E\u0434\u0438\u0442\u044C \u0438 \u0443\u043D\u0438\u0447\u0442\u043E\u0436\u0430\u0442\u044C
+      \u043C\u0438\u0440\u044B. \u042F \u043F\u0440\u043E\u0442\u044F\u043D\u0443\u043B
+      \u0440\u0443\u043A\u0443 \u0441\u0432\u043E\u044E \u0438 \u0440\u0430\u0441\u0441\u0435\u043A
+      \u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0441\u0442\u0432\u043E."
+    english: 'I had a vision: I felt a power able to tear, extract, and destroy worlds.
+      I reached out my hand and split space.'
+    portuguese: 'Tive uma visao: senti uma forca capaz de rasgar, retirar e destruir
+      mundos. Estendi a minha mao e cortei o espaco.'
   - key: raw.exterior.gate.cutscene.prompt
-    russian: "Нажмите левую клавишу мыши, чтобы сломать пространство."
-    english: "Press the left mouse button to break space."
-    portuguese: "Prime o botao esquerdo do rato para quebrar o espaco."
+    russian: "\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u043B\u0435\u0432\u0443\u044E
+      \u043A\u043B\u0430\u0432\u0438\u0448\u0443 \u043C\u044B\u0448\u0438, \u0447\u0442\u043E\u0431\u044B
+      \u0441\u043B\u043E\u043C\u0430\u0442\u044C \u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0441\u0442\u0432\u043E."
+    english: Press the left mouse button to break space.
+    portuguese: Prime o botao esquerdo do rato para quebrar o espaco.
   - key: raw.exterior.gate.cutscene.shadows
-    russian: "Ты оборачиваешься. Тени стоят вокруг тебя и не нападают. Они смотрят в ужасе на то, что ты сделал."
-    english: "You turn around. The shadows stand around you and do not attack. They stare in horror at what you have done."
-    portuguese: "Voltas-te. As sombras estao a tua volta e nao atacam. Olham horrorizadas para o que fizeste."
+    russian: "\u0422\u044B \u043E\u0431\u043E\u0440\u0430\u0447\u0438\u0432\u0430\u0435\u0448\u044C\u0441\u044F.
+      \u0422\u0435\u043D\u0438 \u0441\u0442\u043E\u044F\u0442 \u0432\u043E\u043A\u0440\u0443\u0433
+      \u0442\u0435\u0431\u044F \u0438 \u043D\u0435 \u043D\u0430\u043F\u0430\u0434\u0430\u044E\u0442.
+      \u041E\u043D\u0438 \u0441\u043C\u043E\u0442\u0440\u044F\u0442 \u0432 \u0443\u0436\u0430\u0441\u0435
+      \u043D\u0430 \u0442\u043E, \u0447\u0442\u043E \u0442\u044B \u0441\u0434\u0435\u043B\u0430\u043B."
+    english: You turn around. The shadows stand around you and do not attack. They
+      stare in horror at what you have done.
+    portuguese: Voltas-te. As sombras estao a tua volta e nao atacam. Olham horrorizadas
+      para o que fizeste.
   - key: raw.exterior.gate.cutscene.impossible
-    russian: "Невозможно. Вы оказались за пределами. Добро сделало свое дело."
-    english: "Impossible. You are beyond the limits. Kindness has done its work."
-    portuguese: "Impossivel. Ficaste para la dos limites. A bondade fez o seu trabalho."
+    russian: "\u041D\u0435\u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E. \u0412\u044B
+      \u043E\u043A\u0430\u0437\u0430\u043B\u0438\u0441\u044C \u0437\u0430 \u043F\u0440\u0435\u0434\u0435\u043B\u0430\u043C\u0438.
+      \u0414\u043E\u0431\u0440\u043E \u0441\u0434\u0435\u043B\u0430\u043B\u043E \u0441\u0432\u043E\u0435
+      \u0434\u0435\u043B\u043E."
+    english: Impossible. You are beyond the limits. Kindness has done its work.
+    portuguese: Impossivel. Ficaste para la dos limites. A bondade fez o seu trabalho.
   - key: raw.night.intro.square
-    russian: "Ты внутри квадрата, оказавшегося еще одним квадратом. И теперь ты понимаешь: таких квадратов бесконечное множество."
-    english: "You are inside a square that turned out to be another square. Now you understand: there are infinitely many of them."
-    portuguese: "Estas dentro de um quadrado que afinal era outro quadrado. Agora entendes: ha infinitos quadrados destes."
+    russian: "\u0422\u044B \u0432\u043D\u0443\u0442\u0440\u0438 \u043A\u0432\u0430\u0434\u0440\u0430\u0442\u0430,
+      \u043E\u043A\u0430\u0437\u0430\u0432\u0448\u0435\u0433\u043E\u0441\u044F \u0435\u0449\u0435
+      \u043E\u0434\u043D\u0438\u043C \u043A\u0432\u0430\u0434\u0440\u0430\u0442\u043E\u043C.
+      \u0418 \u0442\u0435\u043F\u0435\u0440\u044C \u0442\u044B \u043F\u043E\u043D\u0438\u043C\u0430\u0435\u0448\u044C:
+      \u0442\u0430\u043A\u0438\u0445 \u043A\u0432\u0430\u0434\u0440\u0430\u0442\u043E\u0432
+      \u0431\u0435\u0441\u043A\u043E\u043D\u0435\u0447\u043D\u043E\u0435 \u043C\u043D\u043E\u0436\u0435\u0441\u0442\u0432\u043E."
+    english: 'You are inside a square that turned out to be another square. Now you
+      understand: there are infinitely many of them.'
+    portuguese: 'Estas dentro de um quadrado que afinal era outro quadrado. Agora
+      entendes: ha infinitos quadrados destes.'
   - key: raw.night.intro.attack
-    russian: "Чтобы пробить стены, нужен второй фрагмент. Атака доступна: каждый удар вызывает сдвиг материи."
-    english: "To break the walls, you need a second fragment. Attack is available: every strike shifts matter."
-    portuguese: "Para romper as paredes, precisas de um segundo fragmento. O ataque esta disponivel: cada golpe desloca a materia."
+    russian: "\u0427\u0442\u043E\u0431\u044B \u043F\u0440\u043E\u0431\u0438\u0442\u044C
+      \u0441\u0442\u0435\u043D\u044B, \u043D\u0443\u0436\u0435\u043D \u0432\u0442\u043E\u0440\u043E\u0439
+      \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442. \u0410\u0442\u0430\u043A\u0430
+      \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430: \u043A\u0430\u0436\u0434\u044B\u0439
+      \u0443\u0434\u0430\u0440 \u0432\u044B\u0437\u044B\u0432\u0430\u0435\u0442 \u0441\u0434\u0432\u0438\u0433
+      \u043C\u0430\u0442\u0435\u0440\u0438\u0438."
+    english: 'To break the walls, you need a second fragment. Attack is available:
+      every strike shifts matter.'
+    portuguese: 'Para romper as paredes, precisas de um segundo fragmento. O ataque
+      esta disponivel: cada golpe desloca a materia.'
   - key: raw.night.intro.shadows
-    russian: "Ночь признает твою силу. Теперь у тебя власть над живыми тенями. Ты чувствуешь их страх и их надежду к тому, что возрождается."
-    english: "The night recognizes your strength. Now you have power over living shadows. You feel their fear and their hope toward what is being reborn."
-    portuguese: "A noite reconhece a tua forca. Agora tens poder sobre sombras vivas. Sentes o medo delas e a esperanca delas perante aquilo que renasce."
+    russian: "\u041D\u043E\u0447\u044C \u043F\u0440\u0438\u0437\u043D\u0430\u0435\u0442
+      \u0442\u0432\u043E\u044E \u0441\u0438\u043B\u0443. \u0422\u0435\u043F\u0435\u0440\u044C
+      \u0443 \u0442\u0435\u0431\u044F \u0432\u043B\u0430\u0441\u0442\u044C \u043D\u0430\u0434
+      \u0436\u0438\u0432\u044B\u043C\u0438 \u0442\u0435\u043D\u044F\u043C\u0438.
+      \u0422\u044B \u0447\u0443\u0432\u0441\u0442\u0432\u0443\u0435\u0448\u044C \u0438\u0445
+      \u0441\u0442\u0440\u0430\u0445 \u0438 \u0438\u0445 \u043D\u0430\u0434\u0435\u0436\u0434\u0443
+      \u043A \u0442\u043E\u043C\u0443, \u0447\u0442\u043E \u0432\u043E\u0437\u0440\u043E\u0436\u0434\u0430\u0435\u0442\u0441\u044F."
+    english: The night recognizes your strength. Now you have power over living shadows.
+      You feel their fear and their hope toward what is being reborn.
+    portuguese: A noite reconhece a tua forca. Agora tens poder sobre sombras vivas.
+      Sentes o medo delas e a esperanca delas perante aquilo que renasce.
   - key: raw.night.intro.hunted
-    russian: "Они загнаны в собственное желание существовать. Какой путь ты предпочтешь? Они чуют тебя, ненавидят тебя, охотятся за тобой."
-    english: "They are trapped inside their own desire to exist. Which path will you choose? They sense you, hate you, and hunt you."
-    portuguese: "Elas estao encurraladas no proprio desejo de existir. Que caminho vais escolher? Elas sentem-te, odeiam-te e cacam-te."
+    russian: "\u041E\u043D\u0438 \u0437\u0430\u0433\u043D\u0430\u043D\u044B \u0432
+      \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0435 \u0436\u0435\u043B\u0430\u043D\u0438\u0435
+      \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E\u0432\u0430\u0442\u044C. \u041A\u0430\u043A\u043E\u0439
+      \u043F\u0443\u0442\u044C \u0442\u044B \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0442\u0435\u0448\u044C?
+      \u041E\u043D\u0438 \u0447\u0443\u044E\u0442 \u0442\u0435\u0431\u044F, \u043D\u0435\u043D\u0430\u0432\u0438\u0434\u044F\u0442
+      \u0442\u0435\u0431\u044F, \u043E\u0445\u043E\u0442\u044F\u0442\u0441\u044F
+      \u0437\u0430 \u0442\u043E\u0431\u043E\u0439."
+    english: They are trapped inside their own desire to exist. Which path will you
+      choose? They sense you, hate you, and hunt you.
+    portuguese: Elas estao encurraladas no proprio desejo de existir. Que caminho
+      vais escolher? Elas sentem-te, odeiam-te e cacam-te.
   - key: raw.night.drop
-    russian: "Площадь опустела. Второй фрагмент падает на дорогу, видимый всем: не из тела, а как доказательство выбранного пути."
-    english: "The square is empty. The second fragment falls onto the road, visible to all: not from a body, but as proof of the path chosen."
-    portuguese: "O quadrado ficou vazio. O segundo fragmento cai na estrada, visivel para todos: nao de um corpo, mas como prova do caminho escolhido."
+    russian: "\u041F\u043B\u043E\u0449\u0430\u0434\u044C \u043E\u043F\u0443\u0441\u0442\u0435\u043B\u0430.
+      \u0412\u0442\u043E\u0440\u043E\u0439 \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442
+      \u043F\u0430\u0434\u0430\u0435\u0442 \u043D\u0430 \u0434\u043E\u0440\u043E\u0433\u0443,
+      \u0432\u0438\u0434\u0438\u043C\u044B\u0439 \u0432\u0441\u0435\u043C: \u043D\u0435
+      \u0438\u0437 \u0442\u0435\u043B\u0430, \u0430 \u043A\u0430\u043A \u0434\u043E\u043A\u0430\u0437\u0430\u0442\u0435\u043B\u044C\u0441\u0442\u0432\u043E
+      \u0432\u044B\u0431\u0440\u0430\u043D\u043D\u043E\u0433\u043E \u043F\u0443\u0442\u0438."
+    english: 'The square is empty. The second fragment falls onto the road, visible
+      to all: not from a body, but as proof of the path chosen.'
+    portuguese: 'O quadrado ficou vazio. O segundo fragmento cai na estrada, visivel
+      para todos: nao de um corpo, mas como prova do caminho escolhido.'
   - key: raw.night.mercy
-    russian: "Она встала. Фрагмент лежит на дороге, отдельно от тел и страха. Забери его и сохрани этот след до Врат."
-    english: "She stood up. The fragment lies on the road, apart from bodies and fear. Take it and carry that trace to the Gate."
-    portuguese: "Ela levantou-se. O fragmento esta na estrada, longe de corpos e medo. Leva-o e guarda esse rasto ate aos Portoes."
+    russian: "\u041E\u043D\u0430 \u0432\u0441\u0442\u0430\u043B\u0430. \u0424\u0440\u0430\u0433\u043C\u0435\u043D\u0442
+      \u043B\u0435\u0436\u0438\u0442 \u043D\u0430 \u0434\u043E\u0440\u043E\u0433\u0435,
+      \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u043E \u043E\u0442 \u0442\u0435\u043B
+      \u0438 \u0441\u0442\u0440\u0430\u0445\u0430. \u0417\u0430\u0431\u0435\u0440\u0438
+      \u0435\u0433\u043E \u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0438 \u044D\u0442\u043E\u0442
+      \u0441\u043B\u0435\u0434 \u0434\u043E \u0412\u0440\u0430\u0442."
+    english: She stood up. The fragment lies on the road, apart from bodies and fear.
+      Take it and carry that trace to the Gate.
+    portuguese: Ela levantou-se. O fragmento esta na estrada, longe de corpos e medo.
+      Leva-o e guarda esse rasto ate aos Portoes.
   - key: raw.night.exit.cast
-    russian: "Герой бросает снаряд в дверь. Ночь не отступает, но створки снова раскрываются."
-    english: "The hero throws a projectile into the door. The night does not retreat, but the doors open again."
-    portuguese: "O heroi lanca um projetil contra a porta. A noite nao recua, mas as portas abrem-se outra vez."
+    russian: "\u0413\u0435\u0440\u043E\u0439 \u0431\u0440\u043E\u0441\u0430\u0435\u0442
+      \u0441\u043D\u0430\u0440\u044F\u0434 \u0432 \u0434\u0432\u0435\u0440\u044C.
+      \u041D\u043E\u0447\u044C \u043D\u0435 \u043E\u0442\u0441\u0442\u0443\u043F\u0430\u0435\u0442,
+      \u043D\u043E \u0441\u0442\u0432\u043E\u0440\u043A\u0438 \u0441\u043D\u043E\u0432\u0430
+      \u0440\u0430\u0441\u043A\u0440\u044B\u0432\u0430\u044E\u0442\u0441\u044F."
+    english: The hero throws a projectile into the door. The night does not retreat,
+      but the doors open again.
+    portuguese: O heroi lanca um projetil contra a porta. A noite nao recua, mas
+      as portas abrem-se outra vez.
   - key: raw.night.exit.fragment
-    russian: "Второй фрагмент говорит внутри тебя: мы не просто осколки. Мы части великих, что создали этот мир."
-    english: "The second fragment speaks inside you: we are not mere shards. We are parts of the great ones who created this world."
-    portuguese: "O segundo fragmento fala dentro de ti: nao somos meros estilhacos. Somos partes dos grandes que criaram este mundo."
+    russian: "\u0412\u0442\u043E\u0440\u043E\u0439 \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442
+      \u0433\u043E\u0432\u043E\u0440\u0438\u0442 \u0432\u043D\u0443\u0442\u0440\u0438
+      \u0442\u0435\u0431\u044F: \u043C\u044B \u043D\u0435 \u043F\u0440\u043E\u0441\u0442\u043E
+      \u043E\u0441\u043A\u043E\u043B\u043A\u0438. \u041C\u044B \u0447\u0430\u0441\u0442\u0438
+      \u0432\u0435\u043B\u0438\u043A\u0438\u0445, \u0447\u0442\u043E \u0441\u043E\u0437\u0434\u0430\u043B\u0438
+      \u044D\u0442\u043E\u0442 \u043C\u0438\u0440."
+    english: 'The second fragment speaks inside you: we are not mere shards. We are
+      parts of the great ones who created this world.'
+    portuguese: 'O segundo fragmento fala dentro de ti: nao somos meros estilhacos.
+      Somos partes dos grandes que criaram este mundo.'
   - key: raw.night.exit.mercy
-    russian: "Они проявили снисхождение к каждому, и потому эти тени скитаются в мирах, созданных для них. Теперь ты несешь это знание к Вратам."
-    english: "They showed mercy to each one, and so these shadows wander through worlds made for them. Now you carry that knowledge to the Gate."
-    portuguese: "Eles mostraram misericordia a cada um, e por isso estas sombras vagueiam por mundos feitos para elas. Agora levas esse conhecimento aos Portoes."
+    russian: "\u041E\u043D\u0438 \u043F\u0440\u043E\u044F\u0432\u0438\u043B\u0438
+      \u0441\u043D\u0438\u0441\u0445\u043E\u0436\u0434\u0435\u043D\u0438\u0435 \u043A
+      \u043A\u0430\u0436\u0434\u043E\u043C\u0443, \u0438 \u043F\u043E\u0442\u043E\u043C\u0443
+      \u044D\u0442\u0438 \u0442\u0435\u043D\u0438 \u0441\u043A\u0438\u0442\u0430\u044E\u0442\u0441\u044F
+      \u0432 \u043C\u0438\u0440\u0430\u0445, \u0441\u043E\u0437\u0434\u0430\u043D\u043D\u044B\u0445
+      \u0434\u043B\u044F \u043D\u0438\u0445. \u0422\u0435\u043F\u0435\u0440\u044C
+      \u0442\u044B \u043D\u0435\u0441\u0435\u0448\u044C \u044D\u0442\u043E \u0437\u043D\u0430\u043D\u0438\u0435
+      \u043A \u0412\u0440\u0430\u0442\u0430\u043C."
+    english: They showed mercy to each one, and so these shadows wander through worlds
+      made for them. Now you carry that knowledge to the Gate.
+    portuguese: Eles mostraram misericordia a cada um, e por isso estas sombras vagueiam
+      por mundos feitos para elas. Agora levas esse conhecimento aos Portoes.
   - key: raw.final.intro.guardians
-    russian: "Перед тобой сильнейшие воины. Они не отдельные души, а души, ставшие целым, часть системы, которая защищает порядок от таких, как Fragmento."
-    english: "Before you stand the strongest warriors. They are not separate souls, but souls made whole, part of the system that protects order from beings like Fragmento."
-    portuguese: "Diante de ti estao os guerreiros mais fortes. Nao sao almas separadas, mas almas tornadas inteiras, parte do sistema que protege a ordem de seres como Fragmento."
+    russian: "\u041F\u0435\u0440\u0435\u0434 \u0442\u043E\u0431\u043E\u0439 \u0441\u0438\u043B\u044C\u043D\u0435\u0439\u0448\u0438\u0435
+      \u0432\u043E\u0438\u043D\u044B. \u041E\u043D\u0438 \u043D\u0435 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0435
+      \u0434\u0443\u0448\u0438, \u0430 \u0434\u0443\u0448\u0438, \u0441\u0442\u0430\u0432\u0448\u0438\u0435
+      \u0446\u0435\u043B\u044B\u043C, \u0447\u0430\u0441\u0442\u044C \u0441\u0438\u0441\u0442\u0435\u043C\u044B,
+      \u043A\u043E\u0442\u043E\u0440\u0430\u044F \u0437\u0430\u0449\u0438\u0449\u0430\u0435\u0442
+      \u043F\u043E\u0440\u044F\u0434\u043E\u043A \u043E\u0442 \u0442\u0430\u043A\u0438\u0445,
+      \u043A\u0430\u043A Fragmento."
+    english: Before you stand the strongest warriors. They are not separate souls,
+      but souls made whole, part of the system that protects order from beings like
+      Fragmento.
+    portuguese: Diante de ti estao os guerreiros mais fortes. Nao sao almas separadas,
+      mas almas tornadas inteiras, parte do sistema que protege a ordem de seres
+      como Fragmento.
   - key: raw.final.intro.boundaries
-    russian: "Каждый твой шаг наблюдается. Даже твоя сила не позволит сделать больше шести шагов в сторону: границы держатся волей стражей."
-    english: "Every step you take is watched. Even your strength will not let you move more than six steps aside: the boundaries are held by the guardians' will."
-    portuguese: "Cada passo teu e observado. Nem a tua forca te deixa dar mais de seis passos para o lado: as fronteiras sao mantidas pela vontade dos guardioes."
+    russian: "\u041A\u0430\u0436\u0434\u044B\u0439 \u0442\u0432\u043E\u0439 \u0448\u0430\u0433
+      \u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0435\u0442\u0441\u044F. \u0414\u0430\u0436\u0435
+      \u0442\u0432\u043E\u044F \u0441\u0438\u043B\u0430 \u043D\u0435 \u043F\u043E\u0437\u0432\u043E\u043B\u0438\u0442
+      \u0441\u0434\u0435\u043B\u0430\u0442\u044C \u0431\u043E\u043B\u044C\u0448\u0435
+      \u0448\u0435\u0441\u0442\u0438 \u0448\u0430\u0433\u043E\u0432 \u0432 \u0441\u0442\u043E\u0440\u043E\u043D\u0443:
+      \u0433\u0440\u0430\u043D\u0438\u0446\u044B \u0434\u0435\u0440\u0436\u0430\u0442\u0441\u044F
+      \u0432\u043E\u043B\u0435\u0439 \u0441\u0442\u0440\u0430\u0436\u0435\u0439."
+    english: 'Every step you take is watched. Even your strength will not let you
+      move more than six steps aside: the boundaries are held by the guardians''
+      will.'
+    portuguese: 'Cada passo teu e observado. Nem a tua forca te deixa dar mais de
+      seis passos para o lado: as fronteiras sao mantidas pela vontade dos guardioes.'
   - key: raw.final.intro.violent
-    russian: "Стражи против самого факта твоего существования. Ты пришел с долгом теней, и их смерть говорит громче твоих фрагментов."
-    english: "The guardians oppose the fact of your existence itself. You arrived carrying the debt of shadows, and their deaths speak louder than your fragments."
-    portuguese: "Os guardioes opoe-se ao proprio facto da tua existencia. Chegaste com a divida das sombras, e as mortes delas falam mais alto do que os teus fragmentos."
+    russian: "\u0421\u0442\u0440\u0430\u0436\u0438 \u043F\u0440\u043E\u0442\u0438\u0432
+      \u0441\u0430\u043C\u043E\u0433\u043E \u0444\u0430\u043A\u0442\u0430 \u0442\u0432\u043E\u0435\u0433\u043E
+      \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E\u0432\u0430\u043D\u0438\u044F.
+      \u0422\u044B \u043F\u0440\u0438\u0448\u0435\u043B \u0441 \u0434\u043E\u043B\u0433\u043E\u043C
+      \u0442\u0435\u043D\u0435\u0439, \u0438 \u0438\u0445 \u0441\u043C\u0435\u0440\u0442\u044C
+      \u0433\u043E\u0432\u043E\u0440\u0438\u0442 \u0433\u0440\u043E\u043C\u0447\u0435
+      \u0442\u0432\u043E\u0438\u0445 \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442\u043E\u0432."
+    english: The guardians oppose the fact of your existence itself. You arrived
+      carrying the debt of shadows, and their deaths speak louder than your fragments.
+    portuguese: Os guardioes opoe-se ao proprio facto da tua existencia. Chegaste
+      com a divida das sombras, e as mortes delas falam mais alto do que os teus
+      fragmentos.
   - key: raw.final.intro.attack
-    russian: "Раз ты здесь, тебя нельзя игнорировать. Но тебе не предложат цену. Тебя будут останавливать."
-    english: "Since you are here, you cannot be ignored. But no price will be offered to you. You will be stopped."
-    portuguese: "Como estas aqui, nao podes ser ignorado. Mas nao te sera oferecido preco. Vais ser travado."
+    russian: "\u0420\u0430\u0437 \u0442\u044B \u0437\u0434\u0435\u0441\u044C, \u0442\u0435\u0431\u044F
+      \u043D\u0435\u043B\u044C\u0437\u044F \u0438\u0433\u043D\u043E\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C.
+      \u041D\u043E \u0442\u0435\u0431\u0435 \u043D\u0435 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0430\u0442
+      \u0446\u0435\u043D\u0443. \u0422\u0435\u0431\u044F \u0431\u0443\u0434\u0443\u0442
+      \u043E\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0442\u044C."
+    english: Since you are here, you cannot be ignored. But no price will be offered
+      to you. You will be stopped.
+    portuguese: Como estas aqui, nao podes ser ignorado. Mas nao te sera oferecido
+      preco. Vais ser travado.
   - key: raw.final.intro.peaceful
-    russian: "Стражи против самой ошибки, которой ты являешься, но не могут игнорировать твое существование: ты дошел, удержав руку."
-    english: "The guardians oppose the very error that you are, but they cannot ignore your existence: you arrived while holding back your hand."
-    portuguese: "Os guardioes opoe-se ao proprio erro que tu es, mas nao podem ignorar a tua existencia: chegaste contendo a mao."
+    russian: "\u0421\u0442\u0440\u0430\u0436\u0438 \u043F\u0440\u043E\u0442\u0438\u0432
+      \u0441\u0430\u043C\u043E\u0439 \u043E\u0448\u0438\u0431\u043A\u0438, \u043A\u043E\u0442\u043E\u0440\u043E\u0439
+      \u0442\u044B \u044F\u0432\u043B\u044F\u0435\u0448\u044C\u0441\u044F, \u043D\u043E
+      \u043D\u0435 \u043C\u043E\u0433\u0443\u0442 \u0438\u0433\u043D\u043E\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C
+      \u0442\u0432\u043E\u0435 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E\u0432\u0430\u043D\u0438\u0435:
+      \u0442\u044B \u0434\u043E\u0448\u0435\u043B, \u0443\u0434\u0435\u0440\u0436\u0430\u0432
+      \u0440\u0443\u043A\u0443."
+    english: 'The guardians oppose the very error that you are, but they cannot ignore
+      your existence: you arrived while holding back your hand.'
+    portuguese: 'Os guardioes opoe-se ao proprio erro que tu es, mas nao podem ignorar
+      a tua existencia: chegaste contendo a mao.'
   - key: raw.final.intro.queue
-    russian: "Ты душа или тень, которая должна была родиться позже. Ты пошел против очереди и дерзнул взять то, что должно было прийти не скоро."
-    english: "You are a soul, or a shadow, that was meant to be born later. You broke the queue and dared to take what was not meant to come soon."
-    portuguese: "Es uma alma, ou uma sombra, que devia nascer mais tarde. Quebraste a fila e ousaste tomar aquilo que nao devia chegar tao cedo."
+    russian: "\u0422\u044B \u0434\u0443\u0448\u0430 \u0438\u043B\u0438 \u0442\u0435\u043D\u044C,
+      \u043A\u043E\u0442\u043E\u0440\u0430\u044F \u0434\u043E\u043B\u0436\u043D\u0430
+      \u0431\u044B\u043B\u0430 \u0440\u043E\u0434\u0438\u0442\u044C\u0441\u044F \u043F\u043E\u0437\u0436\u0435.
+      \u0422\u044B \u043F\u043E\u0448\u0435\u043B \u043F\u0440\u043E\u0442\u0438\u0432
+      \u043E\u0447\u0435\u0440\u0435\u0434\u0438 \u0438 \u0434\u0435\u0440\u0437\u043D\u0443\u043B
+      \u0432\u0437\u044F\u0442\u044C \u0442\u043E, \u0447\u0442\u043E \u0434\u043E\u043B\u0436\u043D\u043E
+      \u0431\u044B\u043B\u043E \u043F\u0440\u0438\u0439\u0442\u0438 \u043D\u0435
+      \u0441\u043A\u043E\u0440\u043E."
+    english: You are a soul, or a shadow, that was meant to be born later. You broke
+      the queue and dared to take what was not meant to come soon.
+    portuguese: Es uma alma, ou uma sombra, que devia nascer mais tarde. Quebraste
+      a fila e ousaste tomar aquilo que nao devia chegar tao cedo.
   - key: raw.final.intro.offer
-    russian: "Они нашли в мире существо, которому предстоит сложная судьба. Они не дадут тебе создать свою судьбу, но позволят принять эту."
-    english: "They found a being in the world that is due for a difficult fate. They will not let you create your own destiny, but they will let you accept this one."
-    portuguese: "Encontraram no mundo um ser destinado a uma vida dificil. Nao te deixarao criar o teu destino, mas deixam-te aceitar este."
+    russian: "\u041E\u043D\u0438 \u043D\u0430\u0448\u043B\u0438 \u0432 \u043C\u0438\u0440\u0435
+      \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E, \u043A\u043E\u0442\u043E\u0440\u043E\u043C\u0443
+      \u043F\u0440\u0435\u0434\u0441\u0442\u043E\u0438\u0442 \u0441\u043B\u043E\u0436\u043D\u0430\u044F
+      \u0441\u0443\u0434\u044C\u0431\u0430. \u041E\u043D\u0438 \u043D\u0435 \u0434\u0430\u0434\u0443\u0442
+      \u0442\u0435\u0431\u0435 \u0441\u043E\u0437\u0434\u0430\u0442\u044C \u0441\u0432\u043E\u044E
+      \u0441\u0443\u0434\u044C\u0431\u0443, \u043D\u043E \u043F\u043E\u0437\u0432\u043E\u043B\u044F\u0442
+      \u043F\u0440\u0438\u043D\u044F\u0442\u044C \u044D\u0442\u0443."
+    english: They found a being in the world that is due for a difficult fate. They
+      will not let you create your own destiny, but they will let you accept this
+      one.
+    portuguese: Encontraram no mundo um ser destinado a uma vida dificil. Nao te
+      deixarao criar o teu destino, mas deixam-te aceitar este.
   - key: raw.final.bound.1
-    russian: "Остатки душ сковывают тебя. Ты не можешь шелохнуться, хотя чувствуешь, как цепи уже трещат."
-    english: "The remnants of souls bind you. You cannot move, though you feel the chains already cracking."
-    portuguese: "Os restos das almas prendem-te. Nao consegues mover-te, embora sintas as correntes ja a rachar."
+    russian: "\u041E\u0441\u0442\u0430\u0442\u043A\u0438 \u0434\u0443\u0448 \u0441\u043A\u043E\u0432\u044B\u0432\u0430\u044E\u0442
+      \u0442\u0435\u0431\u044F. \u0422\u044B \u043D\u0435 \u043C\u043E\u0436\u0435\u0448\u044C
+      \u0448\u0435\u043B\u043E\u0445\u043D\u0443\u0442\u044C\u0441\u044F, \u0445\u043E\u0442\u044F
+      \u0447\u0443\u0432\u0441\u0442\u0432\u0443\u0435\u0448\u044C, \u043A\u0430\u043A
+      \u0446\u0435\u043F\u0438 \u0443\u0436\u0435 \u0442\u0440\u0435\u0449\u0430\u0442."
+    english: The remnants of souls bind you. You cannot move, though you feel the
+      chains already cracking.
+    portuguese: Os restos das almas prendem-te. Nao consegues mover-te, embora sintas
+      as correntes ja a rachar.
   - key: raw.final.bound.2
-    russian: "Мы не удержим тебя долго. Но этого хватит, чтобы Врата записали твой путь как ярость."
-    english: "We will not hold you for long. But it will be enough for the Gate to record your path as rage."
-    portuguese: "Nao te vamos segurar por muito tempo. Mas bastara para os Portoes registarem o teu caminho como raiva."
+    russian: "\u041C\u044B \u043D\u0435 \u0443\u0434\u0435\u0440\u0436\u0438\u043C
+      \u0442\u0435\u0431\u044F \u0434\u043E\u043B\u0433\u043E. \u041D\u043E \u044D\u0442\u043E\u0433\u043E
+      \u0445\u0432\u0430\u0442\u0438\u0442, \u0447\u0442\u043E\u0431\u044B \u0412\u0440\u0430\u0442\u0430
+      \u0437\u0430\u043F\u0438\u0441\u0430\u043B\u0438 \u0442\u0432\u043E\u0439 \u043F\u0443\u0442\u044C
+      \u043A\u0430\u043A \u044F\u0440\u043E\u0441\u0442\u044C."
+    english: We will not hold you for long. But it will be enough for the Gate to
+      record your path as rage.
+    portuguese: Nao te vamos segurar por muito tempo. Mas bastara para os Portoes
+      registarem o teu caminho como raiva.
   - key: raw.gate.violent
-    russian: "Ты принес смерть. Защитники не примут цену. Выживи, убей стражей и открой Врата силой."
-    english: "You brought death. The defenders will not accept a price. Survive, kill the guardians, and force the Gate open."
-    portuguese: "Trouxeste morte. Os defensores nao aceitarao um preco. Sobrevive, mata os guardioes e abre os Portoes pela forca."
+    russian: "\u0422\u044B \u043F\u0440\u0438\u043D\u0435\u0441 \u0441\u043C\u0435\u0440\u0442\u044C.
+      \u0417\u0430\u0449\u0438\u0442\u043D\u0438\u043A\u0438 \u043D\u0435 \u043F\u0440\u0438\u043C\u0443\u0442
+      \u0446\u0435\u043D\u0443. \u0412\u044B\u0436\u0438\u0432\u0438, \u0443\u0431\u0435\u0439
+      \u0441\u0442\u0440\u0430\u0436\u0435\u0439 \u0438 \u043E\u0442\u043A\u0440\u043E\u0439
+      \u0412\u0440\u0430\u0442\u0430 \u0441\u0438\u043B\u043E\u0439."
+    english: You brought death. The defenders will not accept a price. Survive, kill
+      the guardians, and force the Gate open.
+    portuguese: Trouxeste morte. Os defensores nao aceitarao um preco. Sobrevive,
+      mata os guardioes e abre os Portoes pela forca.
   - key: raw.gate.peaceful.prompt
-    russian: "Стражи заковывают тебя в цепи и указывают на Врата. Все, что ты создашь, будет разрушено; все, кто дорог, умрут; ты продолжишь путь. Но если вернешься, неся второго внутри, они обещают лучшую жизнь. Что ты выберешь?"
-    english: "The guardians chain you and point to the Gate. Everything you create will be destroyed; everyone dear to you will die; you will continue. But if you return carrying the second one within, they promise a better life. What do you choose?"
-    portuguese: "Os guardioes acorrentam-te e apontam para os Portoes. Tudo o que criares sera destruido; todos os que amares morrerao; tu continuas. Mas se voltares trazendo o segundo dentro de ti, prometem uma vida melhor. O que escolhes?"
+    russian: "\u0421\u0442\u0440\u0430\u0436\u0438 \u0437\u0430\u043A\u043E\u0432\u044B\u0432\u0430\u044E\u0442
+      \u0442\u0435\u0431\u044F \u0432 \u0446\u0435\u043F\u0438 \u0438 \u0443\u043A\u0430\u0437\u044B\u0432\u0430\u044E\u0442
+      \u043D\u0430 \u0412\u0440\u0430\u0442\u0430. \u0412\u0441\u0435, \u0447\u0442\u043E
+      \u0442\u044B \u0441\u043E\u0437\u0434\u0430\u0448\u044C, \u0431\u0443\u0434\u0435\u0442
+      \u0440\u0430\u0437\u0440\u0443\u0448\u0435\u043D\u043E; \u0432\u0441\u0435,
+      \u043A\u0442\u043E \u0434\u043E\u0440\u043E\u0433, \u0443\u043C\u0440\u0443\u0442;
+      \u0442\u044B \u043F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0448\u044C \u043F\u0443\u0442\u044C.
+      \u041D\u043E \u0435\u0441\u043B\u0438 \u0432\u0435\u0440\u043D\u0435\u0448\u044C\u0441\u044F,
+      \u043D\u0435\u0441\u044F \u0432\u0442\u043E\u0440\u043E\u0433\u043E \u0432\u043D\u0443\u0442\u0440\u0438,
+      \u043E\u043D\u0438 \u043E\u0431\u0435\u0449\u0430\u044E\u0442 \u043B\u0443\u0447\u0448\u0443\u044E
+      \u0436\u0438\u0437\u043D\u044C. \u0427\u0442\u043E \u0442\u044B \u0432\u044B\u0431\u0435\u0440\u0435\u0448\u044C?"
+    english: The guardians chain you and point to the Gate. Everything you create
+      will be destroyed; everyone dear to you will die; you will continue. But if
+      you return carrying the second one within, they promise a better life. What
+      do you choose?
+    portuguese: Os guardioes acorrentam-te e apontam para os Portoes. Tudo o que
+      criares sera destruido; todos os que amares morrerao; tu continuas. Mas se
+      voltares trazendo o segundo dentro de ti, prometem uma vida melhor. O que escolhes?
   - key: raw.gate.accept.chains
-    russian: "Принять цепи"
-    english: "Accept the chains"
-    portuguese: "Aceitar as correntes"
+    russian: "\u041F\u0440\u0438\u043D\u044F\u0442\u044C \u0446\u0435\u043F\u0438"
+    english: Accept the chains
+    portuguese: Aceitar as correntes
   - key: raw.gate.fight
-    russian: "Драться"
-    english: "Fight"
-    portuguese: "Lutar"
+    russian: "\u0414\u0440\u0430\u0442\u044C\u0441\u044F"
+    english: Fight
+    portuguese: Lutar
   - key: raw.gate.destroy
-    russian: "Уничтожить фрагменты"
-    english: "Destroy the fragments"
-    portuguese: "Destruir os fragmentos"
+    russian: "\u0423\u043D\u0438\u0447\u0442\u043E\u0436\u0438\u0442\u044C \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442\u044B"
+    english: Destroy the fragments
+    portuguese: Destruir os fragmentos
   - key: raw.gate.accept.1
-    russian: "Ты идешь к Вратам в цепях. Внутри кипит второй, тот, кого ты не выпустил и собственноручно заковал."
-    english: "You walk to the Gate in chains. Inside you boils the second one, the one you did not release and chained with your own hands."
-    portuguese: "Caminhas para os Portoes acorrentado. Dentro de ti ferve o segundo, aquele que nao libertaste e que prendeste com as tuas proprias maos."
+    russian: "\u0422\u044B \u0438\u0434\u0435\u0448\u044C \u043A \u0412\u0440\u0430\u0442\u0430\u043C
+      \u0432 \u0446\u0435\u043F\u044F\u0445. \u0412\u043D\u0443\u0442\u0440\u0438
+      \u043A\u0438\u043F\u0438\u0442 \u0432\u0442\u043E\u0440\u043E\u0439, \u0442\u043E\u0442,
+      \u043A\u043E\u0433\u043E \u0442\u044B \u043D\u0435 \u0432\u044B\u043F\u0443\u0441\u0442\u0438\u043B
+      \u0438 \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0440\u0443\u0447\u043D\u043E
+      \u0437\u0430\u043A\u043E\u0432\u0430\u043B."
+    english: You walk to the Gate in chains. Inside you boils the second one, the
+      one you did not release and chained with your own hands.
+    portuguese: Caminhas para os Portoes acorrentado. Dentro de ti ferve o segundo,
+      aquele que nao libertaste e que prendeste com as tuas proprias maos.
   - key: raw.gate.accept.2
-    russian: "Единственный путь пройти - использовать силу фрагмента в момент перехода: сохранить часть памяти и вместе со вторым пробиться внутрь, чтобы родиться чем-то новым."
-    english: "The only way through is to use the fragment's power at the moment of crossing: keep part of memory and break through with the second one to be born as something new."
-    portuguese: "A unica forma de passar e usar a forca do fragmento no momento da travessia: guardar parte da memoria e romper com o segundo para nascer como algo novo."
+    russian: "\u0415\u0434\u0438\u043D\u0441\u0442\u0432\u0435\u043D\u043D\u044B\u0439
+      \u043F\u0443\u0442\u044C \u043F\u0440\u043E\u0439\u0442\u0438 - \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C
+      \u0441\u0438\u043B\u0443 \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442\u0430
+      \u0432 \u043C\u043E\u043C\u0435\u043D\u0442 \u043F\u0435\u0440\u0435\u0445\u043E\u0434\u0430:
+      \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0447\u0430\u0441\u0442\u044C
+      \u043F\u0430\u043C\u044F\u0442\u0438 \u0438 \u0432\u043C\u0435\u0441\u0442\u0435
+      \u0441\u043E \u0432\u0442\u043E\u0440\u044B\u043C \u043F\u0440\u043E\u0431\u0438\u0442\u044C\u0441\u044F
+      \u0432\u043D\u0443\u0442\u0440\u044C, \u0447\u0442\u043E\u0431\u044B \u0440\u043E\u0434\u0438\u0442\u044C\u0441\u044F
+      \u0447\u0435\u043C-\u0442\u043E \u043D\u043E\u0432\u044B\u043C."
+    english: 'The only way through is to use the fragment''s power at the moment
+      of crossing: keep part of memory and break through with the second one to be
+      born as something new.'
+    portuguese: 'A unica forma de passar e usar a forca do fragmento no momento da
+      travessia: guardar parte da memoria e romper com o segundo para nascer como
+      algo novo.'
   - key: raw.ending.destroy.title
-    russian: "ФИНАЛ: ФРАГМЕНТ ПОГАШЕН"
-    english: "ENDING: FRAGMENT EXTINGUISHED"
-    portuguese: "FINAL: FRAGMENTO APAGADO"
+    russian: "\u0424\u0418\u041D\u0410\u041B: \u0424\u0420\u0410\u0413\u041C\u0415\u041D\u0422
+      \u041F\u041E\u0413\u0410\u0428\u0415\u041D"
+    english: 'ENDING: FRAGMENT EXTINGUISHED'
+    portuguese: 'FINAL: FRAGMENTO APAGADO'
   - key: raw.ending.destroy.text
-    russian: "Усилием воли ты гасишь фрагменты.\n\nВсе вокруг становится тише. Маленький кусочек перестает существовать в этом мире.\n\nИ вместе с ним гаснет часть возможного счастья.\n\nСистема не наказывает тебя. Ей больше нечего записывать."
-    english: "By force of will, you extinguish the fragments.\n\nEverything around you becomes quieter. A small piece stops existing in this world.\n\nWith it, part of possible happiness also goes dark.\n\nThe system does not punish you. It has nothing left to record."
-    portuguese: "Por vontade propria, apagas os fragmentos.\n\nTudo a tua volta fica mais silencioso. Um pequeno pedaco deixa de existir neste mundo.\n\nCom ele, uma parte da felicidade possivel tambem se apaga.\n\nO sistema nao te pune. Ja nao tem nada para registar."
+    russian: "\u0423\u0441\u0438\u043B\u0438\u0435\u043C \u0432\u043E\u043B\u0438
+      \u0442\u044B \u0433\u0430\u0441\u0438\u0448\u044C \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442\u044B.\n\n\u0412\u0441\u0435
+      \u0432\u043E\u043A\u0440\u0443\u0433 \u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u0441\u044F
+      \u0442\u0438\u0448\u0435. \u041C\u0430\u043B\u0435\u043D\u044C\u043A\u0438\u0439
+      \u043A\u0443\u0441\u043E\u0447\u0435\u043A \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u0435\u0442
+      \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043E\u0432\u0430\u0442\u044C \u0432
+      \u044D\u0442\u043E\u043C \u043C\u0438\u0440\u0435.\n\n\u0418 \u0432\u043C\u0435\u0441\u0442\u0435
+      \u0441 \u043D\u0438\u043C \u0433\u0430\u0441\u043D\u0435\u0442 \u0447\u0430\u0441\u0442\u044C
+      \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0433\u043E \u0441\u0447\u0430\u0441\u0442\u044C\u044F.\n\n\u0421\u0438\u0441\u0442\u0435\u043C\u0430
+      \u043D\u0435 \u043D\u0430\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442 \u0442\u0435\u0431\u044F.
+      \u0415\u0439 \u0431\u043E\u043B\u044C\u0448\u0435 \u043D\u0435\u0447\u0435\u0433\u043E
+      \u0437\u0430\u043F\u0438\u0441\u044B\u0432\u0430\u0442\u044C."
+    english: 'By force of will, you extinguish the fragments.
+
+
+      Everything
+      around you becomes quieter. A small piece stops existing in this world.
+
+
+      With
+      it, part of possible happiness also goes dark.
+
+
+      The system does not
+      punish you. It has nothing left to record.'
+    portuguese: 'Por vontade propria, apagas os fragmentos.
+
+
+      Tudo a tua volta
+      fica mais silencioso. Um pequeno pedaco deixa de existir neste mundo.
+
+
+      Com
+      ele, uma parte da felicidade possivel tambem se apaga.
+
+
+      O sistema nao
+      te pune. Ja nao tem nada para registar.'
   - key: raw.ending.force.title
-    russian: "ФИНАЛ: ПУТЬ ЯРОСТИ"
-    english: "ENDING: PATH OF RAGE"
-    portuguese: "FINAL: CAMINHO DA RAIVA"
+    russian: "\u0424\u0418\u041D\u0410\u041B: \u041F\u0423\u0422\u042C \u042F\u0420\u041E\u0421\u0422\u0418"
+    english: 'ENDING: PATH OF RAGE'
+    portuguese: 'FINAL: CAMINHO DA RAIVA'
   - key: raw.ending.force.text
-    russian: "Ты родился.\n\nТы не помнишь всего, что произошло до Врат. Но внутри тебя все еще кипит то, что не смогло умереть.\n\nТвой фрагмент остался с тобой - не как свет, а как ярость.\n\nТеперь ты заперт в новом теле вместе с собственным бессилием. Каким бы злым ты ни стал, ты никогда не превзойдешь ярость того, что осталось внутри.\n\nИногда тебе будут сниться тени. Но они больше не будут просить о помощи.\n\nОни будут помнить."
-    english: "You are born.\n\nYou do not remember everything that happened before the Gate. But inside you, something that could not die is still boiling.\n\nYour fragment stayed with you, not as light, but as rage.\n\nNow you are locked inside a new body with your own helplessness. No matter how angry you become, you will never surpass the rage of what remains inside.\n\nSometimes you will dream of shadows. But they will no longer ask for help.\n\nThey will remember."
-    portuguese: "Nasceste.\n\nNao te lembras de tudo o que aconteceu antes dos Portoes. Mas dentro de ti ainda ferve algo que nao conseguiu morrer.\n\nO teu fragmento ficou contigo, nao como luz, mas como raiva.\n\nAgora estas preso num novo corpo com a tua propria impotencia. Por mais raiva que sintas, nunca vais ultrapassar a raiva daquilo que ficou dentro de ti.\n\nAs vezes vais sonhar com sombras. Mas elas ja nao vao pedir ajuda.\n\nElas vao lembrar-se."
+    russian: "\u0422\u044B \u0440\u043E\u0434\u0438\u043B\u0441\u044F.\n\n\u0422\u044B
+      \u043D\u0435 \u043F\u043E\u043C\u043D\u0438\u0448\u044C \u0432\u0441\u0435\u0433\u043E,
+      \u0447\u0442\u043E \u043F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u043E \u0434\u043E
+      \u0412\u0440\u0430\u0442. \u041D\u043E \u0432\u043D\u0443\u0442\u0440\u0438
+      \u0442\u0435\u0431\u044F \u0432\u0441\u0435 \u0435\u0449\u0435 \u043A\u0438\u043F\u0438\u0442
+      \u0442\u043E, \u0447\u0442\u043E \u043D\u0435 \u0441\u043C\u043E\u0433\u043B\u043E
+      \u0443\u043C\u0435\u0440\u0435\u0442\u044C.\n\n\u0422\u0432\u043E\u0439 \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442
+      \u043E\u0441\u0442\u0430\u043B\u0441\u044F \u0441 \u0442\u043E\u0431\u043E\u0439
+      - \u043D\u0435 \u043A\u0430\u043A \u0441\u0432\u0435\u0442, \u0430 \u043A\u0430\u043A
+      \u044F\u0440\u043E\u0441\u0442\u044C.\n\n\u0422\u0435\u043F\u0435\u0440\u044C
+      \u0442\u044B \u0437\u0430\u043F\u0435\u0440\u0442 \u0432 \u043D\u043E\u0432\u043E\u043C
+      \u0442\u0435\u043B\u0435 \u0432\u043C\u0435\u0441\u0442\u0435 \u0441 \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u044B\u043C
+      \u0431\u0435\u0441\u0441\u0438\u043B\u0438\u0435\u043C. \u041A\u0430\u043A\u0438\u043C
+      \u0431\u044B \u0437\u043B\u044B\u043C \u0442\u044B \u043D\u0438 \u0441\u0442\u0430\u043B,
+      \u0442\u044B \u043D\u0438\u043A\u043E\u0433\u0434\u0430 \u043D\u0435 \u043F\u0440\u0435\u0432\u0437\u043E\u0439\u0434\u0435\u0448\u044C
+      \u044F\u0440\u043E\u0441\u0442\u044C \u0442\u043E\u0433\u043E, \u0447\u0442\u043E
+      \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C \u0432\u043D\u0443\u0442\u0440\u0438.\n\n\u0418\u043D\u043E\u0433\u0434\u0430
+      \u0442\u0435\u0431\u0435 \u0431\u0443\u0434\u0443\u0442 \u0441\u043D\u0438\u0442\u044C\u0441\u044F
+      \u0442\u0435\u043D\u0438. \u041D\u043E \u043E\u043D\u0438 \u0431\u043E\u043B\u044C\u0448\u0435
+      \u043D\u0435 \u0431\u0443\u0434\u0443\u0442 \u043F\u0440\u043E\u0441\u0438\u0442\u044C
+      \u043E \u043F\u043E\u043C\u043E\u0449\u0438.\n\n\u041E\u043D\u0438 \u0431\u0443\u0434\u0443\u0442
+      \u043F\u043E\u043C\u043D\u0438\u0442\u044C."
+    english: 'You are born.
+
+
+      You do not remember everything that happened
+      before the Gate. But inside you, something that could not die is still boiling.
+
+
+      Your
+      fragment stayed with you, not as light, but as rage.
+
+
+      Now you are locked
+      inside a new body with your own helplessness. No matter how angry you become,
+      you will never surpass the rage of what remains inside.
+
+
+      Sometimes you
+      will dream of shadows. But they will no longer ask for help.
+
+
+      They will
+      remember.'
+    portuguese: 'Nasceste.
+
+
+      Nao te lembras de tudo o que aconteceu antes dos
+      Portoes. Mas dentro de ti ainda ferve algo que nao conseguiu morrer.
+
+
+      O
+      teu fragmento ficou contigo, nao como luz, mas como raiva.
+
+
+      Agora estas
+      preso num novo corpo com a tua propria impotencia. Por mais raiva que sintas,
+      nunca vais ultrapassar a raiva daquilo que ficou dentro de ti.
+
+
+      As vezes
+      vais sonhar com sombras. Mas elas ja nao vao pedir ajuda.
+
+
+      Elas vao
+      lembrar-se.'
   - key: raw.ending.paid.title
-    russian: "ФИНАЛ: ПУТЬ ХРАНИТЕЛЯ"
-    english: "ENDING: PATH OF THE KEEPER"
-    portuguese: "FINAL: CAMINHO DO GUARDIAO"
+    russian: "\u0424\u0418\u041D\u0410\u041B: \u041F\u0423\u0422\u042C \u0425\u0420\u0410\u041D\u0418\u0422\u0415\u041B\u042F"
+    english: 'ENDING: PATH OF THE KEEPER'
+    portuguese: 'FINAL: CAMINHO DO GUARDIAO'
   - key: raw.ending.paid.text
-    russian: "Ты родился.\n\nТы не помнишь всего, что произошло до Врат. Но иногда во сне ты видишь одинокую тень.\n\nОна смотрит на тебя из темноты - не с ненавистью, а с тихим пониманием. Будто все еще помогает тебе найти путь.\n\nТвой фрагмент остался внутри. В нем все еще живет ярость, которую ты мог выпустить на мир.\n\nНо теперь ты не ее пленник.\n\nТы ее хранитель.\n\nИ однажды, когда придет время, ты вспомнишь, зачем она была оставлена в тебе."
-    english: "You are born.\n\nYou do not remember everything that happened before the Gate. But sometimes, in sleep, you see a lone shadow.\n\nIt watches you from the dark, not with hatred, but with quiet understanding. As if it is still helping you find the way.\n\nYour fragment stayed inside. In it, the rage you could have released into the world is still alive.\n\nBut now you are not its prisoner.\n\nYou are its keeper.\n\nAnd one day, when the time comes, you will remember why it was left inside you."
-    portuguese: "Nasceste.\n\nNao te lembras de tudo o que aconteceu antes dos Portoes. Mas as vezes, no sono, ves uma sombra solitaria.\n\nEla olha para ti da escuridao, nao com odio, mas com uma compreensao silenciosa. Como se ainda te ajudasse a encontrar o caminho.\n\nO teu fragmento ficou dentro de ti. Nele ainda vive a raiva que poderias ter libertado sobre o mundo.\n\nMas agora nao es prisioneiro dela.\n\nEs o seu guardiao.\n\nE um dia, quando chegar a hora, vais lembrar-te porque ela foi deixada dentro de ti."
+    russian: "\u0422\u044B \u0440\u043E\u0434\u0438\u043B\u0441\u044F.\n\n\u0422\u044B
+      \u043D\u0435 \u043F\u043E\u043C\u043D\u0438\u0448\u044C \u0432\u0441\u0435\u0433\u043E,
+      \u0447\u0442\u043E \u043F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u043E \u0434\u043E
+      \u0412\u0440\u0430\u0442. \u041D\u043E \u0438\u043D\u043E\u0433\u0434\u0430
+      \u0432\u043E \u0441\u043D\u0435 \u0442\u044B \u0432\u0438\u0434\u0438\u0448\u044C
+      \u043E\u0434\u0438\u043D\u043E\u043A\u0443\u044E \u0442\u0435\u043D\u044C.\n\n\u041E\u043D\u0430
+      \u0441\u043C\u043E\u0442\u0440\u0438\u0442 \u043D\u0430 \u0442\u0435\u0431\u044F
+      \u0438\u0437 \u0442\u0435\u043C\u043D\u043E\u0442\u044B - \u043D\u0435 \u0441
+      \u043D\u0435\u043D\u0430\u0432\u0438\u0441\u0442\u044C\u044E, \u0430 \u0441
+      \u0442\u0438\u0445\u0438\u043C \u043F\u043E\u043D\u0438\u043C\u0430\u043D\u0438\u0435\u043C.
+      \u0411\u0443\u0434\u0442\u043E \u0432\u0441\u0435 \u0435\u0449\u0435 \u043F\u043E\u043C\u043E\u0433\u0430\u0435\u0442
+      \u0442\u0435\u0431\u0435 \u043D\u0430\u0439\u0442\u0438 \u043F\u0443\u0442\u044C.\n\n\u0422\u0432\u043E\u0439
+      \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442 \u043E\u0441\u0442\u0430\u043B\u0441\u044F
+      \u0432\u043D\u0443\u0442\u0440\u0438. \u0412 \u043D\u0435\u043C \u0432\u0441\u0435
+      \u0435\u0449\u0435 \u0436\u0438\u0432\u0435\u0442 \u044F\u0440\u043E\u0441\u0442\u044C,
+      \u043A\u043E\u0442\u043E\u0440\u0443\u044E \u0442\u044B \u043C\u043E\u0433
+      \u0432\u044B\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u043D\u0430 \u043C\u0438\u0440.\n\n\u041D\u043E
+      \u0442\u0435\u043F\u0435\u0440\u044C \u0442\u044B \u043D\u0435 \u0435\u0435
+      \u043F\u043B\u0435\u043D\u043D\u0438\u043A.\n\n\u0422\u044B \u0435\u0435 \u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u044C.\n\n\u0418
+      \u043E\u0434\u043D\u0430\u0436\u0434\u044B, \u043A\u043E\u0433\u0434\u0430
+      \u043F\u0440\u0438\u0434\u0435\u0442 \u0432\u0440\u0435\u043C\u044F, \u0442\u044B
+      \u0432\u0441\u043F\u043E\u043C\u043D\u0438\u0448\u044C, \u0437\u0430\u0447\u0435\u043C
+      \u043E\u043D\u0430 \u0431\u044B\u043B\u0430 \u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D\u0430
+      \u0432 \u0442\u0435\u0431\u0435."
+    english: 'You are born.
+
+
+      You do not remember everything that happened
+      before the Gate. But sometimes, in sleep, you see a lone shadow.
+
+
+      It
+      watches you from the dark, not with hatred, but with quiet understanding. As
+      if it is still helping you find the way.
+
+
+      Your fragment stayed inside.
+      In it, the rage you could have released into the world is still alive.
+
+
+      But
+      now you are not its prisoner.
+
+
+      You are its keeper.
+
+
+      And one day,
+      when the time comes, you will remember why it was left inside you.'
+    portuguese: 'Nasceste.
+
+
+      Nao te lembras de tudo o que aconteceu antes dos
+      Portoes. Mas as vezes, no sono, ves uma sombra solitaria.
+
+
+      Ela olha
+      para ti da escuridao, nao com odio, mas com uma compreensao silenciosa. Como
+      se ainda te ajudasse a encontrar o caminho.
+
+
+      O teu fragmento ficou dentro
+      de ti. Nele ainda vive a raiva que poderias ter libertado sobre o mundo.
+
+
+      Mas
+      agora nao es prisioneiro dela.
+
+
+      Es o seu guardiao.
+
+
+      E um dia,
+      quando chegar a hora, vais lembrar-te porque ela foi deixada dentro de ti.'
+  - key: hud.boundary.exterior.blocked
+    russian: "\u0414\u0430\u043B\u044C\u0448\u0435 \u0437\u043E\u043D\u0430 \u043F\u0440\u043E\u0442\u043E\u0442\u0438\u043F\u0430
+      \u0437\u0430\u043A\u0430\u043D\u0447\u0438\u0432\u0430\u0435\u0442\u0441\u044F.
+      \u0412\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u044E \u0442\u0435\u0431\u044F
+      \u0432\u043D\u0443\u0442\u0440\u044C."
+    english: The prototype area ends here. Moving you back inside.
+    portuguese: "A \xE1rea do prot\xF3tipo acaba aqui. Vou p\xF4r-te de volta dentro."
+  - key: hud.boundary.exterior.escape
+    russian: "\u0422\u044B \u0432\u044B\u043F\u0430\u043B \u0437\u0430 \u0433\u0440\u0430\u043D\u0438\u0446\u044B
+      \u0441\u0446\u0435\u043D\u044B. \u0412\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u044E
+      \u043A \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0439 \u0442\u043E\u0447\u043A\u0435."
+    english: You left the scene bounds. Returning you to a safe point.
+    portuguese: "Sa\xEDste dos limites da cena. A voltar para um ponto seguro."
