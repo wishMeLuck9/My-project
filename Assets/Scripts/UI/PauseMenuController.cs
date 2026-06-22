@@ -26,6 +26,7 @@ public class PauseMenuController : MonoBehaviour
     private PlayerInputReader inputReader;
     private System.Action confirmAction;
     private float nextResolveAt;
+    private bool returningToMenu;
 
     public bool IsPaused { get; private set; }
 
@@ -82,6 +83,12 @@ public class PauseMenuController : MonoBehaviour
 
     private void Update()
     {
+        if (!SceneIds.IsGameplay(SceneManager.GetActiveScene()))
+        {
+            BindInput(null);
+            return;
+        }
+
         if (Time.unscaledTime < nextResolveAt) return;
         nextResolveAt = Time.unscaledTime + 0.5f;
         PlayerController3D player = FindFirstObjectByType<PlayerController3D>();
@@ -113,6 +120,7 @@ public class PauseMenuController : MonoBehaviour
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         BindInput(null);
+        returningToMenu = false;
         if (!SceneIds.IsGameplay(scene)) Close();
     }
 
@@ -232,17 +240,36 @@ public class PauseMenuController : MonoBehaviour
         confirmAction = null;
     }
 
+    public void ForceCloseForFrontend()
+    {
+        returningToMenu = false;
+        IsPaused = false;
+        Time.timeScale = 1f;
+        BindInput(null);
+        HideSubPanels();
+        if (pauseDimmer != null) pauseDimmer.SetActive(false);
+        if (rootPanel != null) rootPanel.SetActive(false);
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
     private void ReturnToMainMenu()
     {
+        if (returningToMenu) return;
+
+        returningToMenu = true;
         SaveGameManager.EnsureInstance().SaveAutosave();
-        Close();
+        ForceCloseForFrontend();
+        returningToMenu = true;
+        SceneFadeController.Instance?.CancelAndHide();
+        RuntimeHudController.Instance?.HideForFrontend();
         SceneManager.LoadScene(SceneIds.Menu);
     }
 
     private void UpdateCursor()
     {
         bool dialogueOpen = DialogueController.Instance != null && DialogueController.Instance.IsDialogueOpen;
-        bool release = IsPaused || dialogueOpen;
+        bool release = IsPaused || dialogueOpen || !SceneIds.IsGameplay(SceneManager.GetActiveScene());
         Cursor.lockState = release ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = release;
     }

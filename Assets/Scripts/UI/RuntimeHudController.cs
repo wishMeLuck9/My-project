@@ -73,8 +73,11 @@ public class RuntimeHudController : MonoBehaviour
     private float sceneStartedAt;
     private float nextAmbientSystemMessageAllowedAt;
     private readonly Dictionary<string, float> recentAmbientMessages = new Dictionary<string, float>();
+    private Canvas runtimeCanvas;
+    private GraphicRaycaster runtimeRaycaster;
     private CanvasScaler canvasScaler;
     private bool lastFullControlsVisible = true;
+    private bool isGameplayScene;
 
     public bool IsPaused => PauseMenuController.Instance != null && PauseMenuController.Instance.IsPaused;
 
@@ -120,6 +123,8 @@ public class RuntimeHudController : MonoBehaviour
 
     private void Update()
     {
+        if (!isGameplayScene) return;
+
         ResolveSceneReferences();
         UpdateCursor();
         UpdateControls();
@@ -133,6 +138,8 @@ public class RuntimeHudController : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (!isGameplayScene) return;
+
         UpdateMinimap();
     }
 
@@ -183,6 +190,33 @@ public class RuntimeHudController : MonoBehaviour
         purgatoryPanel.SetActive(false);
     }
 
+    public void HideForFrontend()
+    {
+        isGameplayScene = false;
+        SetRuntimeUiVisible(false);
+        HideAllPanels();
+        ReleaseMinimap();
+        player = null;
+        playerHealth = null;
+        bossDirector = null;
+        inputReader = null;
+        interaction = null;
+        hunt = null;
+        minimapExit = null;
+        lastControlsText = null;
+        lastObjectiveText = null;
+        lastStabilityText = null;
+        lastHealthText = null;
+        lastBossText = null;
+        recentAmbientMessages.Clear();
+
+        if (clearSystemMessageRoutine != null)
+        {
+            StopCoroutine(clearSystemMessageRoutine);
+            clearSystemMessageRoutine = null;
+        }
+    }
+
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         ApplyScene(scene);
@@ -191,6 +225,7 @@ public class RuntimeHudController : MonoBehaviour
     private void ApplyScene(Scene scene)
     {
         currentScene = scene.name;
+        isGameplayScene = SceneIds.IsGameplay(scene);
         sceneStartedAt = Time.unscaledTime;
         nextAmbientSystemMessageAllowedAt = 0f;
         recentAmbientMessages.Clear();
@@ -206,6 +241,14 @@ public class RuntimeHudController : MonoBehaviour
         lastStabilityText = null;
         lastHealthText = null;
         lastBossText = null;
+
+        if (!isGameplayScene)
+        {
+            HideForFrontend();
+            return;
+        }
+
+        SetRuntimeUiVisible(true);
 
         if (currentScene == ExteriorScene && !startupShown && !GameplayIntroController.ShouldShowIntroForScene(currentScene))
         {
@@ -261,6 +304,8 @@ public class RuntimeHudController : MonoBehaviour
         lastHealthText = null;
         lastBossText = null;
         ApplySettingsPresentation();
+        if (!isGameplayScene) return;
+
         UpdateControls();
         UpdateInteractionPrompt();
         UpdateHealth();
@@ -412,6 +457,27 @@ public class RuntimeHudController : MonoBehaviour
         systemPanel.SetActive(!string.IsNullOrWhiteSpace(message));
     }
 
+    private void SetRuntimeUiVisible(bool visible)
+    {
+        if (runtimeCanvas != null) runtimeCanvas.enabled = visible;
+        if (runtimeRaycaster != null) runtimeRaycaster.enabled = visible;
+    }
+
+    private void HideAllPanels()
+    {
+        controlsPanel?.SetActive(false);
+        interactionPanel?.SetActive(false);
+        stabilityPanel?.SetActive(false);
+        healthPanel?.SetActive(false);
+        bossPanel?.SetActive(false);
+        systemPanel?.SetActive(false);
+        minimapPanel?.SetActive(false);
+        purgatoryPanel?.SetActive(false);
+        if (controlsText != null) controlsText.gameObject.SetActive(false);
+        if (systemText != null) systemText.text = string.Empty;
+        if (purgatoryText != null) purgatoryText.text = string.Empty;
+    }
+
     private void ConfigureMinimap(bool enabled)
     {
         minimapPanel.SetActive(enabled);
@@ -481,6 +547,7 @@ public class RuntimeHudController : MonoBehaviour
     private void BuildRuntimeUi()
     {
         Canvas canvas = gameObject.AddComponent<Canvas>();
+        runtimeCanvas = canvas;
         canvasRect = GetComponent<RectTransform>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 400;
@@ -489,7 +556,7 @@ public class RuntimeHudController : MonoBehaviour
         canvasScaler.referenceResolution = new Vector2(HudReferenceWidth, HudReferenceHeight);
         canvasScaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         canvasScaler.matchWidthOrHeight = 0.5f;
-        gameObject.AddComponent<GraphicRaycaster>();
+        runtimeRaycaster = gameObject.AddComponent<GraphicRaycaster>();
 
         controlsPanel = CreatePanel("ControlsPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(18f, -18f), new Vector2(380f, 220f), new Vector2(0f, 1f));
         controlsPanelRect = controlsPanel.GetComponent<RectTransform>();

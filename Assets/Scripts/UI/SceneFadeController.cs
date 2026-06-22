@@ -74,9 +74,37 @@ public class SceneFadeController : MonoBehaviour
         }
     }
 
+    public void CancelAndHide()
+    {
+        if (fadeRoutine != null)
+        {
+            StopCoroutine(fadeRoutine);
+            fadeRoutine = null;
+        }
+
+        if (waitingForGameplayScene)
+        {
+            SceneManager.sceneLoaded -= HandleSceneLoaded;
+            waitingForGameplayScene = false;
+        }
+
+        pendingDelaySeconds = 0f;
+        pendingFadeSeconds = 0f;
+        EnsureUi();
+        canvasGroup.alpha = 0f;
+        canvasGroup.blocksRaycasts = false;
+        canvasGroup.interactable = false;
+        canvasGroup.gameObject.SetActive(false);
+        SetGameplayControl(true);
+    }
+
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (!SceneIds.IsGameplay(scene.name)) return;
+        if (!SceneIds.IsGameplay(scene.name))
+        {
+            CancelAndHide();
+            return;
+        }
 
         SceneManager.sceneLoaded -= HandleSceneLoaded;
         waitingForGameplayScene = false;

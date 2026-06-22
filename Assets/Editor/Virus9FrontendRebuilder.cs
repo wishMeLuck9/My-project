@@ -23,24 +23,15 @@ public static class Virus9FrontendRebuilder
     private const string TmpFallbackFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset";
     private const string TmpLiberationSansFontPath = "Assets/TextMesh Pro/Fonts/LiberationSans.ttf";
     private const string MenuMusicPath = "Assets/Audio/Music/YouMayLive2.mp3";
-    private const string MenuBackgroundPath = "Assets/Art/UI/Menu/MenuBackgroundGrunge.png";
-    private const string MenuBorderPath = "Assets/Art/UI/Menu/MenuPanelBorder.png";
-    private const string MenuButtonPath = "Assets/Art/UI/Menu/MenuButtonRetro.png";
-    private const string MenuSelectPath = "Assets/Art/UI/Menu/MenuSelectHighlight.png";
-    private const string MusicOnPath = "Assets/UI button pack 2/Black/MUSIC-BLACK.png";
-    private const string MusicOffPath = "Assets/UI button pack 2/Black/Music-off-black.png";
-    private const string SoundIconPath = "Assets/UI button pack 2/Black/SOUND-BLACK.png";
-    private const string VideoIconPath = "Assets/UI button pack 2/Black/FULL-SCREEN-BLACK.png";
-    private const string ControlsIconPath = "Assets/UI button pack 2/Black/Settings-Black.png";
-    private const string LanguageIconPath = "Assets/UI button pack 2/Black/CHAT-BLACK.png";
-    private const string AccessibilityIconPath = "Assets/UI button pack 2/Black/Idea-black.png";
-    private const string BackIconPath = "Assets/UI button pack 2/Black/Back-black.png";
-    private const string CloseIconPath = "Assets/UI button pack 2/Black/Close-Black.png";
-    private const string TickIconPath = "Assets/UI button pack 2/Black/Tick-black.png";
-    private const string PauseIconPath = "Assets/UI button pack 2/Black/Pause-black.png";
-    private const string ContinueIconPath = "Assets/UI button pack 2/Black/continue-black.png";
-    private const string MenuIconPath = "Assets/UI button pack 2/Black/Menu-Black.png";
-    private const string InfoIconPath = "Assets/UI button pack 2/Black/info-black.png";
+    private const string MenuSkinFolder = "Assets/Art/UI/Virus9Skin";
+    private const string MenuBackgroundPath = "Assets/Art/UI/Virus9Skin/Virus9_Background.png";
+    private const string MenuBorderPath = "Assets/Art/UI/Virus9Skin/Virus9_PanelBorder.png";
+    private const string MenuBorderThinPath = "Assets/Art/UI/Virus9Skin/Virus9_PanelBorderThin.png";
+    private const string MenuButtonPath = "Assets/Art/UI/Virus9Skin/Virus9_ButtonRetro.png";
+    private const string MenuSelectPath = "Assets/Art/UI/Virus9Skin/Virus9_Select.png";
+    private const string MenuPopupPath = "Assets/Art/UI/Virus9Skin/Virus9_Popup.png";
+    private const string MenuSliderTrackPath = "Assets/Art/UI/Virus9Skin/Virus9_SliderTrack.png";
+    private const string MenuSliderFillPath = "Assets/Art/UI/Virus9Skin/Virus9_SliderFill.png";
     private const string PauseFogTexturePath = "Assets/Art/VFX/JohnLemon/perlinNoise.png";
     private const string PauseDustTexturePath = "Assets/Art/VFX/JohnLemon/DustMote.png";
     private const string PauseAmbiencePath = "Assets/Audio/Ambience/JohnLemon/SFXHouseAmbience.wav";
@@ -97,22 +88,12 @@ public static class Virus9FrontendRebuilder
             PortugueseFont = portugueseFont != null ? portugueseFont : bodyFont;
             Background = LoadSprite(MenuBackgroundPath, Vector4.zero);
             PanelBorder = LoadSprite(MenuBorderPath, new Vector4(22f, 22f, 22f, 22f));
+            PanelBorderThin = LoadSprite(MenuBorderThinPath, new Vector4(14f, 14f, 14f, 14f));
             Button = LoadSprite(MenuButtonPath, new Vector4(18f, 18f, 18f, 18f));
             Select = LoadSprite(MenuSelectPath, new Vector4(18f, 18f, 18f, 18f));
-            MusicOn = LoadSprite(MusicOnPath, Vector4.zero);
-            MusicOff = LoadSprite(MusicOffPath, Vector4.zero);
-            SoundIcon = LoadSprite(SoundIconPath, Vector4.zero);
-            VideoIcon = LoadSprite(VideoIconPath, Vector4.zero);
-            ControlsIcon = LoadSprite(ControlsIconPath, Vector4.zero);
-            LanguageIcon = LoadSprite(LanguageIconPath, Vector4.zero);
-            AccessibilityIcon = LoadSprite(AccessibilityIconPath, Vector4.zero);
-            BackIcon = LoadSprite(BackIconPath, Vector4.zero);
-            CloseIcon = LoadSprite(CloseIconPath, Vector4.zero);
-            TickIcon = LoadSprite(TickIconPath, Vector4.zero);
-            PauseIcon = LoadSprite(PauseIconPath, Vector4.zero);
-            ContinueIcon = LoadSprite(ContinueIconPath, Vector4.zero);
-            MenuIcon = LoadSprite(MenuIconPath, Vector4.zero);
-            InfoIcon = LoadSprite(InfoIconPath, Vector4.zero);
+            Popup = LoadSprite(MenuPopupPath, new Vector4(24f, 24f, 24f, 24f));
+            SliderTrack = LoadSprite(MenuSliderTrackPath, new Vector4(14f, 14f, 14f, 14f));
+            SliderFill = LoadSprite(MenuSliderFillPath, new Vector4(14f, 14f, 14f, 14f));
             PauseFogTexture = LoadRepeatingTexture(PauseFogTexturePath);
             PauseDustTexture = LoadRepeatingTexture(PauseDustTexturePath);
             MenuMusic = AssetDatabase.LoadAssetAtPath<AudioClip>(MenuMusicPath);
@@ -125,22 +106,12 @@ public static class Virus9FrontendRebuilder
         public TMP_FontAsset PortugueseFont { get; }
         public Sprite Background { get; }
         public Sprite PanelBorder { get; }
+        public Sprite PanelBorderThin { get; }
         public Sprite Button { get; }
         public Sprite Select { get; }
-        public Sprite MusicOn { get; }
-        public Sprite MusicOff { get; }
-        public Sprite SoundIcon { get; }
-        public Sprite VideoIcon { get; }
-        public Sprite ControlsIcon { get; }
-        public Sprite LanguageIcon { get; }
-        public Sprite AccessibilityIcon { get; }
-        public Sprite BackIcon { get; }
-        public Sprite CloseIcon { get; }
-        public Sprite TickIcon { get; }
-        public Sprite PauseIcon { get; }
-        public Sprite ContinueIcon { get; }
-        public Sprite MenuIcon { get; }
-        public Sprite InfoIcon { get; }
+        public Sprite Popup { get; }
+        public Sprite SliderTrack { get; }
+        public Sprite SliderFill { get; }
         public Texture2D PauseFogTexture { get; }
         public Texture2D PauseDustTexture { get; }
         public AudioClip MenuMusic { get; }
@@ -155,6 +126,7 @@ public static class Virus9FrontendRebuilder
         Directory.CreateDirectory("Assets/Audio/Music");
         Directory.CreateDirectory("Assets/Audio/Ambience/JohnLemon");
         Directory.CreateDirectory("Assets/Art/UI/Menu");
+        Directory.CreateDirectory(MenuSkinFolder);
         Directory.CreateDirectory("Assets/Art/VFX/JohnLemon");
         Directory.CreateDirectory(Path.GetDirectoryName(CatalogPath) ?? "Assets/Resources/Localization");
     }
@@ -571,7 +543,7 @@ public static class Virus9FrontendRebuilder
 
             foreach (Slider slider in root.GetComponentsInChildren<Slider>(true))
             {
-                StylePauseSlider(slider);
+                StylePauseSlider(slider, skin);
             }
 
             foreach (TMP_Dropdown dropdown in root.GetComponentsInChildren<TMP_Dropdown>(true))
@@ -642,8 +614,8 @@ public static class Virus9FrontendRebuilder
         CanvasGroup group = dimmer.GetComponent<CanvasGroup>();
         if (group == null) group = dimmer.gameObject.AddComponent<CanvasGroup>();
 
-        RawImage fog = EnsureRawOverlay(dimmer, "PauseAtmosphereFog", skin.PauseFogTexture, new Color(0.12f, 0.28f, 0.19f, 0.085f));
-        RawImage dust = EnsureRawOverlay(dimmer, "PauseAtmosphereDust", skin.PauseDustTexture, new Color(0.75f, 0.88f, 0.62f, 0.13f));
+        RawImage fog = EnsureRawOverlay(dimmer, "PauseAtmosphereFog", skin.PauseFogTexture, new Color(0.12f, 0.28f, 0.19f, 0.032f));
+        RawImage dust = EnsureRawOverlay(dimmer, "PauseAtmosphereDust", skin.PauseDustTexture, new Color(0.75f, 0.88f, 0.62f, 0.028f));
 
         AudioSource[] sources = dimmer.GetComponents<AudioSource>();
         while (sources.Length < 2)
@@ -673,11 +645,11 @@ public static class Virus9FrontendRebuilder
         SetObject(serialized, "dustOverlay", dust);
         SetObject(serialized, "ambienceSource", ambienceSource);
         SetObject(serialized, "buzzSource", buzzSource);
-        SetFloat(serialized, "ambienceVolumeScale", 0.22f);
-        SetFloat(serialized, "buzzVolumeScale", 0.08f);
-        SetFloat(serialized, "flickerStrength", 0.04f);
-        SetVector2(serialized, "fogTiling", new Vector2(3.8f, 2.4f));
-        SetVector2(serialized, "dustTiling", new Vector2(6.4f, 3.2f));
+        SetFloat(serialized, "ambienceVolumeScale", 0.16f);
+        SetFloat(serialized, "buzzVolumeScale", 0.04f);
+        SetFloat(serialized, "flickerStrength", 0.01f);
+        SetVector2(serialized, "fogTiling", new Vector2(8.5f, 5.2f));
+        SetVector2(serialized, "dustTiling", new Vector2(18f, 10f));
         serialized.ApplyModifiedPropertiesWithoutUndo();
     }
 
@@ -691,8 +663,8 @@ public static class Virus9FrontendRebuilder
         CanvasGroup group = background.GetComponent<CanvasGroup>();
         if (group == null) group = background.AddComponent<CanvasGroup>();
 
-        RawImage fog = EnsureRawOverlay(rect, "MenuAtmosphereFog", skin.PauseFogTexture, new Color(0.12f, 0.31f, 0.21f, 0.11f));
-        RawImage dust = EnsureRawOverlay(rect, "MenuAtmosphereDust", skin.PauseDustTexture, new Color(0.82f, 0.92f, 0.62f, 0.045f));
+        RawImage fog = EnsureRawOverlay(rect, "MenuAtmosphereFog", skin.PauseFogTexture, new Color(0.12f, 0.31f, 0.21f, 0.026f));
+        RawImage dust = EnsureRawOverlay(rect, "MenuAtmosphereDust", skin.PauseDustTexture, new Color(0.82f, 0.92f, 0.62f, 0.018f));
 
         Type atmosphereType = Type.GetType("PauseMenuAtmosphereController, Assembly-CSharp");
         if (atmosphereType == null)
@@ -712,9 +684,9 @@ public static class Virus9FrontendRebuilder
         SetObject(serialized, "buzzSource", null);
         SetFloat(serialized, "ambienceVolumeScale", 0f);
         SetFloat(serialized, "buzzVolumeScale", 0f);
-        SetFloat(serialized, "flickerStrength", 0.018f);
-        SetVector2(serialized, "fogTiling", new Vector2(5.2f, 3.1f));
-        SetVector2(serialized, "dustTiling", new Vector2(14f, 8f));
+        SetFloat(serialized, "flickerStrength", 0.006f);
+        SetVector2(serialized, "fogTiling", new Vector2(9f, 5.5f));
+        SetVector2(serialized, "dustTiling", new Vector2(22f, 12f));
         serialized.ApplyModifiedPropertiesWithoutUndo();
     }
 
@@ -730,7 +702,7 @@ public static class Virus9FrontendRebuilder
         image.color = color;
         image.raycastTarget = false;
 
-        overlay.transform.SetAsLastSibling();
+        overlay.transform.SetAsFirstSibling();
         return image;
     }
 
@@ -763,7 +735,7 @@ public static class Virus9FrontendRebuilder
         Image grungeImage = grunge.GetComponent<Image>();
         if (grungeImage == null) grungeImage = grunge.AddComponent<Image>();
         grungeImage.sprite = skin.Background;
-        grungeImage.color = new Color(0.22f, 0.34f, 0.22f, 0.2f);
+        grungeImage.color = new Color(0.22f, 0.34f, 0.22f, 0.08f);
         grungeImage.preserveAspect = false;
         grungeImage.raycastTarget = false;
         grunge.transform.SetAsFirstSibling();
@@ -787,62 +759,31 @@ public static class Virus9FrontendRebuilder
 
     private static void DecoratePauseButtons(GameObject root, FrontendSkin skin)
     {
-        AddIconToButton(FindButton(root, "ResumeButton"), skin.ContinueIcon, skin);
-        AddIconToButton(FindButton(root, "SettingsButton"), skin.ControlsIcon, skin);
-        AddIconToButton(FindButton(root, "LoadSaveButton"), skin.MenuIcon, skin);
-        AddIconToButton(FindButton(root, "MainMenuButton"), skin.BackIcon, skin);
-        AddIconToButton(FindButton(root, "ExitButton"), skin.CloseIcon, skin);
-        AddIconToButton(FindButton(root, "ConfirmYesButton"), skin.TickIcon, skin);
-        AddIconToButton(FindButton(root, "ConfirmNoButton"), skin.CloseIcon, skin);
-
-        AddIconToButton(FindButton(root, "Tab_0"), skin.SoundIcon, skin);
-        AddIconToButton(FindButton(root, "Tab_1"), skin.VideoIcon, skin);
-        AddIconToButton(FindButton(root, "Tab_2"), skin.ControlsIcon, skin);
-        AddIconToButton(FindButton(root, "Tab_3"), skin.LanguageIcon, skin);
-        AddIconToButton(FindButton(root, "Tab_4"), skin.AccessibilityIcon, skin);
-
         foreach (Button button in root.GetComponentsInChildren<Button>(true))
         {
-            if (button != null && button.gameObject.name.IndexOf("BackButton", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                AddIconToButton(button, skin.BackIcon, skin);
-            }
+            ResetTextOnlyButton(button);
         }
     }
 
-    private static void AddIconToButton(Button button, Sprite icon, FrontendSkin skin)
+    private static void ResetTextOnlyButton(Button button)
     {
-        if (button == null || icon == null) return;
+        if (button == null) return;
 
-        GameObject badge = EnsureChildObject(button.transform, "HudIconBadge");
-        RectTransform badgeRect = badge.GetComponent<RectTransform>();
-        SetRect(badgeRect, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(13f, 0f), new Vector2(30f, 30f));
-        Image badgeImage = badge.GetComponent<Image>();
-        if (badgeImage == null) badgeImage = badge.AddComponent<Image>();
-        badgeImage.sprite = skin.Select != null ? skin.Select : skin.Button;
-        badgeImage.type = badgeImage.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
-        badgeImage.color = new Color(0.62f, 0.92f, 0.7f, 0.82f);
-        badgeImage.raycastTarget = false;
-
-        GameObject iconObject = EnsureChildObject(button.transform, "HudIcon");
-        RectTransform iconRect = iconObject.GetComponent<RectTransform>();
-        SetRect(iconRect, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(17f, 0f), new Vector2(22f, 22f));
-        Image iconImage = iconObject.GetComponent<Image>();
-        if (iconImage == null) iconImage = iconObject.AddComponent<Image>();
-        iconImage.sprite = icon;
-        iconImage.color = Color.white;
-        iconImage.preserveAspect = true;
-        iconImage.raycastTarget = false;
-
-        badge.transform.SetSiblingIndex(0);
-        iconObject.transform.SetSiblingIndex(1);
+        RemoveChild(button.transform, "HudIconBadge");
+        RemoveChild(button.transform, "HudIcon");
 
         foreach (TMP_Text label in button.GetComponentsInChildren<TMP_Text>(true))
         {
             RectTransform labelRect = label.GetComponent<RectTransform>();
-            SetStretchOffsets(labelRect, new Vector2(52f, 0f), new Vector2(-12f, 0f));
-            label.alignment = TextAlignmentOptions.MidlineLeft;
+            SetStretchOffsets(labelRect, new Vector2(12f, 0f), new Vector2(-12f, 0f));
+            label.alignment = TextAlignmentOptions.Center;
         }
+    }
+
+    private static void RemoveChild(Transform parent, string name)
+    {
+        Transform child = parent != null ? parent.Find(name) : null;
+        if (child != null) UnityEngine.Object.DestroyImmediate(child.gameObject);
     }
 
     private static void StylePauseImage(Image image, FrontendSkin skin)
@@ -855,8 +796,7 @@ public static class Virus9FrontendRebuilder
                            objectName.IndexOf("Row", StringComparison.OrdinalIgnoreCase) >= 0 ||
                            objectName.IndexOf("Content", StringComparison.OrdinalIgnoreCase) >= 0;
 
-        if (objectName == "HudIcon" || objectName == "HudIconBadge" || objectName == "GrungeOverlay" ||
-            objectName == "TopAccent" || objectName == "BottomAccent")
+        if (objectName == "GrungeOverlay" || objectName == "TopAccent" || objectName == "BottomAccent")
         {
             return;
         }
@@ -869,8 +809,8 @@ public static class Virus9FrontendRebuilder
 
         if (objectName == "Checkmark" || objectName == "Item Checkmark")
         {
-            image.sprite = skin.TickIcon;
-            image.type = Image.Type.Simple;
+            image.sprite = skin.Select;
+            image.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
             image.color = new Color(1f, 0.58f, 0.14f, 1f);
             image.preserveAspect = true;
             return;
@@ -886,8 +826,10 @@ public static class Virus9FrontendRebuilder
 
         if (isMainPanel)
         {
-            image.sprite = skin.PanelBorder;
-            image.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
+            bool secondaryPanel = objectName.IndexOf("Row", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                  objectName.IndexOf("Content", StringComparison.OrdinalIgnoreCase) >= 0;
+            image.sprite = secondaryPanel && skin.PanelBorderThin != null ? skin.PanelBorderThin : skin.PanelBorder;
+            image.type = image.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
             image.color = PanelStrongColor;
         }
     }
@@ -906,32 +848,41 @@ public static class Virus9FrontendRebuilder
         button.colors = colors;
     }
 
-    private static void StylePauseSlider(Slider slider)
+    private static void StylePauseSlider(Slider slider, FrontendSkin skin)
     {
         if (slider == null) return;
 
-        Image target = slider.targetGraphic as Image;
-        if (target != null)
+        Transform backgroundTransform = slider.transform.Find("Background");
+        Image background = backgroundTransform != null ? backgroundTransform.GetComponent<Image>() : null;
+        if (background != null)
         {
-            target.sprite = null;
-            target.type = Image.Type.Simple;
-            target.color = new Color(0.035f, 0.12f, 0.14f, 1f);
+            background.sprite = skin.SliderTrack;
+            background.type = skin.SliderTrack != null ? Image.Type.Sliced : Image.Type.Simple;
+            background.color = new Color(0.03f, 0.078f, 0.055f, 0.96f);
+        }
+
+        Image target = slider.targetGraphic as Image;
+        if (target != null && slider.handleRect != null && target.transform == slider.handleRect)
+        {
+            target.sprite = skin.Select;
+            target.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
+            target.color = new Color(0.86f, 0.55f, 0.19f, 1f);
         }
 
         Image fill = slider.fillRect != null ? slider.fillRect.GetComponent<Image>() : null;
         if (fill != null)
         {
-            fill.sprite = null;
-            fill.type = Image.Type.Simple;
-            fill.color = AccentColor;
+            fill.sprite = skin.SliderFill;
+            fill.type = skin.SliderFill != null ? Image.Type.Sliced : Image.Type.Simple;
+            fill.color = new Color(0.62f, 0.86f, 0.64f, 0.96f);
         }
 
         Image handle = slider.handleRect != null ? slider.handleRect.GetComponent<Image>() : null;
         if (handle != null)
         {
-            handle.sprite = null;
-            handle.type = Image.Type.Simple;
-            handle.color = new Color(1f, 0.58f, 0.14f, 1f);
+            handle.sprite = skin.Select;
+            handle.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
+            handle.color = new Color(0.86f, 0.55f, 0.19f, 1f);
         }
     }
 
@@ -955,8 +906,8 @@ public static class Virus9FrontendRebuilder
             Image templateImage = dropdown.template.GetComponent<Image>();
             if (templateImage != null)
             {
-                templateImage.sprite = skin.PanelBorder;
-                templateImage.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
+                templateImage.sprite = skin.Popup != null ? skin.Popup : skin.PanelBorder;
+                templateImage.type = templateImage.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
                 templateImage.color = PanelStrongColor;
             }
 
@@ -965,16 +916,16 @@ public static class Virus9FrontendRebuilder
                 if (templateChildImage == null || templateChildImage == templateImage) continue;
                 if (templateChildImage.gameObject.name == "Item Checkmark")
                 {
-                    templateChildImage.sprite = skin.TickIcon;
-                    templateChildImage.type = Image.Type.Simple;
+                    templateChildImage.sprite = skin.Select;
+                    templateChildImage.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
                     templateChildImage.preserveAspect = true;
-                    templateChildImage.color = new Color(1f, 0.58f, 0.14f, 1f);
+                    templateChildImage.color = new Color(0.86f, 0.55f, 0.19f, 1f);
                 }
                 else
                 {
                     templateChildImage.sprite = skin.Select != null ? skin.Select : skin.Button;
                     templateChildImage.type = templateChildImage.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
-                    templateChildImage.color = new Color(0.018f, 0.07f, 0.075f, 0.94f);
+                    templateChildImage.color = new Color(0.026f, 0.075f, 0.052f, 0.94f);
                 }
             }
         }
@@ -1018,10 +969,10 @@ public static class Virus9FrontendRebuilder
         Image check = toggle.graphic as Image;
         if (check != null)
         {
-            check.sprite = skin.TickIcon;
-            check.type = Image.Type.Simple;
+            check.sprite = skin.Select;
+            check.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
             check.preserveAspect = true;
-            check.color = new Color(1f, 0.58f, 0.14f, 1f);
+            check.color = new Color(0.86f, 0.55f, 0.19f, 1f);
         }
     }
 
@@ -1116,8 +1067,26 @@ public static class Virus9FrontendRebuilder
 
     private static void CreateMenuMusic(Transform parent, FrontendSkin skin)
     {
-        Button toggle = CreateSpriteButton(parent, "MusicToggleButton", skin.MusicOn, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-300f, -20f), new Vector2(40f, 40f));
-        Image icon = toggle.GetComponent<Image>();
+        GameObject toggleObject = CreateUiObject("MusicToggleButton", parent, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-42f, -68f), new Vector2(150f, 34f));
+        Image toggleImage = toggleObject.AddComponent<Image>();
+        toggleImage.sprite = skin.Button;
+        toggleImage.type = skin.Button != null ? Image.Type.Sliced : Image.Type.Simple;
+        toggleImage.color = new Color(0.018f, 0.04f, 0.034f, 0.86f);
+
+        Button toggle = toggleObject.AddComponent<Button>();
+        toggle.targetGraphic = toggleImage;
+        ColorBlock colors = toggle.colors;
+        colors.normalColor = toggleImage.color;
+        colors.highlightedColor = new Color(0.075f, 0.17f, 0.14f, 0.94f);
+        colors.pressedColor = new Color(0.86f, 0.55f, 0.19f, 1f);
+        colors.selectedColor = new Color(0.06f, 0.14f, 0.12f, 0.94f);
+        colors.disabledColor = new Color(0.02f, 0.03f, 0.028f, 0.58f);
+        toggle.colors = colors;
+
+        TMP_Text toggleLabel = CreateText(toggleObject.transform, "Label", "MUSIC ON", skin.DisplayFont, 14f, TextAlignmentOptions.Center, TextColor);
+        SetRect(toggleLabel.rectTransform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        toggleLabel.fontSizeMin = 10f;
+        toggleLabel.fontSizeMax = 14f;
 
         GameObject musicObject = new GameObject("MenuMusic", typeof(AudioSource));
         musicObject.transform.SetParent(parent, false);
@@ -1131,9 +1100,10 @@ public static class Virus9FrontendRebuilder
         SerializedObject serialized = new SerializedObject(musicController);
         SetObject(serialized, "musicClip", skin.MenuMusic);
         SetObject(serialized, "toggleButton", toggle);
-        SetObject(serialized, "toggleIcon", icon);
-        SetObject(serialized, "musicOnSprite", skin.MusicOn);
-        SetObject(serialized, "musicOffSprite", skin.MusicOff);
+        SetObject(serialized, "toggleIcon", null);
+        SetObject(serialized, "toggleLabel", toggleLabel);
+        SetObject(serialized, "musicOnSprite", null);
+        SetObject(serialized, "musicOffSprite", null);
         SetFloat(serialized, "menuVolumeScale", 0.65f);
         serialized.ApplyModifiedPropertiesWithoutUndo();
     }
@@ -1159,7 +1129,6 @@ public static class Virus9FrontendRebuilder
         subtitle.textWrappingMode = TextWrappingModes.Normal;
 
         Button startButton = CreateMenuButton(panel.transform, "StartButton", "menu.start", "START", skin, new Vector2(102f, -116f), new Vector2(260f, 48f));
-        AddIconToButton(startButton, skin.ContinueIcon, skin);
         startButton.navigation = Navigation.defaultNavigation;
         return panel;
     }
@@ -1196,12 +1165,6 @@ public static class Virus9FrontendRebuilder
         settingsButton = CreateMenuButton(rail.transform, "SettingsButton", "menu.settings", "SETTINGS", skin, new Vector2(24f, startY - step * 3f), new Vector2(300f, 43f));
         creditsButton = CreateMenuButton(rail.transform, "CreditsButton", "menu.credits", "CREDITS", skin, new Vector2(24f, startY - step * 4f), new Vector2(300f, 43f));
         exitButton = CreateMenuButton(rail.transform, "ExitButton", "menu.exit", "EXIT", skin, new Vector2(24f, startY - step * 5f), new Vector2(300f, 43f));
-        AddIconToButton(newGameButton, skin.ContinueIcon, skin);
-        AddIconToButton(continueButton, skin.ContinueIcon, skin);
-        AddIconToButton(loadSaveButton, skin.MenuIcon, skin);
-        AddIconToButton(settingsButton, skin.ControlsIcon, skin);
-        AddIconToButton(creditsButton, skin.InfoIcon, skin);
-        AddIconToButton(exitButton, skin.CloseIcon, skin);
         return panel;
     }
 
@@ -1246,11 +1209,11 @@ public static class Virus9FrontendRebuilder
         TMP_Text title = CreateLocalizedText(panel.transform, "SettingsTitle", "settings.title", "SETTINGS", skin.DisplayFont, 34f, TextAlignmentOptions.Center, TextColor);
         SetRect(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -24f), new Vector2(700f, 50f));
 
-        Button audioTab = CreateSettingsTab(panel.transform, "AudioTabButton", "settings.audio", "AUDIO", skin.SoundIcon, skin, 0);
-        Button videoTab = CreateSettingsTab(panel.transform, "VideoTabButton", "settings.video", "VIDEO", skin.VideoIcon, skin, 1);
-        Button controlsTab = CreateSettingsTab(panel.transform, "ControlsTabButton", "settings.controls", "CONTROLS", skin.ControlsIcon, skin, 2);
-        Button languageTab = CreateSettingsTab(panel.transform, "LanguageTabButton", "settings.language", "LANGUAGE", skin.LanguageIcon, skin, 3);
-        Button accessibilityTab = CreateSettingsTab(panel.transform, "AccessibilityTabButton", "settings.accessibility", "ACCESSIBILITY", skin.AccessibilityIcon, skin, 4);
+        Button audioTab = CreateSettingsTab(panel.transform, "AudioTabButton", "settings.audio", "AUDIO", skin, 0);
+        Button videoTab = CreateSettingsTab(panel.transform, "VideoTabButton", "settings.video", "VIDEO", skin, 1);
+        Button controlsTab = CreateSettingsTab(panel.transform, "ControlsTabButton", "settings.controls", "CONTROLS", skin, 2);
+        Button languageTab = CreateSettingsTab(panel.transform, "LanguageTabButton", "settings.language", "LANGUAGE", skin, 3);
+        Button accessibilityTab = CreateSettingsTab(panel.transform, "AccessibilityTabButton", "settings.accessibility", "ACCESSIBILITY", skin, 4);
 
         GameObject audioPanel = CreateSettingsContentPanel(panel.transform, "AudioContentPanel", skin);
         GameObject videoPanel = CreateSettingsContentPanel(panel.transform, "VideoContentPanel", skin);
@@ -1290,7 +1253,6 @@ public static class Virus9FrontendRebuilder
         Toggle simplePrompts = CreateSettingsToggle(accessibilityPanel.transform, "simplePrompts", "settings.simple_prompts", "SIMPLE INTERACTION PROMPTS", skin);
 
         Button backButton = CreateMenuButton(panel.transform, "SettingsBackButton", "menu.back", "BACK", skin, new Vector2(0f, 30f), new Vector2(220f, 40f), true);
-        AddIconToButton(backButton, skin.BackIcon, skin);
 
         SetActiveForPrefab(audioPanel, true);
         SetActiveForPrefab(videoPanel, false);
@@ -1330,10 +1292,9 @@ public static class Virus9FrontendRebuilder
         return panel;
     }
 
-    private static Button CreateSettingsTab(Transform parent, string name, string key, string fallback, Sprite icon, FrontendSkin skin, int index)
+    private static Button CreateSettingsTab(Transform parent, string name, string key, string fallback, FrontendSkin skin, int index)
     {
         Button button = CreateMenuButton(parent, name, key, fallback, skin, new Vector2(24f, -112f - index * 56f), new Vector2(210f, 42f));
-        AddIconToButton(button, icon, skin);
         return button;
     }
 
@@ -1341,8 +1302,8 @@ public static class Virus9FrontendRebuilder
     {
         GameObject panel = CreateUiObject(name, parent, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(260f, -112f), new Vector2(620f, 378f));
         Image image = panel.AddComponent<Image>();
-        image.sprite = skin.PanelBorder;
-        image.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
+        image.sprite = skin.PanelBorderThin != null ? skin.PanelBorderThin : skin.PanelBorder;
+        image.type = image.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
         image.color = new Color(0.022f, 0.052f, 0.04f, 0.92f);
         AddPanelTexture(panel.GetComponent<RectTransform>(), skin);
         return panel;
@@ -1360,17 +1321,23 @@ public static class Virus9FrontendRebuilder
 
         GameObject background = CreateUiObject("Background", root.transform, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(0f, 8f));
         Image backgroundImage = background.AddComponent<Image>();
-        backgroundImage.color = new Color(0.035f, 0.12f, 0.14f, 1f);
+        backgroundImage.sprite = skin.SliderTrack;
+        backgroundImage.type = skin.SliderTrack != null ? Image.Type.Sliced : Image.Type.Simple;
+        backgroundImage.color = new Color(0.03f, 0.078f, 0.055f, 0.96f);
 
         GameObject fillArea = CreateUiObject("Fill Area", root.transform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(-18f, 0f));
         GameObject fill = CreateUiObject("Fill", fillArea.transform, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(0f, 10f));
         Image fillImage = fill.AddComponent<Image>();
-        fillImage.color = AccentColor;
+        fillImage.sprite = skin.SliderFill;
+        fillImage.type = skin.SliderFill != null ? Image.Type.Sliced : Image.Type.Simple;
+        fillImage.color = new Color(0.62f, 0.86f, 0.64f, 0.96f);
 
         GameObject handleArea = CreateUiObject("Handle Slide Area", root.transform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(-18f, 0f));
         GameObject handle = CreateUiObject("Handle", handleArea.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(18f, 42f));
         Image handleImage = handle.AddComponent<Image>();
-        handleImage.color = new Color(1f, 0.58f, 0.14f, 1f);
+        handleImage.sprite = skin.Select;
+        handleImage.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
+        handleImage.color = new Color(0.86f, 0.55f, 0.19f, 1f);
 
         slider.targetGraphic = handleImage;
         slider.fillRect = fill.GetComponent<RectTransform>();
@@ -1395,13 +1362,16 @@ public static class Virus9FrontendRebuilder
 
         GameObject background = CreateUiObject("Background", root.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(22f, 22f));
         Image backgroundImage = background.AddComponent<Image>();
-        backgroundImage.color = new Color(0.06f, 0.18f, 0.12f, 1f);
+        backgroundImage.sprite = skin.Select;
+        backgroundImage.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
+        backgroundImage.color = new Color(0.04f, 0.12f, 0.075f, 1f);
 
         GameObject checkmark = CreateUiObject("Checkmark", background.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(16f, 16f));
         Image checkmarkImage = checkmark.AddComponent<Image>();
-        checkmarkImage.sprite = skin.TickIcon;
+        checkmarkImage.sprite = skin.Select;
+        checkmarkImage.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
         checkmarkImage.preserveAspect = true;
-        checkmarkImage.color = new Color(1f, 0.58f, 0.14f, 1f);
+        checkmarkImage.color = new Color(0.86f, 0.55f, 0.19f, 1f);
 
         TMP_Text label = CreateLocalizedText(root.transform, "Label", key, fallback, skin.BodyFont, 16f, TextAlignmentOptions.MidlineLeft, TextColor);
         SetRect(label.rectTransform, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 0.5f), new Vector2(34f, 0f), new Vector2(-34f, 30f));
@@ -1429,8 +1399,8 @@ public static class Virus9FrontendRebuilder
             float y = 132f - i * 94f;
             GameObject row = CreateUiObject($"Slot{i + 1}_Row", panel.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, y), new Vector2(640f, 72f));
             Image rowImage = row.AddComponent<Image>();
-            rowImage.sprite = skin.PanelBorder;
-            rowImage.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
+            rowImage.sprite = skin.PanelBorderThin != null ? skin.PanelBorderThin : skin.PanelBorder;
+            rowImage.type = rowImage.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
             rowImage.color = PanelColor;
 
             slotLabels[i] = CreateText(row.transform, $"Slot{i + 1}_Label", $"SLOT {i + 1}", skin.BodyFont, 17f, TextAlignmentOptions.MidlineLeft, TextColor);
@@ -1466,7 +1436,7 @@ public static class Virus9FrontendRebuilder
             GameObject grunge = CreateUiObject("MenuBackgroundGrunge", background.transform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
             Image grungeImage = grunge.AddComponent<Image>();
             grungeImage.sprite = skin.Background;
-            grungeImage.color = new Color(0.24f, 0.36f, 0.22f, 0.38f);
+            grungeImage.color = new Color(0.24f, 0.36f, 0.22f, 0.14f);
             grungeImage.preserveAspect = false;
             grungeImage.raycastTarget = false;
         }
@@ -1517,6 +1487,11 @@ public static class Virus9FrontendRebuilder
         image.type = skin.Button != null ? Image.Type.Sliced : Image.Type.Simple;
         image.color = ButtonColor;
 
+        GameObject line = CreateUiObject("LineAccent", buttonObject.transform, new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(8f, 0f), new Vector2(3f, -14f));
+        Image lineImage = line.AddComponent<Image>();
+        lineImage.color = new Color(0.86f, 0.55f, 0.19f, 0.72f);
+        lineImage.raycastTarget = false;
+
         Button button = buttonObject.AddComponent<Button>();
         button.targetGraphic = image;
         ColorBlock colors = button.colors;
@@ -1535,31 +1510,13 @@ public static class Virus9FrontendRebuilder
         return button;
     }
 
-    private static Button CreateSpriteButton(Transform parent, string name, Sprite sprite, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 position, Vector2 size)
-    {
-        GameObject buttonObject = CreateUiObject(name, parent, anchorMin, anchorMax, pivot, position, size);
-        Image image = buttonObject.AddComponent<Image>();
-        image.sprite = sprite;
-        image.color = Color.white;
-        image.preserveAspect = true;
-
-        Button button = buttonObject.AddComponent<Button>();
-        button.targetGraphic = image;
-        ColorBlock colors = button.colors;
-        colors.highlightedColor = new Color(0.78f, 1f, 0.94f, 1f);
-        colors.pressedColor = new Color(0.45f, 0.88f, 0.78f, 1f);
-        colors.selectedColor = Color.white;
-        button.colors = colors;
-        return button;
-    }
-
     private static TMP_Dropdown CreateDropdown(Transform parent, string name, FrontendSkin skin, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 position, Vector2 size)
     {
         GameObject root = CreateUiObject(name, parent, anchorMin, anchorMax, pivot, position, size);
         Image image = root.AddComponent<Image>();
         image.sprite = skin.Button;
         image.type = skin.Button != null ? Image.Type.Sliced : Image.Type.Simple;
-        image.color = new Color(0.026f, 0.06f, 0.068f, 0.98f);
+        image.color = new Color(0.018f, 0.04f, 0.034f, 0.98f);
 
         TMP_Dropdown dropdown = root.AddComponent<TMP_Dropdown>();
         dropdown.targetGraphic = image;
@@ -1577,9 +1534,9 @@ public static class Virus9FrontendRebuilder
 
         GameObject template = CreateUiObject("Template", root.transform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 1f), new Vector2(0f, -3f), new Vector2(0f, 112f));
         Image templateImage = template.AddComponent<Image>();
-        templateImage.sprite = skin.PanelBorder;
-        templateImage.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
-        templateImage.color = new Color(0.012f, 0.032f, 0.036f, 0.995f);
+        templateImage.sprite = skin.Popup != null ? skin.Popup : skin.PanelBorder;
+        templateImage.type = templateImage.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        templateImage.color = new Color(0.014f, 0.036f, 0.028f, 0.995f);
         ScrollRect scrollRect = template.AddComponent<ScrollRect>();
         template.AddComponent<CanvasGroup>();
 
@@ -1617,9 +1574,9 @@ public static class Virus9FrontendRebuilder
         toggle.transition = Selectable.Transition.ColorTint;
         ColorBlock toggleColors = toggle.colors;
         toggleColors.normalColor = new Color(1f, 1f, 1f, 0.45f);
-        toggleColors.highlightedColor = new Color(0.34f, 0.9f, 0.78f, 0.85f);
-        toggleColors.pressedColor = new Color(0.2f, 0.55f, 0.5f, 0.95f);
-        toggleColors.selectedColor = new Color(0.22f, 0.68f, 0.6f, 0.95f);
+        toggleColors.highlightedColor = new Color(0.46f, 0.72f, 0.52f, 0.85f);
+        toggleColors.pressedColor = new Color(0.86f, 0.55f, 0.19f, 0.95f);
+        toggleColors.selectedColor = new Color(0.38f, 0.62f, 0.46f, 0.95f);
         toggle.colors = toggleColors;
 
         TMP_Text itemLabel = CreateText(item.transform, "Item Label", "Option", skin.BodyFont, 15f, TextAlignmentOptions.MidlineLeft, TextColor);

@@ -29,6 +29,7 @@ public class FrontendMenuController : MonoBehaviour
 
     private void Awake()
     {
+        CleanupRuntimeOverlays();
         Time.timeScale = 1f;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -160,6 +161,16 @@ public class FrontendMenuController : MonoBehaviour
     private void RefreshContinueButton()
     {
         if (continueButton != null) continueButton.interactable = SaveGameManager.EnsureInstance().HasAnySave();
+    }
+
+    private static void CleanupRuntimeOverlays()
+    {
+        PauseMenuController.Instance?.ForceCloseForFrontend();
+        RuntimeHudController.Instance?.HideForFrontend();
+        SceneFadeController.Instance?.CancelAndHide();
+        Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     private static void QuitGame()

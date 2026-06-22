@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 [RequireComponent(typeof(AudioSource))]
 public class MenuMusicController : MonoBehaviour
@@ -9,6 +10,7 @@ public class MenuMusicController : MonoBehaviour
     [SerializeField] private AudioClip musicClip;
     [SerializeField] private Button toggleButton;
     [SerializeField] private Image toggleIcon;
+    [SerializeField] private TMP_Text toggleLabel;
     [SerializeField] private Sprite musicOnSprite;
     [SerializeField] private Sprite musicOffSprite;
     [SerializeField, Range(0f, 1f)] private float menuVolumeScale = 0.65f;
@@ -65,6 +67,12 @@ public class MenuMusicController : MonoBehaviour
         {
             toggleIcon.sprite = shouldMute ? musicOffSprite : musicOnSprite;
             toggleIcon.preserveAspect = true;
+            toggleIcon.enabled = toggleIcon.sprite != null;
+        }
+
+        if (toggleLabel != null)
+        {
+            toggleLabel.text = shouldMute ? "MUSIC OFF" : "MUSIC ON";
         }
     }
 }
