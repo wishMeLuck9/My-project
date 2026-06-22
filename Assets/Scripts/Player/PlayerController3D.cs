@@ -113,7 +113,7 @@ public class PlayerController3D : MonoBehaviour
         if (cameraTransform == null && Camera.main != null)
             cameraTransform = Camera.main.transform;
 
-        if (rb == null || cameraTransform == null) return;
+        if (rb == null || cameraTransform == null || !canMove || rb.isKinematic) return;
 
         if (Time.time < externalImpulseControlLockedUntil) return;
 
@@ -150,7 +150,7 @@ public class PlayerController3D : MonoBehaviour
     public void SetCanMove(bool state)
     {
         canMove = state;
-        if (!state && rb != null) rb.linearVelocity = Vector3.zero;
+        if (!state) ClearVelocityIfDynamic(rb);
     }
 
     public void ApplyTimedSpeedMultiplier(float multiplier, float duration)
@@ -161,7 +161,7 @@ public class PlayerController3D : MonoBehaviour
 
     public void ApplyExternalImpulse(Vector3 impulse, float controlLockDuration = 0.18f)
     {
-        if (rb == null || !canMove) return;
+        if (rb == null || !canMove || rb.isKinematic) return;
 
         rb.AddForce(impulse, ForceMode.VelocityChange);
         externalImpulseControlLockedUntil = Mathf.Max(
@@ -190,8 +190,7 @@ public class PlayerController3D : MonoBehaviour
         {
             rb.position = position;
             rb.rotation = rotation;
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+            ClearVelocityIfDynamic(rb);
         }
 
         transform.SetPositionAndRotation(position, rotation);
@@ -199,13 +198,21 @@ public class PlayerController3D : MonoBehaviour
 
     private void TryJump()
     {
-        if (rb == null || !CheckGrounded()) return;
+        if (rb == null || rb.isKinematic || !canMove || !CheckGrounded()) return;
 
         Vector3 velocity = rb.linearVelocity;
         velocity.y = 0f;
         rb.linearVelocity = velocity;
         rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         ResolveVisualAnimator()?.PlayJump(IsRunning);
+    }
+
+    private static void ClearVelocityIfDynamic(Rigidbody target)
+    {
+        if (target == null || target.isKinematic) return;
+
+        target.linearVelocity = Vector3.zero;
+        target.angularVelocity = Vector3.zero;
     }
 
     private bool CheckGrounded()

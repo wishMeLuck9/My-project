@@ -448,16 +448,19 @@ public class ExteriorBoundaryController : MonoBehaviour
         {
             playerBody.position = position;
 
-            Vector3 velocity = playerBody.linearVelocity;
-            Vector3 horizontal = new Vector3(velocity.x, 0f, velocity.z);
-            if (outward.sqrMagnitude > 0.0001f)
+            if (!playerBody.isKinematic)
             {
-                Vector3 normal = outward.normalized;
-                float outwardSpeed = Vector3.Dot(horizontal, normal);
-                if (outwardSpeed > 0f) horizontal -= normal * outwardSpeed;
-            }
+                Vector3 velocity = playerBody.linearVelocity;
+                Vector3 horizontal = new Vector3(velocity.x, 0f, velocity.z);
+                if (outward.sqrMagnitude > 0.0001f)
+                {
+                    Vector3 normal = outward.normalized;
+                    float outwardSpeed = Vector3.Dot(horizontal, normal);
+                    if (outwardSpeed > 0f) horizontal -= normal * outwardSpeed;
+                }
 
-            playerBody.linearVelocity = new Vector3(horizontal.x, velocity.y, horizontal.z);
+                playerBody.linearVelocity = new Vector3(horizontal.x, velocity.y, horizontal.z);
+            }
         }
 
         player.transform.position = position;

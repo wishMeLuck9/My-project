@@ -26,16 +26,31 @@ public static class Virus9FrontendRebuilder
     private const string MenuSelectPath = "Assets/Art/UI/Menu/MenuSelectHighlight.png";
     private const string MusicOnPath = "Assets/UI button pack 2/Black/MUSIC-BLACK.png";
     private const string MusicOffPath = "Assets/UI button pack 2/Black/Music-off-black.png";
+    private const string SoundIconPath = "Assets/UI button pack 2/Black/SOUND-BLACK.png";
+    private const string VideoIconPath = "Assets/UI button pack 2/Black/FULL-SCREEN-BLACK.png";
+    private const string ControlsIconPath = "Assets/UI button pack 2/Black/Settings-Black.png";
+    private const string LanguageIconPath = "Assets/UI button pack 2/Black/CHAT-BLACK.png";
+    private const string AccessibilityIconPath = "Assets/UI button pack 2/Black/Idea-black.png";
+    private const string BackIconPath = "Assets/UI button pack 2/Black/Back-black.png";
+    private const string CloseIconPath = "Assets/UI button pack 2/Black/Close-Black.png";
+    private const string TickIconPath = "Assets/UI button pack 2/Black/Tick-black.png";
+    private const string PauseIconPath = "Assets/UI button pack 2/Black/Pause-black.png";
+    private const string ContinueIconPath = "Assets/UI button pack 2/Black/continue-black.png";
+    private const string MenuIconPath = "Assets/UI button pack 2/Black/Menu-Black.png";
+    private const string PauseFogTexturePath = "Assets/Art/VFX/JohnLemon/perlinNoise.png";
+    private const string PauseDustTexturePath = "Assets/Art/VFX/JohnLemon/DustMote.png";
+    private const string PauseAmbiencePath = "Assets/Audio/Ambience/JohnLemon/SFXHouseAmbience.wav";
+    private const string PauseBuzzPath = "Assets/Audio/Ambience/JohnLemon/SFXBuzzingLight.wav";
 
     private static readonly Vector2 ReferenceResolution = new Vector2(1280f, 720f);
-    private static readonly Color BackgroundColor = new Color(0.006f, 0.01f, 0.014f, 1f);
-    private static readonly Color PanelColor = new Color(0.017f, 0.042f, 0.048f, 0.92f);
-    private static readonly Color PanelStrongColor = new Color(0.026f, 0.066f, 0.074f, 0.96f);
-    private static readonly Color ButtonColor = new Color(0.035f, 0.09f, 0.095f, 0.98f);
-    private static readonly Color AccentColor = new Color(0.25f, 0.86f, 0.74f, 1f);
-    private static readonly Color AccentMutedColor = new Color(0.12f, 0.38f, 0.36f, 1f);
-    private static readonly Color TextColor = new Color(0.88f, 0.96f, 0.92f, 1f);
-    private static readonly Color MutedTextColor = new Color(0.55f, 0.72f, 0.68f, 1f);
+    private static readonly Color BackgroundColor = new Color(0.006f, 0.008f, 0.007f, 1f);
+    private static readonly Color PanelColor = new Color(0.018f, 0.032f, 0.027f, 0.88f);
+    private static readonly Color PanelStrongColor = new Color(0.024f, 0.046f, 0.036f, 0.9f);
+    private static readonly Color ButtonColor = new Color(0.025f, 0.054f, 0.045f, 0.96f);
+    private static readonly Color AccentColor = new Color(0.68f, 0.94f, 0.78f, 1f);
+    private static readonly Color AccentMutedColor = new Color(0.16f, 0.32f, 0.24f, 1f);
+    private static readonly Color TextColor = new Color(0.9f, 0.96f, 0.88f, 1f);
+    private static readonly Color MutedTextColor = new Color(0.62f, 0.78f, 0.68f, 1f);
 
     [MenuItem("VIRUS9/Rebuild Frontend From Scratch")]
     public static void RebuildFrontendFromScratch()
@@ -77,7 +92,22 @@ public static class Virus9FrontendRebuilder
             Select = LoadSprite(MenuSelectPath, new Vector4(18f, 18f, 18f, 18f));
             MusicOn = LoadSprite(MusicOnPath, Vector4.zero);
             MusicOff = LoadSprite(MusicOffPath, Vector4.zero);
+            SoundIcon = LoadSprite(SoundIconPath, Vector4.zero);
+            VideoIcon = LoadSprite(VideoIconPath, Vector4.zero);
+            ControlsIcon = LoadSprite(ControlsIconPath, Vector4.zero);
+            LanguageIcon = LoadSprite(LanguageIconPath, Vector4.zero);
+            AccessibilityIcon = LoadSprite(AccessibilityIconPath, Vector4.zero);
+            BackIcon = LoadSprite(BackIconPath, Vector4.zero);
+            CloseIcon = LoadSprite(CloseIconPath, Vector4.zero);
+            TickIcon = LoadSprite(TickIconPath, Vector4.zero);
+            PauseIcon = LoadSprite(PauseIconPath, Vector4.zero);
+            ContinueIcon = LoadSprite(ContinueIconPath, Vector4.zero);
+            MenuIcon = LoadSprite(MenuIconPath, Vector4.zero);
+            PauseFogTexture = LoadRepeatingTexture(PauseFogTexturePath);
+            PauseDustTexture = LoadRepeatingTexture(PauseDustTexturePath);
             MenuMusic = AssetDatabase.LoadAssetAtPath<AudioClip>(MenuMusicPath);
+            PauseAmbience = AssetDatabase.LoadAssetAtPath<AudioClip>(PauseAmbiencePath);
+            PauseBuzz = AssetDatabase.LoadAssetAtPath<AudioClip>(PauseBuzzPath);
         }
 
         public TMP_FontAsset BodyFont { get; }
@@ -89,7 +119,22 @@ public static class Virus9FrontendRebuilder
         public Sprite Select { get; }
         public Sprite MusicOn { get; }
         public Sprite MusicOff { get; }
+        public Sprite SoundIcon { get; }
+        public Sprite VideoIcon { get; }
+        public Sprite ControlsIcon { get; }
+        public Sprite LanguageIcon { get; }
+        public Sprite AccessibilityIcon { get; }
+        public Sprite BackIcon { get; }
+        public Sprite CloseIcon { get; }
+        public Sprite TickIcon { get; }
+        public Sprite PauseIcon { get; }
+        public Sprite ContinueIcon { get; }
+        public Sprite MenuIcon { get; }
+        public Texture2D PauseFogTexture { get; }
+        public Texture2D PauseDustTexture { get; }
         public AudioClip MenuMusic { get; }
+        public AudioClip PauseAmbience { get; }
+        public AudioClip PauseBuzz { get; }
     }
 
     private static void EnsureFolders()
@@ -97,7 +142,9 @@ public static class Virus9FrontendRebuilder
         Directory.CreateDirectory(ResourcesUiFolder);
         Directory.CreateDirectory(FontsFolder);
         Directory.CreateDirectory("Assets/Audio/Music");
+        Directory.CreateDirectory("Assets/Audio/Ambience/JohnLemon");
         Directory.CreateDirectory("Assets/Art/UI/Menu");
+        Directory.CreateDirectory("Assets/Art/VFX/JohnLemon");
         Directory.CreateDirectory(Path.GetDirectoryName(CatalogPath) ?? "Assets/Resources/Localization");
     }
 
@@ -198,6 +245,33 @@ public static class Virus9FrontendRebuilder
         }
 
         return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+    }
+
+    private static Texture2D LoadRepeatingTexture(string path)
+    {
+        TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+        if (importer == null)
+        {
+            Debug.LogWarning($"Pause atmosphere texture not found at {path}.");
+            return null;
+        }
+
+        bool changed = importer.textureType != TextureImporterType.Default ||
+                       importer.mipmapEnabled ||
+                       importer.wrapMode != TextureWrapMode.Repeat ||
+                       importer.alphaIsTransparency == false;
+
+        if (changed)
+        {
+            importer.textureType = TextureImporterType.Default;
+            importer.mipmapEnabled = false;
+            importer.wrapMode = TextureWrapMode.Repeat;
+            importer.alphaIsTransparency = true;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.SaveAndReimport();
+        }
+
+        return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
     }
 
     private static void RebuildLocalizationCatalog()
@@ -308,6 +382,10 @@ public static class Virus9FrontendRebuilder
                 settingsRect.sizeDelta = new Vector2(920f, 560f);
             }
 
+            BuildPauseAtmosphere(root, skin);
+            DecoratePausePanels(root, skin);
+            DecoratePauseButtons(root, skin);
+
             foreach (Image image in root.GetComponentsInChildren<Image>(true))
             {
                 StylePauseImage(image, skin);
@@ -330,7 +408,7 @@ public static class Virus9FrontendRebuilder
 
             foreach (Toggle toggle in root.GetComponentsInChildren<Toggle>(true))
             {
-                StylePauseToggle(toggle);
+                StylePauseToggle(toggle, skin);
             }
 
             foreach (TMP_Text text in root.GetComponentsInChildren<TMP_Text>(true))
@@ -356,23 +434,276 @@ public static class Virus9FrontendRebuilder
         return null;
     }
 
+    private static Button FindButton(GameObject root, string name)
+    {
+        foreach (Button button in root.GetComponentsInChildren<Button>(true))
+        {
+            if (button != null && button.gameObject.name == name) return button;
+        }
+
+        return null;
+    }
+
+    private static GameObject EnsureChildObject(Transform parent, string name)
+    {
+        Transform existing = parent != null ? parent.Find(name) : null;
+        if (existing != null) return existing.gameObject;
+
+        return CreateUiObject(name, parent, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+    }
+
+    private static void BuildPauseAtmosphere(GameObject root, FrontendSkin skin)
+    {
+        RectTransform dimmer = FindRect(root, "PauseDimmer");
+        if (dimmer == null) return;
+
+        SetRect(dimmer, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+
+        Image dimmerImage = dimmer.GetComponent<Image>();
+        if (dimmerImage != null)
+        {
+            dimmerImage.color = new Color(0f, 0f, 0f, 0.54f);
+            dimmerImage.raycastTarget = true;
+        }
+
+        CanvasGroup group = dimmer.GetComponent<CanvasGroup>();
+        if (group == null) group = dimmer.gameObject.AddComponent<CanvasGroup>();
+
+        RawImage fog = EnsureRawOverlay(dimmer, "PauseAtmosphereFog", skin.PauseFogTexture, new Color(0.12f, 0.28f, 0.19f, 0.085f));
+        RawImage dust = EnsureRawOverlay(dimmer, "PauseAtmosphereDust", skin.PauseDustTexture, new Color(0.75f, 0.88f, 0.62f, 0.13f));
+
+        AudioSource[] sources = dimmer.GetComponents<AudioSource>();
+        while (sources.Length < 2)
+        {
+            dimmer.gameObject.AddComponent<AudioSource>();
+            sources = dimmer.GetComponents<AudioSource>();
+        }
+
+        AudioSource ambienceSource = sources[0];
+        AudioSource buzzSource = sources[1];
+        ConfigurePauseAudioSource(ambienceSource, skin.PauseAmbience);
+        ConfigurePauseAudioSource(buzzSource, skin.PauseBuzz);
+
+        Type atmosphereType = Type.GetType("PauseMenuAtmosphereController, Assembly-CSharp");
+        if (atmosphereType == null)
+        {
+            Debug.LogWarning("PauseMenuAtmosphereController is not compiled yet; pause atmosphere references will be wired on the next rebuild.");
+            return;
+        }
+
+        Component controller = dimmer.GetComponent(atmosphereType);
+        if (controller == null) controller = dimmer.gameObject.AddComponent(atmosphereType);
+
+        SerializedObject serialized = new SerializedObject(controller);
+        SetObject(serialized, "group", group);
+        SetObject(serialized, "fogOverlay", fog);
+        SetObject(serialized, "dustOverlay", dust);
+        SetObject(serialized, "ambienceSource", ambienceSource);
+        SetObject(serialized, "buzzSource", buzzSource);
+        SetFloat(serialized, "ambienceVolumeScale", 0.22f);
+        SetFloat(serialized, "buzzVolumeScale", 0.08f);
+        SetFloat(serialized, "flickerStrength", 0.04f);
+        SetVector2(serialized, "fogTiling", new Vector2(3.8f, 2.4f));
+        SetVector2(serialized, "dustTiling", new Vector2(6.4f, 3.2f));
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void BuildMenuAtmosphere(GameObject background, FrontendSkin skin)
+    {
+        if (background == null) return;
+
+        RectTransform rect = background.GetComponent<RectTransform>();
+        if (rect == null) return;
+
+        CanvasGroup group = background.GetComponent<CanvasGroup>();
+        if (group == null) group = background.AddComponent<CanvasGroup>();
+
+        RawImage fog = EnsureRawOverlay(rect, "MenuAtmosphereFog", skin.PauseFogTexture, new Color(0.12f, 0.31f, 0.21f, 0.24f));
+        RawImage dust = EnsureRawOverlay(rect, "MenuAtmosphereDust", skin.PauseDustTexture, new Color(0.82f, 0.92f, 0.62f, 0.15f));
+
+        Type atmosphereType = Type.GetType("PauseMenuAtmosphereController, Assembly-CSharp");
+        if (atmosphereType == null)
+        {
+            Debug.LogWarning("PauseMenuAtmosphereController is not compiled yet; main menu atmosphere references will be wired on the next rebuild.");
+            return;
+        }
+
+        Component controller = background.GetComponent(atmosphereType);
+        if (controller == null) controller = background.AddComponent(atmosphereType);
+
+        SerializedObject serialized = new SerializedObject(controller);
+        SetObject(serialized, "group", group);
+        SetObject(serialized, "fogOverlay", fog);
+        SetObject(serialized, "dustOverlay", dust);
+        SetObject(serialized, "ambienceSource", null);
+        SetObject(serialized, "buzzSource", null);
+        SetFloat(serialized, "ambienceVolumeScale", 0f);
+        SetFloat(serialized, "buzzVolumeScale", 0f);
+        SetFloat(serialized, "flickerStrength", 0.035f);
+        SetVector2(serialized, "fogTiling", new Vector2(2.7f, 1.55f));
+        SetVector2(serialized, "dustTiling", new Vector2(5.6f, 2.9f));
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static RawImage EnsureRawOverlay(RectTransform parent, string name, Texture2D texture, Color color)
+    {
+        GameObject overlay = EnsureChildObject(parent, name);
+        RectTransform rect = overlay.GetComponent<RectTransform>();
+        SetRect(rect, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+
+        RawImage image = overlay.GetComponent<RawImage>();
+        if (image == null) image = overlay.AddComponent<RawImage>();
+        image.texture = texture;
+        image.color = color;
+        image.raycastTarget = false;
+
+        overlay.transform.SetAsLastSibling();
+        return image;
+    }
+
+    private static void ConfigurePauseAudioSource(AudioSource source, AudioClip clip)
+    {
+        if (source == null) return;
+
+        source.clip = clip;
+        source.loop = true;
+        source.playOnAwake = false;
+        source.spatialBlend = 0f;
+        source.volume = 0f;
+    }
+
+    private static void DecoratePausePanels(GameObject root, FrontendSkin skin)
+    {
+        AddPanelTexture(FindRect(root, "PauseRootPanel"), skin);
+        AddPanelTexture(FindRect(root, "SettingsPanel"), skin);
+        AddPanelTexture(FindRect(root, "SaveSlotPanel"), skin);
+        AddPanelTexture(FindRect(root, "ConfirmBox"), skin);
+    }
+
+    private static void AddPanelTexture(RectTransform panel, FrontendSkin skin)
+    {
+        if (panel == null) return;
+
+        GameObject grunge = EnsureChildObject(panel, "GrungeOverlay");
+        RectTransform grungeRect = grunge.GetComponent<RectTransform>();
+        SetRect(grungeRect, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        Image grungeImage = grunge.GetComponent<Image>();
+        if (grungeImage == null) grungeImage = grunge.AddComponent<Image>();
+        grungeImage.sprite = skin.Background;
+        grungeImage.color = new Color(0.22f, 0.34f, 0.22f, 0.2f);
+        grungeImage.preserveAspect = false;
+        grungeImage.raycastTarget = false;
+        grunge.transform.SetAsFirstSibling();
+
+        AddAccentStrip(panel, "TopAccent", new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(-34f, 2f), new Color(0.2f, 0.38f, 0.27f, 0.52f));
+        AddAccentStrip(panel, "BottomAccent", Vector2.zero, new Vector2(1f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 10f), new Vector2(-34f, 2f), new Color(1f, 0.58f, 0.14f, 0.58f));
+    }
+
+    private static void AddAccentStrip(RectTransform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 position, Vector2 size, Color color)
+    {
+        GameObject strip = EnsureChildObject(parent, name);
+        RectTransform rect = strip.GetComponent<RectTransform>();
+        SetRect(rect, anchorMin, anchorMax, pivot, position, size);
+        Image image = strip.GetComponent<Image>();
+        if (image == null) image = strip.AddComponent<Image>();
+        image.sprite = null;
+        image.color = color;
+        image.raycastTarget = false;
+        strip.transform.SetSiblingIndex(Mathf.Min(strip.transform.parent.childCount - 1, 1));
+    }
+
+    private static void DecoratePauseButtons(GameObject root, FrontendSkin skin)
+    {
+        AddIconToButton(FindButton(root, "ResumeButton"), skin.ContinueIcon, skin);
+        AddIconToButton(FindButton(root, "SettingsButton"), skin.ControlsIcon, skin);
+        AddIconToButton(FindButton(root, "LoadSaveButton"), skin.MenuIcon, skin);
+        AddIconToButton(FindButton(root, "MainMenuButton"), skin.BackIcon, skin);
+        AddIconToButton(FindButton(root, "ExitButton"), skin.CloseIcon, skin);
+        AddIconToButton(FindButton(root, "ConfirmYesButton"), skin.TickIcon, skin);
+        AddIconToButton(FindButton(root, "ConfirmNoButton"), skin.CloseIcon, skin);
+
+        AddIconToButton(FindButton(root, "Tab_0"), skin.SoundIcon, skin);
+        AddIconToButton(FindButton(root, "Tab_1"), skin.VideoIcon, skin);
+        AddIconToButton(FindButton(root, "Tab_2"), skin.ControlsIcon, skin);
+        AddIconToButton(FindButton(root, "Tab_3"), skin.LanguageIcon, skin);
+        AddIconToButton(FindButton(root, "Tab_4"), skin.AccessibilityIcon, skin);
+
+        foreach (Button button in root.GetComponentsInChildren<Button>(true))
+        {
+            if (button != null && button.gameObject.name.IndexOf("BackButton", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                AddIconToButton(button, skin.BackIcon, skin);
+            }
+        }
+    }
+
+    private static void AddIconToButton(Button button, Sprite icon, FrontendSkin skin)
+    {
+        if (button == null || icon == null) return;
+
+        GameObject badge = EnsureChildObject(button.transform, "HudIconBadge");
+        RectTransform badgeRect = badge.GetComponent<RectTransform>();
+        SetRect(badgeRect, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(13f, 0f), new Vector2(30f, 30f));
+        Image badgeImage = badge.GetComponent<Image>();
+        if (badgeImage == null) badgeImage = badge.AddComponent<Image>();
+        badgeImage.sprite = skin.Select != null ? skin.Select : skin.Button;
+        badgeImage.type = badgeImage.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        badgeImage.color = new Color(0.62f, 0.92f, 0.7f, 0.82f);
+        badgeImage.raycastTarget = false;
+
+        GameObject iconObject = EnsureChildObject(button.transform, "HudIcon");
+        RectTransform iconRect = iconObject.GetComponent<RectTransform>();
+        SetRect(iconRect, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(17f, 0f), new Vector2(22f, 22f));
+        Image iconImage = iconObject.GetComponent<Image>();
+        if (iconImage == null) iconImage = iconObject.AddComponent<Image>();
+        iconImage.sprite = icon;
+        iconImage.color = Color.white;
+        iconImage.preserveAspect = true;
+        iconImage.raycastTarget = false;
+
+        badge.transform.SetSiblingIndex(0);
+        iconObject.transform.SetSiblingIndex(1);
+
+        foreach (TMP_Text label in button.GetComponentsInChildren<TMP_Text>(true))
+        {
+            RectTransform labelRect = label.GetComponent<RectTransform>();
+            SetStretchOffsets(labelRect, new Vector2(52f, 0f), new Vector2(-12f, 0f));
+            label.alignment = TextAlignmentOptions.MidlineLeft;
+        }
+    }
+
     private static void StylePauseImage(Image image, FrontendSkin skin)
     {
         if (image == null) return;
 
         string objectName = image.gameObject.name;
-        bool isButton = image.GetComponent<Button>() != null || image.GetComponentInParent<Button>(true) != null;
+        bool isButtonBackground = image.GetComponent<Button>() != null;
         bool isMainPanel = objectName.IndexOf("Panel", StringComparison.OrdinalIgnoreCase) >= 0 ||
                            objectName.IndexOf("Row", StringComparison.OrdinalIgnoreCase) >= 0 ||
                            objectName.IndexOf("Content", StringComparison.OrdinalIgnoreCase) >= 0;
 
-        if (objectName == "PauseDimmer")
+        if (objectName == "HudIcon" || objectName == "HudIconBadge" || objectName == "GrungeOverlay" ||
+            objectName == "TopAccent" || objectName == "BottomAccent")
         {
-            image.color = new Color(0f, 0f, 0f, 0.58f);
             return;
         }
 
-        if (isButton)
+        if (objectName == "PauseDimmer")
+        {
+            image.color = new Color(0f, 0f, 0f, 0.66f);
+            return;
+        }
+
+        if (objectName == "Checkmark" || objectName == "Item Checkmark")
+        {
+            image.sprite = skin.TickIcon;
+            image.type = Image.Type.Simple;
+            image.color = new Color(1f, 0.58f, 0.14f, 1f);
+            image.preserveAspect = true;
+            return;
+        }
+
+        if (isButtonBackground)
         {
             image.sprite = skin.Button;
             image.type = skin.Button != null ? Image.Type.Sliced : Image.Type.Simple;
@@ -407,13 +738,28 @@ public static class Virus9FrontendRebuilder
         if (slider == null) return;
 
         Image target = slider.targetGraphic as Image;
-        if (target != null) target.color = new Color(0.04f, 0.13f, 0.15f, 1f);
+        if (target != null)
+        {
+            target.sprite = null;
+            target.type = Image.Type.Simple;
+            target.color = new Color(0.035f, 0.12f, 0.14f, 1f);
+        }
 
         Image fill = slider.fillRect != null ? slider.fillRect.GetComponent<Image>() : null;
-        if (fill != null) fill.color = AccentColor;
+        if (fill != null)
+        {
+            fill.sprite = null;
+            fill.type = Image.Type.Simple;
+            fill.color = AccentColor;
+        }
 
         Image handle = slider.handleRect != null ? slider.handleRect.GetComponent<Image>() : null;
-        if (handle != null) handle.color = new Color(1f, 0.58f, 0.14f, 1f);
+        if (handle != null)
+        {
+            handle.sprite = null;
+            handle.type = Image.Type.Simple;
+            handle.color = new Color(1f, 0.58f, 0.14f, 1f);
+        }
     }
 
     private static void StylePauseDropdown(TMP_Dropdown dropdown, FrontendSkin skin)
@@ -430,6 +776,9 @@ public static class Virus9FrontendRebuilder
 
         if (dropdown.template != null)
         {
+            RectTransform templateRect = dropdown.template;
+            SetRect(templateRect, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 1f), new Vector2(0f, -4f), new Vector2(0f, 124f));
+
             Image templateImage = dropdown.template.GetComponent<Image>();
             if (templateImage != null)
             {
@@ -437,18 +786,70 @@ public static class Virus9FrontendRebuilder
                 templateImage.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
                 templateImage.color = PanelStrongColor;
             }
+
+            foreach (Image templateChildImage in dropdown.template.GetComponentsInChildren<Image>(true))
+            {
+                if (templateChildImage == null || templateChildImage == templateImage) continue;
+                if (templateChildImage.gameObject.name == "Item Checkmark")
+                {
+                    templateChildImage.sprite = skin.TickIcon;
+                    templateChildImage.type = Image.Type.Simple;
+                    templateChildImage.preserveAspect = true;
+                    templateChildImage.color = new Color(1f, 0.58f, 0.14f, 1f);
+                }
+                else
+                {
+                    templateChildImage.sprite = skin.Select != null ? skin.Select : skin.Button;
+                    templateChildImage.type = templateChildImage.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+                    templateChildImage.color = new Color(0.018f, 0.07f, 0.075f, 0.94f);
+                }
+            }
         }
+
+        EnsureDropdownArrow(dropdown, skin);
     }
 
-    private static void StylePauseToggle(Toggle toggle)
+    private static void EnsureDropdownArrow(TMP_Dropdown dropdown, FrontendSkin skin)
+    {
+        Transform arrow = dropdown.transform.Find("Arrow");
+        TMP_Text arrowText;
+        if (arrow == null)
+        {
+            arrowText = CreateText(dropdown.transform, "Arrow", "v", skin.DisplayFont, 16f, TextAlignmentOptions.Center, AccentColor);
+        }
+        else
+        {
+            arrowText = arrow.GetComponent<TMP_Text>();
+            if (arrowText == null) arrowText = arrow.gameObject.AddComponent<TextMeshProUGUI>();
+        }
+
+        SetRect(arrowText.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(-16f, 0f), new Vector2(28f, 0f));
+        arrowText.font = skin.DisplayFont;
+        arrowText.text = "v";
+        arrowText.color = AccentColor;
+        arrowText.raycastTarget = false;
+    }
+
+    private static void StylePauseToggle(Toggle toggle, FrontendSkin skin)
     {
         if (toggle == null) return;
 
         Image box = toggle.targetGraphic as Image;
-        if (box != null) box.color = new Color(0.06f, 0.2f, 0.24f, 1f);
+        if (box != null)
+        {
+            box.sprite = skin.Select != null ? skin.Select : skin.Button;
+            box.type = box.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+            box.color = new Color(0.06f, 0.2f, 0.24f, 1f);
+        }
 
         Image check = toggle.graphic as Image;
-        if (check != null) check.color = new Color(1f, 0.58f, 0.14f, 1f);
+        if (check != null)
+        {
+            check.sprite = skin.TickIcon;
+            check.type = Image.Type.Simple;
+            check.preserveAspect = true;
+            check.color = new Color(1f, 0.58f, 0.14f, 1f);
+        }
     }
 
     private static void StylePauseText(TMP_Text text, FrontendSkin skin)
@@ -659,17 +1060,20 @@ public static class Virus9FrontendRebuilder
     private static GameObject CreateSettingsPanel(Transform parent, FrontendSkin skin)
     {
         GameObject panel = CreateCenteredPanel(parent, "SettingsPanel", new Vector2(880f, 560f), skin);
+        AddPanelTexture(panel.GetComponent<RectTransform>(), skin);
         SettingsPanelController controller = panel.AddComponent<SettingsPanelController>();
 
         TMP_Text title = CreateLocalizedText(panel.transform, "SettingsTitle", "settings.title", "SETTINGS", skin.DisplayFont, 34f, TextAlignmentOptions.Center, TextColor);
         SetRect(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -24f), new Vector2(700f, 50f));
 
         Button languageTab = CreateMenuButton(panel.transform, "LanguageTabButton", "settings.language", "LANGUAGE", skin, new Vector2(24f, -112f), new Vector2(170f, 38f));
+        AddIconToButton(languageTab, skin.LanguageIcon, skin);
         GameObject languagePanel = CreateUiObject("LanguageContentPanel", panel.transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(228f, -112f), new Vector2(590f, 330f));
         Image languageImage = languagePanel.AddComponent<Image>();
         languageImage.sprite = skin.PanelBorder;
         languageImage.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
-        languageImage.color = PanelColor;
+        languageImage.color = new Color(0.022f, 0.052f, 0.04f, 0.92f);
+        AddPanelTexture(languagePanel.GetComponent<RectTransform>(), skin);
 
         TMP_Text label = CreateLocalizedText(languagePanel.transform, "language_Label", "settings.language", "LANGUAGE", skin.BodyFont, 17f, TextAlignmentOptions.MidlineLeft, TextColor);
         SetRect(label.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-165f, 104f), new Vector2(220f, 32f));
@@ -681,6 +1085,7 @@ public static class Virus9FrontendRebuilder
         controls.textWrappingMode = TextWrappingModes.Normal;
 
         Button backButton = CreateMenuButton(panel.transform, "SettingsBackButton", "menu.back", "BACK", skin, new Vector2(0f, 30f), new Vector2(220f, 40f), true);
+        AddIconToButton(backButton, skin.BackIcon, skin);
 
         SerializedObject serialized = new SerializedObject(controller);
         SetArray(serialized, "tabPanels", new UnityEngine.Object[] { languagePanel });
@@ -745,14 +1150,16 @@ public static class Virus9FrontendRebuilder
             GameObject grunge = CreateUiObject("MenuBackgroundGrunge", background.transform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
             Image grungeImage = grunge.AddComponent<Image>();
             grungeImage.sprite = skin.Background;
-            grungeImage.color = new Color(0.16f, 0.28f, 0.23f, 0.24f);
+            grungeImage.color = new Color(0.24f, 0.36f, 0.22f, 0.38f);
             grungeImage.preserveAspect = false;
             grungeImage.raycastTarget = false;
         }
 
+        BuildMenuAtmosphere(background, skin);
+
         GameObject vignette = CreateUiObject("DarkVignette", background.transform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
         Image vignetteImage = vignette.AddComponent<Image>();
-        vignetteImage.color = new Color(0f, 0f, 0f, 0.18f);
+        vignetteImage.color = new Color(0f, 0f, 0f, 0.1f);
         vignetteImage.raycastTarget = false;
 
         GameObject strip = CreateUiObject("AccentStrip", background.transform, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(-28f, 0f), new Vector2(3f, 0f));
@@ -957,6 +1364,18 @@ public static class Virus9FrontendRebuilder
         rect.localScale = Vector3.one;
     }
 
+    private static void SetStretchOffsets(RectTransform rect, Vector2 offsetMin, Vector2 offsetMax)
+    {
+        if (rect == null) return;
+
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.offsetMin = offsetMin;
+        rect.offsetMax = offsetMax;
+        rect.localScale = Vector3.one;
+    }
+
     private static void SetObject(SerializedObject serialized, string propertyName, UnityEngine.Object value)
     {
         SerializedProperty property = serialized.FindProperty(propertyName);
@@ -967,6 +1386,12 @@ public static class Virus9FrontendRebuilder
     {
         SerializedProperty property = serialized.FindProperty(propertyName);
         if (property != null) property.floatValue = value;
+    }
+
+    private static void SetVector2(SerializedObject serialized, string propertyName, Vector2 value)
+    {
+        SerializedProperty property = serialized.FindProperty(propertyName);
+        if (property != null) property.vector2Value = value;
     }
 
     private static void SetArray(SerializedObject serialized, string propertyName, UnityEngine.Object[] values)

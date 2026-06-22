@@ -158,8 +158,7 @@ public class PlayerClimbController : MonoBehaviour
         Quaternion startRotation = transform.rotation;
 
         player.SetCanMove(false);
-        body.linearVelocity = Vector3.zero;
-        body.angularVelocity = Vector3.zero;
+        ClearVelocityIfDynamic(body);
         body.useGravity = false;
         body.isKinematic = true;
         ResolveVisualAnimator()?.PlayClimb();
@@ -180,8 +179,7 @@ public class PlayerClimbController : MonoBehaviour
         transform.SetPositionAndRotation(targetPosition, targetRotation);
         body.position = targetPosition;
         body.rotation = targetRotation;
-        body.linearVelocity = Vector3.zero;
-        body.angularVelocity = Vector3.zero;
+        ClearVelocityIfDynamic(body);
 
         RestoreMovement();
         climbRoutine = null;
@@ -200,10 +198,17 @@ public class PlayerClimbController : MonoBehaviour
                 hasStoredBodyState = false;
             }
 
-            body.linearVelocity = Vector3.zero;
-            body.angularVelocity = Vector3.zero;
+            ClearVelocityIfDynamic(body);
             body.WakeUp();
         }
+    }
+
+    private static void ClearVelocityIfDynamic(Rigidbody target)
+    {
+        if (target == null || target.isKinematic) return;
+
+        target.linearVelocity = Vector3.zero;
+        target.angularVelocity = Vector3.zero;
     }
 
     private bool IsSelfCollider(Collider other)

@@ -10,15 +10,15 @@ public class SettingsPanelController : MonoBehaviour
     private static readonly Vector2 LeftCenterAnchor = new Vector2(0f, 0.5f);
     private static readonly Vector2 BottomCenterAnchor = new Vector2(0.5f, 0f);
     private static readonly Vector2 LeftTopAnchor = new Vector2(0f, 1f);
-    private static readonly Color RootPanelColor = new Color(0.006f, 0.018f, 0.026f, 0.965f);
-    private static readonly Color PanelColor = new Color(0.012f, 0.036f, 0.048f, 0.97f);
-    private static readonly Color TabIdleColor = new Color(0.012f, 0.05f, 0.068f, 0.96f);
-    private static readonly Color TabSelectedColor = new Color(0.035f, 0.23f, 0.31f, 0.98f);
-    private static readonly Color ButtonHighlightColor = new Color(0.055f, 0.3f, 0.36f, 1f);
-    private static readonly Color AccentColor = new Color(0.21f, 0.82f, 0.94f, 1f);
+    private static readonly Color RootPanelColor = new Color(0.014f, 0.026f, 0.022f, 0.9f);
+    private static readonly Color PanelColor = new Color(0.018f, 0.038f, 0.032f, 0.9f);
+    private static readonly Color TabIdleColor = new Color(0.016f, 0.036f, 0.032f, 0.94f);
+    private static readonly Color TabSelectedColor = new Color(0.08f, 0.18f, 0.13f, 0.96f);
+    private static readonly Color ButtonHighlightColor = new Color(0.12f, 0.26f, 0.18f, 1f);
+    private static readonly Color AccentColor = new Color(0.68f, 0.94f, 0.78f, 1f);
     private static readonly Color WarmAccentColor = new Color(1f, 0.58f, 0.14f, 1f);
-    private static readonly Color TextColor = new Color(0.9f, 0.97f, 0.98f, 1f);
-    private static readonly Color MutedTextColor = new Color(0.64f, 0.78f, 0.78f, 1f);
+    private static readonly Color TextColor = new Color(0.9f, 0.96f, 0.88f, 1f);
+    private static readonly Color MutedTextColor = new Color(0.62f, 0.78f, 0.68f, 1f);
 
     private const float FallbackRootWidth = 920f;
     private const float FallbackRootHeight = 560f;
@@ -276,7 +276,24 @@ public class SettingsPanelController : MonoBehaviour
                 new Vector2(tabButtonWidth, tabButtonHeight));
 
             TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
-            StyleText(label, navFontSize, TextAlignmentOptions.Center, TextWrappingModes.NoWrap);
+            RectTransform iconBadge = button.transform.Find("HudIconBadge")?.GetComponent<RectTransform>();
+            RectTransform icon = button.transform.Find("HudIcon")?.GetComponent<RectTransform>();
+            bool hasIcon = icon != null;
+            SetRect(iconBadge, LeftCenterAnchor, LeftCenterAnchor, LeftCenterAnchor, new Vector2(13f, 0f), new Vector2(30f, 30f));
+            SetRect(icon, LeftCenterAnchor, LeftCenterAnchor, LeftCenterAnchor, new Vector2(17f, 0f), new Vector2(22f, 22f));
+
+            if (label != null)
+            {
+                if (hasIcon)
+                {
+                    SetStretchOffsets(label.GetComponent<RectTransform>(), new Vector2(52f, 0f), new Vector2(-10f, 0f));
+                    StyleText(label, navFontSize, TextAlignmentOptions.MidlineLeft, TextWrappingModes.NoWrap);
+                }
+                else
+                {
+                    StyleText(label, navFontSize, TextAlignmentOptions.Center, TextWrappingModes.NoWrap);
+                }
+            }
         }
 
         StyleTabButtons();
@@ -377,6 +394,13 @@ public class SettingsPanelController : MonoBehaviour
         SetRect(dropdown.GetComponent<RectTransform>(), CenterAnchor, CenterAnchor, CenterAnchor,
             new Vector2(controlColumnX, y),
             new Vector2(controlWidth, Mathf.Max(32f, rowHeight + 4f)));
+
+        if (dropdown.template != null)
+        {
+            SetRect(dropdown.template, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -4f),
+                new Vector2(0f, Mathf.Clamp(rowHeight * 4.1f, 112f, 148f)));
+        }
 
         StyleText(dropdown.captionText, bodyFontSize, TextAlignmentOptions.Center, TextWrappingModes.NoWrap);
         StyleText(dropdown.itemText, bodyFontSize, TextAlignmentOptions.MidlineLeft, TextWrappingModes.NoWrap);
@@ -494,6 +518,18 @@ public class SettingsPanelController : MonoBehaviour
         rect.localScale = Vector3.one;
     }
 
+    private static void SetStretchOffsets(RectTransform rect, Vector2 offsetMin, Vector2 offsetMax)
+    {
+        if (rect == null) return;
+
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.pivot = CenterAnchor;
+        rect.offsetMin = offsetMin;
+        rect.offsetMax = offsetMax;
+        rect.localScale = Vector3.one;
+    }
+
     private static void StyleText(TMP_Text text, float maxSize, TextAlignmentOptions alignment, TextWrappingModes wrapping)
     {
         if (text == null) return;
@@ -574,6 +610,19 @@ public class SettingsPanelController : MonoBehaviour
             image.color = selected ? TabSelectedColor : TabIdleColor;
         }
 
+        Image badge = button.transform.Find("HudIconBadge")?.GetComponent<Image>();
+        if (badge != null)
+        {
+            badge.color = selected ? AccentColor : new Color(0.18f, 0.36f, 0.24f, 0.86f);
+        }
+
+        Image icon = button.transform.Find("HudIcon")?.GetComponent<Image>();
+        if (icon != null)
+        {
+            icon.color = Color.white;
+            icon.preserveAspect = true;
+        }
+
         ColorBlock colors = button.colors;
         colors.normalColor = selected ? TabSelectedColor : TabIdleColor;
         colors.highlightedColor = ButtonHighlightColor;
@@ -589,7 +638,7 @@ public class SettingsPanelController : MonoBehaviour
         if (slider == null) return;
 
         Image target = slider.targetGraphic as Image;
-        if (target != null) target.color = new Color(0.04f, 0.13f, 0.15f, 1f);
+        if (target != null) target.color = new Color(0.035f, 0.1f, 0.075f, 1f);
 
         Image fill = slider.fillRect != null ? slider.fillRect.GetComponent<Image>() : null;
         if (fill != null) fill.color = AccentColor;
@@ -607,6 +656,25 @@ public class SettingsPanelController : MonoBehaviour
 
         if (dropdown.captionText != null) dropdown.captionText.color = TextColor;
         if (dropdown.itemText != null) dropdown.itemText.color = TextColor;
+
+        if (dropdown.template != null)
+        {
+            Image templateImage = dropdown.template.GetComponent<Image>();
+            if (templateImage != null) templateImage.color = PanelColor;
+
+            foreach (Image childImage in dropdown.template.GetComponentsInChildren<Image>(true))
+            {
+                if (childImage == null || childImage == templateImage) continue;
+                if (childImage.gameObject.name.IndexOf("Checkmark", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    childImage.color = WarmAccentColor;
+                }
+                else
+                {
+                    childImage.color = new Color(0.018f, 0.07f, 0.052f, 0.95f);
+                }
+            }
+        }
     }
 
     private static void StyleToggle(Toggle toggle)
@@ -614,7 +682,7 @@ public class SettingsPanelController : MonoBehaviour
         if (toggle == null) return;
 
         Image box = toggle.targetGraphic as Image;
-        if (box != null) box.color = new Color(0.06f, 0.2f, 0.24f, 1f);
+        if (box != null) box.color = new Color(0.06f, 0.18f, 0.12f, 1f);
 
         Image check = toggle.graphic as Image;
         if (check != null) check.color = WarmAccentColor;
