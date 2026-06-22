@@ -12,14 +12,26 @@ public static class Virus9FrontendRebuilder
     private const string ResourcesUiFolder = "Assets/Resources/UI";
     private const string FontsFolder = "Assets/Fonts/UI";
     private const string MenuPrefabPath = "Assets/Resources/UI/FrontendMenu.prefab";
+    private const string PauseMenuPrefabPath = "Assets/Resources/UI/PauseMenu.prefab";
     private const string CatalogPath = "Assets/Resources/Localization/LocalizationCatalog.asset";
     private const string NotoSansRegularPath = "Assets/Fonts/UI/NotoSans-Regular.ttf";
+    private const string NotoSansBoldPath = "Assets/Fonts/UI/NotoSans-Bold.ttf";
     private const string UiFontAssetPath = "Assets/Fonts/UI/VIRUS9_NotoSans_UI.asset";
+    private const string UiBoldFontAssetPath = "Assets/Fonts/UI/VIRUS9_NotoSans_Bold_UI.asset";
     private const string PortugueseFontAssetPath = "Assets/Fonts/UI/VIRUS9_NotoSans_Portuguese.asset";
+    private const string MenuMusicPath = "Assets/Audio/Music/YouMayLive2.mp3";
+    private const string MenuBackgroundPath = "Assets/Art/UI/Menu/MenuBackgroundGrunge.png";
+    private const string MenuBorderPath = "Assets/Art/UI/Menu/MenuPanelBorder.png";
+    private const string MenuButtonPath = "Assets/Art/UI/Menu/MenuButtonRetro.png";
+    private const string MenuSelectPath = "Assets/Art/UI/Menu/MenuSelectHighlight.png";
+    private const string MusicOnPath = "Assets/UI button pack 2/Black/MUSIC-BLACK.png";
+    private const string MusicOffPath = "Assets/UI button pack 2/Black/Music-off-black.png";
 
+    private static readonly Vector2 ReferenceResolution = new Vector2(1280f, 720f);
     private static readonly Color BackgroundColor = new Color(0.006f, 0.01f, 0.014f, 1f);
-    private static readonly Color PanelColor = new Color(0.025f, 0.052f, 0.058f, 0.93f);
-    private static readonly Color PanelStrongColor = new Color(0.038f, 0.086f, 0.092f, 0.96f);
+    private static readonly Color PanelColor = new Color(0.017f, 0.042f, 0.048f, 0.92f);
+    private static readonly Color PanelStrongColor = new Color(0.026f, 0.066f, 0.074f, 0.96f);
+    private static readonly Color ButtonColor = new Color(0.035f, 0.09f, 0.095f, 0.98f);
     private static readonly Color AccentColor = new Color(0.25f, 0.86f, 0.74f, 1f);
     private static readonly Color AccentMutedColor = new Color(0.12f, 0.38f, 0.36f, 1f);
     private static readonly Color TextColor = new Color(0.88f, 0.96f, 0.92f, 1f);
@@ -31,17 +43,20 @@ public static class Virus9FrontendRebuilder
         EnsureFolders();
         AssetDatabase.Refresh();
 
-        TMP_FontAsset uiFont = EnsureFontAsset("VIRUS9_NotoSans_UI", UiFontAssetPath);
-        TMP_FontAsset portugueseFont = EnsureFontAsset("VIRUS9_NotoSans_Portuguese", PortugueseFontAssetPath);
+        TMP_FontAsset uiFont = EnsureFontAsset("VIRUS9_NotoSans_UI", UiFontAssetPath, NotoSansRegularPath);
+        TMP_FontAsset uiBoldFont = EnsureFontAsset("VIRUS9_NotoSans_Bold_UI", UiBoldFontAssetPath, NotoSansBoldPath);
+        TMP_FontAsset portugueseFont = EnsureFontAsset("VIRUS9_NotoSans_Portuguese", PortugueseFontAssetPath, NotoSansRegularPath);
 
+        FrontendSkin skin = new FrontendSkin(uiFont, uiBoldFont, portugueseFont);
         RebuildLocalizationCatalog();
-        RebuildFrontendMenuPrefab(uiFont, portugueseFont);
+        RebuildFrontendMenuPrefab(skin);
+        PolishPauseMenuPrefab(skin);
         MenuBootSceneBuilder.BuildMenuBootScene();
         PlayerHumanoidControllerClimbBuilder.EnsureClimbState();
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        Debug.Log("VIRUS9 frontend rebuilt from scratch: font assets, localization catalog, menu prefab, menu scene, and climb animator state.");
+        Debug.Log("VIRUS9 frontend rebuilt from scratch: menu polish, font assets, music, localization catalog, prefab, scene, and climb animator state.");
     }
 
     public static void RebuildFrontendFromScratchBatch()
@@ -49,19 +64,49 @@ public static class Virus9FrontendRebuilder
         RebuildFrontendFromScratch();
     }
 
+    private sealed class FrontendSkin
+    {
+        public FrontendSkin(TMP_FontAsset bodyFont, TMP_FontAsset displayFont, TMP_FontAsset portugueseFont)
+        {
+            BodyFont = bodyFont;
+            DisplayFont = displayFont != null ? displayFont : bodyFont;
+            PortugueseFont = portugueseFont != null ? portugueseFont : bodyFont;
+            Background = LoadSprite(MenuBackgroundPath, Vector4.zero);
+            PanelBorder = LoadSprite(MenuBorderPath, new Vector4(22f, 22f, 22f, 22f));
+            Button = LoadSprite(MenuButtonPath, new Vector4(18f, 18f, 18f, 18f));
+            Select = LoadSprite(MenuSelectPath, new Vector4(18f, 18f, 18f, 18f));
+            MusicOn = LoadSprite(MusicOnPath, Vector4.zero);
+            MusicOff = LoadSprite(MusicOffPath, Vector4.zero);
+            MenuMusic = AssetDatabase.LoadAssetAtPath<AudioClip>(MenuMusicPath);
+        }
+
+        public TMP_FontAsset BodyFont { get; }
+        public TMP_FontAsset DisplayFont { get; }
+        public TMP_FontAsset PortugueseFont { get; }
+        public Sprite Background { get; }
+        public Sprite PanelBorder { get; }
+        public Sprite Button { get; }
+        public Sprite Select { get; }
+        public Sprite MusicOn { get; }
+        public Sprite MusicOff { get; }
+        public AudioClip MenuMusic { get; }
+    }
+
     private static void EnsureFolders()
     {
         Directory.CreateDirectory(ResourcesUiFolder);
         Directory.CreateDirectory(FontsFolder);
+        Directory.CreateDirectory("Assets/Audio/Music");
+        Directory.CreateDirectory("Assets/Art/UI/Menu");
         Directory.CreateDirectory(Path.GetDirectoryName(CatalogPath) ?? "Assets/Resources/Localization");
     }
 
-    private static TMP_FontAsset EnsureFontAsset(string assetName, string assetPath)
+    private static TMP_FontAsset EnsureFontAsset(string assetName, string assetPath, string sourceFontPath)
     {
-        Font sourceFont = AssetDatabase.LoadAssetAtPath<Font>(NotoSansRegularPath);
+        Font sourceFont = AssetDatabase.LoadAssetAtPath<Font>(sourceFontPath);
         if (sourceFont == null)
         {
-            throw new InvalidOperationException($"Noto Sans source font is missing at {NotoSansRegularPath}. Download it before rebuilding the frontend.");
+            throw new InvalidOperationException($"Source font is missing at {sourceFontPath}. Download it before rebuilding the frontend.");
         }
 
         TMP_FontAsset fontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
@@ -123,6 +168,36 @@ public static class Virus9FrontendRebuilder
                fontAsset.atlasTextures != null &&
                fontAsset.atlasTextures.Length > 0 &&
                fontAsset.atlasTextures[0] != null;
+    }
+
+    private static Sprite LoadSprite(string path, Vector4 border)
+    {
+        TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+        if (importer == null)
+        {
+            Debug.LogWarning($"Menu UI sprite not found at {path}.");
+            return null;
+        }
+
+        bool changed = importer.textureType != TextureImporterType.Sprite ||
+                       importer.spriteImportMode != SpriteImportMode.Single ||
+                       importer.mipmapEnabled ||
+                       importer.alphaIsTransparency == false ||
+                       importer.spriteBorder != border;
+
+        if (changed)
+        {
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.mipmapEnabled = false;
+            importer.alphaIsTransparency = true;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.spritePixelsPerUnit = 100f;
+            importer.spriteBorder = border;
+            importer.SaveAndReimport();
+        }
+
+        return AssetDatabase.LoadAssetAtPath<Sprite>(path);
     }
 
     private static void RebuildLocalizationCatalog()
@@ -207,7 +282,193 @@ public static class Virus9FrontendRebuilder
         entry.portuguese = portuguese;
     }
 
-    private static void RebuildFrontendMenuPrefab(TMP_FontAsset uiFont, TMP_FontAsset portugueseFont)
+    private static void PolishPauseMenuPrefab(FrontendSkin skin)
+    {
+        GameObject root = PrefabUtility.LoadPrefabContents(PauseMenuPrefabPath);
+        if (root == null)
+        {
+            Debug.LogWarning($"Pause menu prefab not found at {PauseMenuPrefabPath}.");
+            return;
+        }
+
+        try
+        {
+            CanvasScaler scaler = root.GetComponent<CanvasScaler>();
+            if (scaler != null)
+            {
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = ReferenceResolution;
+                scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+                scaler.matchWidthOrHeight = 0.5f;
+            }
+
+            RectTransform settingsRect = FindRect(root, "SettingsPanel");
+            if (settingsRect != null)
+            {
+                settingsRect.sizeDelta = new Vector2(920f, 560f);
+            }
+
+            foreach (Image image in root.GetComponentsInChildren<Image>(true))
+            {
+                StylePauseImage(image, skin);
+            }
+
+            foreach (Button button in root.GetComponentsInChildren<Button>(true))
+            {
+                StylePauseButton(button);
+            }
+
+            foreach (Slider slider in root.GetComponentsInChildren<Slider>(true))
+            {
+                StylePauseSlider(slider);
+            }
+
+            foreach (TMP_Dropdown dropdown in root.GetComponentsInChildren<TMP_Dropdown>(true))
+            {
+                StylePauseDropdown(dropdown, skin);
+            }
+
+            foreach (Toggle toggle in root.GetComponentsInChildren<Toggle>(true))
+            {
+                StylePauseToggle(toggle);
+            }
+
+            foreach (TMP_Text text in root.GetComponentsInChildren<TMP_Text>(true))
+            {
+                StylePauseText(text, skin);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(root, PauseMenuPrefabPath);
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
+    }
+
+    private static RectTransform FindRect(GameObject root, string name)
+    {
+        foreach (RectTransform rect in root.GetComponentsInChildren<RectTransform>(true))
+        {
+            if (rect != null && rect.gameObject.name == name) return rect;
+        }
+
+        return null;
+    }
+
+    private static void StylePauseImage(Image image, FrontendSkin skin)
+    {
+        if (image == null) return;
+
+        string objectName = image.gameObject.name;
+        bool isButton = image.GetComponent<Button>() != null || image.GetComponentInParent<Button>(true) != null;
+        bool isMainPanel = objectName.IndexOf("Panel", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                           objectName.IndexOf("Row", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                           objectName.IndexOf("Content", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        if (objectName == "PauseDimmer")
+        {
+            image.color = new Color(0f, 0f, 0f, 0.58f);
+            return;
+        }
+
+        if (isButton)
+        {
+            image.sprite = skin.Button;
+            image.type = skin.Button != null ? Image.Type.Sliced : Image.Type.Simple;
+            image.color = ButtonColor;
+            return;
+        }
+
+        if (isMainPanel)
+        {
+            image.sprite = skin.PanelBorder;
+            image.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
+            image.color = PanelStrongColor;
+        }
+    }
+
+    private static void StylePauseButton(Button button)
+    {
+        if (button == null) return;
+
+        ColorBlock colors = button.colors;
+        colors.normalColor = ButtonColor;
+        colors.highlightedColor = new Color(0.075f, 0.17f, 0.16f, 1f);
+        colors.pressedColor = new Color(1f, 0.58f, 0.14f, 1f);
+        colors.selectedColor = new Color(0.07f, 0.15f, 0.14f, 1f);
+        colors.disabledColor = new Color(0.025f, 0.04f, 0.045f, 0.72f);
+        colors.colorMultiplier = 1f;
+        button.colors = colors;
+    }
+
+    private static void StylePauseSlider(Slider slider)
+    {
+        if (slider == null) return;
+
+        Image target = slider.targetGraphic as Image;
+        if (target != null) target.color = new Color(0.04f, 0.13f, 0.15f, 1f);
+
+        Image fill = slider.fillRect != null ? slider.fillRect.GetComponent<Image>() : null;
+        if (fill != null) fill.color = AccentColor;
+
+        Image handle = slider.handleRect != null ? slider.handleRect.GetComponent<Image>() : null;
+        if (handle != null) handle.color = new Color(1f, 0.58f, 0.14f, 1f);
+    }
+
+    private static void StylePauseDropdown(TMP_Dropdown dropdown, FrontendSkin skin)
+    {
+        if (dropdown == null) return;
+
+        Image image = dropdown.targetGraphic as Image;
+        if (image != null)
+        {
+            image.sprite = skin.Button;
+            image.type = skin.Button != null ? Image.Type.Sliced : Image.Type.Simple;
+            image.color = ButtonColor;
+        }
+
+        if (dropdown.template != null)
+        {
+            Image templateImage = dropdown.template.GetComponent<Image>();
+            if (templateImage != null)
+            {
+                templateImage.sprite = skin.PanelBorder;
+                templateImage.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
+                templateImage.color = PanelStrongColor;
+            }
+        }
+    }
+
+    private static void StylePauseToggle(Toggle toggle)
+    {
+        if (toggle == null) return;
+
+        Image box = toggle.targetGraphic as Image;
+        if (box != null) box.color = new Color(0.06f, 0.2f, 0.24f, 1f);
+
+        Image check = toggle.graphic as Image;
+        if (check != null) check.color = new Color(1f, 0.58f, 0.14f, 1f);
+    }
+
+    private static void StylePauseText(TMP_Text text, FrontendSkin skin)
+    {
+        if (text == null) return;
+
+        bool title = text.gameObject.name.IndexOf("Title", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool buttonText = text.GetComponentInParent<Button>(true) != null;
+        text.font = title || buttonText ? skin.DisplayFont : skin.BodyFont;
+        text.enableAutoSizing = true;
+        float maxSize = text.fontSize > 0f ? text.fontSize : 16f;
+        if (title) maxSize = Mathf.Clamp(maxSize, 28f, 38f);
+        else if (buttonText) maxSize = Mathf.Clamp(maxSize, 14f, 18f);
+        else maxSize = Mathf.Clamp(maxSize, 13f, 18f);
+        text.fontSizeMax = maxSize;
+        text.fontSizeMin = Mathf.Max(10f, maxSize - 6f);
+        text.color = title ? AccentColor : TextColor;
+    }
+
+    private static void RebuildFrontendMenuPrefab(FrontendSkin skin)
     {
         AssetDatabase.DeleteAsset(MenuPrefabPath);
 
@@ -218,20 +479,22 @@ public static class Virus9FrontendRebuilder
 
         CanvasScaler scaler = root.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.referenceResolution = ReferenceResolution;
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0.5f;
 
         root.AddComponent<GraphicRaycaster>();
         FrontendMenuController controller = root.AddComponent<FrontendMenuController>();
 
-        CreateBackground(root.transform, uiFont);
-        TMP_Dropdown languageDropdown = CreateLanguageDropdown(root.transform, uiFont, new Vector2(690f, 430f));
-        GameObject startPanel = CreateStartPanel(root.transform, uiFont);
-        GameObject mainMenuPanel = CreateMainMenuPanel(root.transform, uiFont, out Button newGameButton, out Button continueButton, out Button loadSaveButton, out Button settingsButton, out Button creditsButton, out Button exitButton);
-        GameObject creditsPanel = CreateCreditsPanel(root.transform, uiFont, out Button creditsBackButton);
-        GameObject confirmPanel = CreateConfirmPanel(root.transform, uiFont, out TMP_Text confirmText, out Button confirmYesButton, out Button confirmNoButton);
-        GameObject settingsPanel = CreateSettingsPanel(root.transform, uiFont);
-        GameObject saveSlotPanel = CreateSaveSlotPanel(root.transform, uiFont);
+        CreateBackground(root.transform, skin);
+        GameObject startPanel = CreateStartPanel(root.transform, skin);
+        GameObject mainMenuPanel = CreateMainMenuPanel(root.transform, skin, out Button newGameButton, out Button continueButton, out Button loadSaveButton, out Button settingsButton, out Button creditsButton, out Button exitButton);
+        GameObject creditsPanel = CreateCreditsPanel(root.transform, skin, out Button creditsBackButton);
+        GameObject settingsPanel = CreateSettingsPanel(root.transform, skin);
+        GameObject saveSlotPanel = CreateSaveSlotPanel(root.transform, skin);
+        TMP_Dropdown languageDropdown = CreateLanguageDropdown(root.transform, skin);
+        CreateMenuMusic(root.transform, skin);
+        GameObject confirmPanel = CreateConfirmPanel(root.transform, skin, out TMP_Text confirmText, out Button confirmYesButton, out Button confirmNoButton);
 
         Button startButton = startPanel.GetComponentInChildren<Button>(true);
 
@@ -263,39 +526,72 @@ public static class Virus9FrontendRebuilder
         SetObject(serialized, "saveSlotPanel", saveSlotPanel.GetComponent<SaveSlotPanelController>());
         serialized.ApplyModifiedPropertiesWithoutUndo();
 
-        AssignPortugueseFontMarker(root, portugueseFont);
+        AssignPortugueseFontMarker(root, skin);
 
         PrefabUtility.SaveAsPrefabAsset(root, MenuPrefabPath);
         UnityEngine.Object.DestroyImmediate(root);
     }
 
-    private static void AssignPortugueseFontMarker(GameObject root, TMP_FontAsset portugueseFont)
+    private static void AssignPortugueseFontMarker(GameObject root, FrontendSkin skin)
     {
-        TMP_Text marker = CreateText(root.transform, "PortugueseFontMarker", "PORTUGUÊS çãõáéíóú", portugueseFont, 1f, TextAlignmentOptions.Center, TextColor);
+        TMP_Text marker = CreateText(root.transform, "PortugueseFontMarker", "PORTUGUÊS çãõáéíóú", skin.PortugueseFont, 1f, TextAlignmentOptions.Center, TextColor);
         marker.gameObject.hideFlags = HideFlags.HideInHierarchy;
         marker.gameObject.SetActive(false);
         marker.raycastTarget = false;
     }
 
-    private static GameObject CreateStartPanel(Transform parent, TMP_FontAsset font)
+    private static void CreateMenuMusic(Transform parent, FrontendSkin skin)
+    {
+        Button toggle = CreateSpriteButton(parent, "MusicToggleButton", skin.MusicOn, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-300f, -20f), new Vector2(40f, 40f));
+        Image icon = toggle.GetComponent<Image>();
+
+        GameObject musicObject = new GameObject("MenuMusic", typeof(AudioSource));
+        musicObject.transform.SetParent(parent, false);
+        AudioSource audioSource = musicObject.GetComponent<AudioSource>();
+        audioSource.clip = skin.MenuMusic;
+        audioSource.loop = true;
+        audioSource.playOnAwake = false;
+        audioSource.spatialBlend = 0f;
+        MenuMusicController musicController = musicObject.AddComponent<MenuMusicController>();
+
+        SerializedObject serialized = new SerializedObject(musicController);
+        SetObject(serialized, "musicClip", skin.MenuMusic);
+        SetObject(serialized, "toggleButton", toggle);
+        SetObject(serialized, "toggleIcon", icon);
+        SetObject(serialized, "musicOnSprite", skin.MusicOn);
+        SetObject(serialized, "musicOffSprite", skin.MusicOff);
+        SetFloat(serialized, "menuVolumeScale", 0.65f);
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static GameObject CreateStartPanel(Transform parent, FrontendSkin skin)
     {
         GameObject panel = CreateUiObject("StartPanel", parent, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-        TMP_Text title = CreateText(panel.transform, "Title", "VIRUS9", font, 104f, TextAlignmentOptions.Left, TextColor);
-        SetRect(title.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(170f, 110f), new Vector2(720f, 150f));
-        title.characterSpacing = 16f;
 
-        TMP_Text subtitle = CreateLocalizedText(panel.transform, "Subtitle", "menu.intro", "THE SYSTEM RECORDS EVERY STEP.", font, 24f, TextAlignmentOptions.TopLeft, MutedTextColor);
-        SetRect(subtitle.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 1f), new Vector2(174f, 20f), new Vector2(760f, 120f));
+        GameObject titlePlate = CreateUiObject("TitlePlate", panel.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(72f, 94f), new Vector2(520f, 128f));
+        Image titlePlateImage = titlePlate.AddComponent<Image>();
+        titlePlateImage.sprite = skin.PanelBorder;
+        titlePlateImage.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
+        titlePlateImage.color = new Color(0.015f, 0.046f, 0.052f, 0.7f);
+        titlePlateImage.raycastTarget = false;
+
+        TMP_Text title = CreateText(panel.transform, "Title", "VIRUS9", skin.DisplayFont, 78f, TextAlignmentOptions.Left, TextColor);
+        SetRect(title.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(98f, 112f), new Vector2(520f, 104f));
+        title.characterSpacing = 12f;
+        title.fontStyle = FontStyles.UpperCase;
+
+        TMP_Text subtitle = CreateLocalizedText(panel.transform, "Subtitle", "menu.intro", "THE SYSTEM RECORDS EVERY STEP.", skin.BodyFont, 18f, TextAlignmentOptions.TopLeft, MutedTextColor);
+        SetRect(subtitle.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 1f), new Vector2(102f, 22f), new Vector2(560f, 94f));
         subtitle.textWrappingMode = TextWrappingModes.Normal;
 
-        Button startButton = CreateMenuButton(panel.transform, "StartButton", "menu.start", "START", font, new Vector2(170f, -130f), new Vector2(330f, 64f));
+        Button startButton = CreateMenuButton(panel.transform, "StartButton", "menu.start", "START", skin, new Vector2(102f, -116f), new Vector2(260f, 48f));
         startButton.navigation = Navigation.defaultNavigation;
         return panel;
     }
 
     private static GameObject CreateMainMenuPanel(
         Transform parent,
-        TMP_FontAsset font,
+        FrontendSkin skin,
         out Button newGameButton,
         out Button continueButton,
         out Button loadSaveButton,
@@ -305,81 +601,86 @@ public static class Virus9FrontendRebuilder
     {
         GameObject panel = CreateUiObject("MainMenuPanel", parent, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 
-        TMP_Text title = CreateText(panel.transform, "Title", "VIRUS9", font, 76f, TextAlignmentOptions.Left, TextColor);
-        SetRect(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(170f, -92f), new Vector2(600f, 105f));
-        title.characterSpacing = 12f;
+        TMP_Text title = CreateText(panel.transform, "Title", "VIRUS9", skin.DisplayFont, 58f, TextAlignmentOptions.Left, TextColor);
+        SetRect(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(86f, -62f), new Vector2(430f, 74f));
+        title.characterSpacing = 10f;
+        title.fontStyle = FontStyles.UpperCase;
 
-        GameObject rail = CreateUiObject("ButtonRail", panel.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(170f, -40f), new Vector2(500f, 470f));
+        GameObject rail = CreateUiObject("ButtonRail", panel.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(82f, -44f), new Vector2(348f, 374f));
         Image railImage = rail.AddComponent<Image>();
+        railImage.sprite = skin.PanelBorder;
+        railImage.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
         railImage.color = PanelColor;
         railImage.raycastTarget = false;
 
-        const float startY = 165f;
-        const float step = 70f;
-        newGameButton = CreateMenuButton(rail.transform, "NewGameButton", "menu.new_game", "NEW GAME", font, new Vector2(30f, startY), new Vector2(440f, 56f));
-        continueButton = CreateMenuButton(rail.transform, "ContinueButton", "menu.continue", "CONTINUE", font, new Vector2(30f, startY - step), new Vector2(440f, 56f));
-        loadSaveButton = CreateMenuButton(rail.transform, "LoadSaveButton", "menu.load_save", "LOAD / SAVE", font, new Vector2(30f, startY - step * 2f), new Vector2(440f, 56f));
-        settingsButton = CreateMenuButton(rail.transform, "SettingsButton", "menu.settings", "SETTINGS", font, new Vector2(30f, startY - step * 3f), new Vector2(440f, 56f));
-        creditsButton = CreateMenuButton(rail.transform, "CreditsButton", "menu.credits", "CREDITS", font, new Vector2(30f, startY - step * 4f), new Vector2(440f, 56f));
-        exitButton = CreateMenuButton(rail.transform, "ExitButton", "menu.exit", "EXIT", font, new Vector2(30f, startY - step * 5f), new Vector2(440f, 56f));
+        const float startY = 135f;
+        const float step = 56f;
+        newGameButton = CreateMenuButton(rail.transform, "NewGameButton", "menu.new_game", "NEW GAME", skin, new Vector2(24f, startY), new Vector2(300f, 43f));
+        continueButton = CreateMenuButton(rail.transform, "ContinueButton", "menu.continue", "CONTINUE", skin, new Vector2(24f, startY - step), new Vector2(300f, 43f));
+        loadSaveButton = CreateMenuButton(rail.transform, "LoadSaveButton", "menu.load_save", "LOAD / SAVE", skin, new Vector2(24f, startY - step * 2f), new Vector2(300f, 43f));
+        settingsButton = CreateMenuButton(rail.transform, "SettingsButton", "menu.settings", "SETTINGS", skin, new Vector2(24f, startY - step * 3f), new Vector2(300f, 43f));
+        creditsButton = CreateMenuButton(rail.transform, "CreditsButton", "menu.credits", "CREDITS", skin, new Vector2(24f, startY - step * 4f), new Vector2(300f, 43f));
+        exitButton = CreateMenuButton(rail.transform, "ExitButton", "menu.exit", "EXIT", skin, new Vector2(24f, startY - step * 5f), new Vector2(300f, 43f));
         return panel;
     }
 
-    private static GameObject CreateCreditsPanel(Transform parent, TMP_FontAsset font, out Button backButton)
+    private static GameObject CreateCreditsPanel(Transform parent, FrontendSkin skin, out Button backButton)
     {
-        GameObject panel = CreateCenteredPanel(parent, "CreditsPanel", new Vector2(820f, 520f));
-        TMP_Text title = CreateLocalizedText(panel.transform, "Title", "menu.credits", "CREDITS", font, 44f, TextAlignmentOptions.Center, TextColor);
-        SetRect(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -42f), new Vector2(720f, 72f));
+        GameObject panel = CreateCenteredPanel(parent, "CreditsPanel", new Vector2(680f, 420f), skin);
+        TMP_Text title = CreateLocalizedText(panel.transform, "Title", "menu.credits", "CREDITS", skin.DisplayFont, 34f, TextAlignmentOptions.Center, TextColor);
+        SetRect(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -34f), new Vector2(560f, 54f));
 
-        TMP_Text body = CreateLocalizedText(panel.transform, "CreditsText", "menu.credits_text", "VIRUS9", font, 24f, TextAlignmentOptions.Center, MutedTextColor);
-        SetRect(body.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 20f), new Vector2(680f, 260f));
+        TMP_Text body = CreateLocalizedText(panel.transform, "CreditsText", "menu.credits_text", "VIRUS9", skin.BodyFont, 20f, TextAlignmentOptions.Center, MutedTextColor);
+        SetRect(body.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 18f), new Vector2(560f, 210f));
         body.textWrappingMode = TextWrappingModes.Normal;
 
-        backButton = CreateMenuButton(panel.transform, "CreditsBackButton", "menu.back", "BACK", font, new Vector2(0f, -198f), new Vector2(300f, 56f), true);
+        backButton = CreateMenuButton(panel.transform, "CreditsBackButton", "menu.back", "BACK", skin, new Vector2(0f, -158f), new Vector2(240f, 44f), true);
         return panel;
     }
 
-    private static GameObject CreateConfirmPanel(Transform parent, TMP_FontAsset font, out TMP_Text confirmText, out Button yesButton, out Button noButton)
+    private static GameObject CreateConfirmPanel(Transform parent, FrontendSkin skin, out TMP_Text confirmText, out Button yesButton, out Button noButton)
     {
         GameObject overlay = CreateUiObject("ConfirmPanel", parent, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
         Image overlayImage = overlay.AddComponent<Image>();
-        overlayImage.color = new Color(0f, 0f, 0f, 0.62f);
+        overlayImage.color = new Color(0f, 0f, 0f, 0.68f);
 
-        GameObject panel = CreateCenteredPanel(overlay.transform, "ConfirmBox", new Vector2(680f, 320f));
-        confirmText = CreateText(panel.transform, "ConfirmText", "EXIT THE GAME?", font, 32f, TextAlignmentOptions.Center, TextColor);
-        SetRect(confirmText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 60f), new Vector2(560f, 110f));
-        confirmText.enableAutoSizing = true;
-        confirmText.fontSizeMin = 18f;
-        confirmText.fontSizeMax = 32f;
+        GameObject panel = CreateCenteredPanel(overlay.transform, "ConfirmBox", new Vector2(520f, 250f), skin);
+        confirmText = CreateText(panel.transform, "ConfirmText", "EXIT THE GAME?", skin.DisplayFont, 26f, TextAlignmentOptions.Center, TextColor);
+        SetRect(confirmText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 46f), new Vector2(430f, 86f));
+        confirmText.fontSizeMin = 16f;
+        confirmText.fontSizeMax = 26f;
         confirmText.textWrappingMode = TextWrappingModes.Normal;
 
-        yesButton = CreateMenuButton(panel.transform, "ConfirmYesButton", "confirm.yes", "YES", font, new Vector2(-160f, -90f), new Vector2(220f, 56f), true);
-        noButton = CreateMenuButton(panel.transform, "ConfirmNoButton", "confirm.no", "NO", font, new Vector2(160f, -90f), new Vector2(220f, 56f), true);
+        yesButton = CreateMenuButton(panel.transform, "ConfirmYesButton", "confirm.yes", "YES", skin, new Vector2(-120f, -76f), new Vector2(168f, 42f), true);
+        noButton = CreateMenuButton(panel.transform, "ConfirmNoButton", "confirm.no", "NO", skin, new Vector2(120f, -76f), new Vector2(168f, 42f), true);
         return overlay;
     }
 
-    private static GameObject CreateSettingsPanel(Transform parent, TMP_FontAsset font)
+    private static GameObject CreateSettingsPanel(Transform parent, FrontendSkin skin)
     {
-        GameObject panel = CreateCenteredPanel(parent, "SettingsPanel", new Vector2(1040f, 620f));
+        GameObject panel = CreateCenteredPanel(parent, "SettingsPanel", new Vector2(880f, 560f), skin);
         SettingsPanelController controller = panel.AddComponent<SettingsPanelController>();
 
-        TMP_Text title = CreateLocalizedText(panel.transform, "SettingsTitle", "settings.title", "SETTINGS", font, 40f, TextAlignmentOptions.Center, TextColor);
-        SetRect(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -28f), new Vector2(880f, 58f));
+        TMP_Text title = CreateLocalizedText(panel.transform, "SettingsTitle", "settings.title", "SETTINGS", skin.DisplayFont, 34f, TextAlignmentOptions.Center, TextColor);
+        SetRect(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -24f), new Vector2(700f, 50f));
 
-        Button languageTab = CreateMenuButton(panel.transform, "LanguageTabButton", "settings.language", "LANGUAGE", font, new Vector2(24f, -126f), new Vector2(210f, 44f));
-        GameObject languagePanel = CreateUiObject("LanguageContentPanel", panel.transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(280f, -126f), new Vector2(700f, 380f));
-        languagePanel.AddComponent<Image>().color = PanelColor;
+        Button languageTab = CreateMenuButton(panel.transform, "LanguageTabButton", "settings.language", "LANGUAGE", skin, new Vector2(24f, -112f), new Vector2(170f, 38f));
+        GameObject languagePanel = CreateUiObject("LanguageContentPanel", panel.transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(228f, -112f), new Vector2(590f, 330f));
+        Image languageImage = languagePanel.AddComponent<Image>();
+        languageImage.sprite = skin.PanelBorder;
+        languageImage.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
+        languageImage.color = PanelColor;
 
-        TMP_Text label = CreateLocalizedText(languagePanel.transform, "language_Label", "settings.language", "LANGUAGE", font, 20f, TextAlignmentOptions.MidlineLeft, TextColor);
-        SetRect(label.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-190f, 120f), new Vector2(260f, 36f));
+        TMP_Text label = CreateLocalizedText(languagePanel.transform, "language_Label", "settings.language", "LANGUAGE", skin.BodyFont, 17f, TextAlignmentOptions.MidlineLeft, TextColor);
+        SetRect(label.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-165f, 104f), new Vector2(220f, 32f));
 
-        TMP_Dropdown languageDropdown = CreateDropdown(languagePanel.transform, "language_Dropdown", font, new Vector2(180f, 120f), new Vector2(320f, 40f));
+        TMP_Dropdown languageDropdown = CreateDropdown(languagePanel.transform, "language_Dropdown", skin, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(145f, 104f), new Vector2(260f, 36f));
 
-        TMP_Text controls = CreateLocalizedText(languagePanel.transform, "StaticControls", "settings.static_controls", "WASD - run", font, 18f, TextAlignmentOptions.TopLeft, MutedTextColor);
-        SetRect(controls.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -70f), new Vector2(610f, 190f));
+        TMP_Text controls = CreateLocalizedText(languagePanel.transform, "StaticControls", "settings.static_controls", "WASD - run", skin.BodyFont, 16f, TextAlignmentOptions.TopLeft, MutedTextColor);
+        SetRect(controls.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -58f), new Vector2(500f, 170f));
         controls.textWrappingMode = TextWrappingModes.Normal;
 
-        Button backButton = CreateMenuButton(panel.transform, "SettingsBackButton", "menu.back", "BACK", font, new Vector2(0f, 34f), new Vector2(250f, 46f), true);
+        Button backButton = CreateMenuButton(panel.transform, "SettingsBackButton", "menu.back", "BACK", skin, new Vector2(0f, 30f), new Vector2(220f, 40f), true);
 
         SerializedObject serialized = new SerializedObject(controller);
         SetArray(serialized, "tabPanels", new UnityEngine.Object[] { languagePanel });
@@ -390,13 +691,13 @@ public static class Virus9FrontendRebuilder
         return panel;
     }
 
-    private static GameObject CreateSaveSlotPanel(Transform parent, TMP_FontAsset font)
+    private static GameObject CreateSaveSlotPanel(Transform parent, FrontendSkin skin)
     {
-        GameObject panel = CreateCenteredPanel(parent, "SaveSlotPanel", new Vector2(940f, 620f));
+        GameObject panel = CreateCenteredPanel(parent, "SaveSlotPanel", new Vector2(780f, 520f), skin);
         SaveSlotPanelController controller = panel.AddComponent<SaveSlotPanelController>();
 
-        TMP_Text title = CreateLocalizedText(panel.transform, "Title", "menu.load_save", "LOAD / SAVE", font, 40f, TextAlignmentOptions.Center, TextColor);
-        SetRect(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -34f), new Vector2(780f, 64f));
+        TMP_Text title = CreateLocalizedText(panel.transform, "Title", "menu.load_save", "LOAD / SAVE", skin.DisplayFont, 34f, TextAlignmentOptions.Center, TextColor);
+        SetRect(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -30f), new Vector2(640f, 54f));
 
         TMP_Text[] slotLabels = new TMP_Text[3];
         Button[] loadButtons = new Button[3];
@@ -404,22 +705,24 @@ public static class Virus9FrontendRebuilder
 
         for (int i = 0; i < 3; i++)
         {
-            float y = 160f - i * 118f;
-            GameObject row = CreateUiObject($"Slot{i + 1}_Row", panel.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, y), new Vector2(780f, 92f));
-            row.AddComponent<Image>().color = PanelColor;
+            float y = 132f - i * 94f;
+            GameObject row = CreateUiObject($"Slot{i + 1}_Row", panel.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, y), new Vector2(640f, 72f));
+            Image rowImage = row.AddComponent<Image>();
+            rowImage.sprite = skin.PanelBorder;
+            rowImage.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
+            rowImage.color = PanelColor;
 
-            slotLabels[i] = CreateText(row.transform, $"Slot{i + 1}_Label", $"SLOT {i + 1}", font, 20f, TextAlignmentOptions.MidlineLeft, TextColor);
-            SetRect(slotLabels[i].rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(28f, 0f), new Vector2(390f, 74f));
+            slotLabels[i] = CreateText(row.transform, $"Slot{i + 1}_Label", $"SLOT {i + 1}", skin.BodyFont, 17f, TextAlignmentOptions.MidlineLeft, TextColor);
+            SetRect(slotLabels[i].rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(22f, 0f), new Vector2(314f, 56f));
             slotLabels[i].textWrappingMode = TextWrappingModes.Normal;
-            slotLabels[i].enableAutoSizing = true;
-            slotLabels[i].fontSizeMin = 13f;
-            slotLabels[i].fontSizeMax = 20f;
+            slotLabels[i].fontSizeMin = 12f;
+            slotLabels[i].fontSizeMax = 17f;
 
-            loadButtons[i] = CreateMenuButton(row.transform, $"Slot{i + 1}_LoadButton", "save.load", "LOAD", font, new Vector2(500f, 0f), new Vector2(130f, 44f), true);
-            saveButtons[i] = CreateMenuButton(row.transform, $"Slot{i + 1}_SaveButton", "save.save", "SAVE", font, new Vector2(650f, 0f), new Vector2(130f, 44f), true);
+            loadButtons[i] = CreateMenuButton(row.transform, $"Slot{i + 1}_LoadButton", "save.load", "LOAD", skin, new Vector2(410f, 0f), new Vector2(100f, 36f), true);
+            saveButtons[i] = CreateMenuButton(row.transform, $"Slot{i + 1}_SaveButton", "save.save", "SAVE", skin, new Vector2(530f, 0f), new Vector2(100f, 36f), true);
         }
 
-        Button backButton = CreateMenuButton(panel.transform, "SaveBackButton", "menu.back", "BACK", font, new Vector2(0f, -250f), new Vector2(260f, 52f), true);
+        Button backButton = CreateMenuButton(panel.transform, "SaveBackButton", "menu.back", "BACK", skin, new Vector2(0f, -210f), new Vector2(220f, 42f), true);
 
         SerializedObject serialized = new SerializedObject(controller);
         SetArray(serialized, "slotLabels", slotLabels);
@@ -430,112 +733,178 @@ public static class Virus9FrontendRebuilder
         return panel;
     }
 
-    private static void CreateBackground(Transform parent, TMP_FontAsset font)
+    private static void CreateBackground(Transform parent, FrontendSkin skin)
     {
         GameObject background = CreateUiObject("Background", parent, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
         Image backgroundImage = background.AddComponent<Image>();
         backgroundImage.color = BackgroundColor;
         backgroundImage.raycastTarget = false;
 
-        GameObject strip = CreateUiObject("AccentStrip", background.transform, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(-118f, 0f), new Vector2(4f, 0f));
+        if (skin.Background != null)
+        {
+            GameObject grunge = CreateUiObject("MenuBackgroundGrunge", background.transform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            Image grungeImage = grunge.AddComponent<Image>();
+            grungeImage.sprite = skin.Background;
+            grungeImage.color = new Color(0.16f, 0.28f, 0.23f, 0.24f);
+            grungeImage.preserveAspect = false;
+            grungeImage.raycastTarget = false;
+        }
+
+        GameObject vignette = CreateUiObject("DarkVignette", background.transform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        Image vignetteImage = vignette.AddComponent<Image>();
+        vignetteImage.color = new Color(0f, 0f, 0f, 0.18f);
+        vignetteImage.raycastTarget = false;
+
+        GameObject strip = CreateUiObject("AccentStrip", background.transform, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(-28f, 0f), new Vector2(3f, 0f));
         Image stripImage = strip.AddComponent<Image>();
         stripImage.color = AccentMutedColor;
         stripImage.raycastTarget = false;
 
-        TMP_Text version = CreateText(background.transform, "BuildMarker", "MENU_BOOT // REBUILT", font, 18f, TextAlignmentOptions.Right, MutedTextColor);
-        SetRect(version.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-154f, 40f), new Vector2(420f, 30f));
+        TMP_Text version = CreateText(background.transform, "BuildMarker", "MENU_BOOT // YOU MAY LIVE 2", skin.BodyFont, 13f, TextAlignmentOptions.Right, MutedTextColor);
+        SetRect(version.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-58f, 28f), new Vector2(300f, 24f));
     }
 
-    private static TMP_Dropdown CreateLanguageDropdown(Transform parent, TMP_FontAsset font, Vector2 position)
+    private static TMP_Dropdown CreateLanguageDropdown(Transform parent, FrontendSkin skin)
     {
-        TMP_Dropdown dropdown = CreateDropdown(parent, "LanguageDropdown", font, position, new Vector2(300f, 42f));
+        TMP_Dropdown dropdown = CreateDropdown(parent, "LanguageDropdown", skin, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-42f, -22f), new Vector2(214f, 36f));
         dropdown.options.Clear();
         dropdown.options.Add(new TMP_Dropdown.OptionData("РУССКИЙ"));
         dropdown.options.Add(new TMP_Dropdown.OptionData("ENGLISH"));
         dropdown.options.Add(new TMP_Dropdown.OptionData("PORTUGUÊS"));
+        dropdown.RefreshShownValue();
         return dropdown;
     }
 
-    private static GameObject CreateCenteredPanel(Transform parent, string name, Vector2 size)
+    private static GameObject CreateCenteredPanel(Transform parent, string name, Vector2 size, FrontendSkin skin)
     {
         GameObject panel = CreateUiObject(name, parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, size);
         Image image = panel.AddComponent<Image>();
+        image.sprite = skin.PanelBorder;
+        image.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
         image.color = PanelStrongColor;
         image.raycastTarget = true;
         return panel;
     }
 
-    private static Button CreateMenuButton(Transform parent, string name, string key, string fallback, TMP_FontAsset font, Vector2 position, Vector2 size, bool centered = false)
+    private static Button CreateMenuButton(Transform parent, string name, string key, string fallback, FrontendSkin skin, Vector2 position, Vector2 size, bool centered = false)
     {
         GameObject buttonObject = CreateUiObject(name, parent, centered ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f), centered ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f), centered ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f), position, size);
         Image image = buttonObject.AddComponent<Image>();
-        image.color = new Color(0.045f, 0.095f, 0.105f, 0.96f);
+        image.sprite = skin.Button;
+        image.type = skin.Button != null ? Image.Type.Sliced : Image.Type.Simple;
+        image.color = ButtonColor;
 
         Button button = buttonObject.AddComponent<Button>();
         button.targetGraphic = image;
         ColorBlock colors = button.colors;
-        colors.normalColor = image.color;
-        colors.highlightedColor = new Color(0.075f, 0.16f, 0.16f, 1f);
+        colors.normalColor = ButtonColor;
+        colors.highlightedColor = new Color(0.075f, 0.17f, 0.16f, 1f);
         colors.pressedColor = AccentMutedColor;
-        colors.selectedColor = new Color(0.07f, 0.14f, 0.14f, 1f);
+        colors.selectedColor = new Color(0.07f, 0.15f, 0.14f, 1f);
         colors.disabledColor = new Color(0.025f, 0.04f, 0.045f, 0.72f);
         button.colors = colors;
 
-        TMP_Text label = CreateLocalizedText(buttonObject.transform, "Label", key, fallback, font, 24f, TextAlignmentOptions.Center, TextColor);
+        TMP_Text label = CreateLocalizedText(buttonObject.transform, "Label", key, fallback, skin.DisplayFont, 18f, TextAlignmentOptions.Center, TextColor);
         SetRect(label.rectTransform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-        label.enableAutoSizing = true;
-        label.fontSizeMin = 14f;
-        label.fontSizeMax = 24f;
+        label.fontSizeMin = 11f;
+        label.fontSizeMax = 18f;
         label.textWrappingMode = TextWrappingModes.NoWrap;
         return button;
     }
 
-    private static TMP_Dropdown CreateDropdown(Transform parent, string name, TMP_FontAsset font, Vector2 position, Vector2 size)
+    private static Button CreateSpriteButton(Transform parent, string name, Sprite sprite, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 position, Vector2 size)
     {
-        GameObject root = CreateUiObject(name, parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), position, size);
+        GameObject buttonObject = CreateUiObject(name, parent, anchorMin, anchorMax, pivot, position, size);
+        Image image = buttonObject.AddComponent<Image>();
+        image.sprite = sprite;
+        image.color = Color.white;
+        image.preserveAspect = true;
+
+        Button button = buttonObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        ColorBlock colors = button.colors;
+        colors.highlightedColor = new Color(0.78f, 1f, 0.94f, 1f);
+        colors.pressedColor = new Color(0.45f, 0.88f, 0.78f, 1f);
+        colors.selectedColor = Color.white;
+        button.colors = colors;
+        return button;
+    }
+
+    private static TMP_Dropdown CreateDropdown(Transform parent, string name, FrontendSkin skin, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 position, Vector2 size)
+    {
+        GameObject root = CreateUiObject(name, parent, anchorMin, anchorMax, pivot, position, size);
         Image image = root.AddComponent<Image>();
-        image.color = new Color(0.045f, 0.095f, 0.105f, 0.98f);
+        image.sprite = skin.Button;
+        image.type = skin.Button != null ? Image.Type.Sliced : Image.Type.Simple;
+        image.color = new Color(0.026f, 0.06f, 0.068f, 0.98f);
 
         TMP_Dropdown dropdown = root.AddComponent<TMP_Dropdown>();
         dropdown.targetGraphic = image;
+        dropdown.alphaFadeSpeed = 0.06f;
 
-        TMP_Text label = CreateText(root.transform, "Label", "PORTUGUÊS", font, 18f, TextAlignmentOptions.MidlineLeft, TextColor);
-        SetRect(label.rectTransform, Vector2.zero, Vector2.one, new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(-48f, 0f));
-        label.enableAutoSizing = true;
-        label.fontSizeMin = 12f;
-        label.fontSizeMax = 18f;
+        TMP_Text label = CreateText(root.transform, "Label", "РУССКИЙ", skin.BodyFont, 15f, TextAlignmentOptions.MidlineLeft, TextColor);
+        SetRect(label.rectTransform, Vector2.zero, Vector2.one, new Vector2(0f, 0.5f), new Vector2(13f, 0f), new Vector2(-42f, 0f));
+        label.fontSizeMin = 10f;
+        label.fontSizeMax = 15f;
+        label.textWrappingMode = TextWrappingModes.NoWrap;
         dropdown.captionText = label;
 
-        TMP_Text arrow = CreateText(root.transform, "Arrow", "v", font, 18f, TextAlignmentOptions.Center, AccentColor);
-        SetRect(arrow.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(-18f, 0f), new Vector2(32f, 0f));
+        TMP_Text arrow = CreateText(root.transform, "Arrow", "v", skin.DisplayFont, 16f, TextAlignmentOptions.Center, AccentColor);
+        SetRect(arrow.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(-17f, 0f), new Vector2(28f, 0f));
 
-        GameObject template = CreateUiObject("Template", root.transform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 1f), new Vector2(0f, -4f), new Vector2(0f, 130f));
+        GameObject template = CreateUiObject("Template", root.transform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 1f), new Vector2(0f, -3f), new Vector2(0f, 112f));
         Image templateImage = template.AddComponent<Image>();
-        templateImage.color = new Color(0.018f, 0.04f, 0.045f, 0.99f);
+        templateImage.sprite = skin.PanelBorder;
+        templateImage.type = skin.PanelBorder != null ? Image.Type.Sliced : Image.Type.Simple;
+        templateImage.color = new Color(0.012f, 0.032f, 0.036f, 0.995f);
         ScrollRect scrollRect = template.AddComponent<ScrollRect>();
         template.AddComponent<CanvasGroup>();
 
-        GameObject viewport = CreateUiObject("Viewport", template.transform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-        Image viewportImage = viewport.AddComponent<Image>();
-        viewportImage.color = new Color(0f, 0f, 0f, 0f);
-        Mask mask = viewport.AddComponent<Mask>();
-        mask.showMaskGraphic = false;
+        GameObject viewport = CreateUiObject("Viewport", template.transform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(-8f, -8f));
+        viewport.AddComponent<RectMask2D>();
 
-        GameObject content = CreateUiObject("Content", viewport.transform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(0f, 120f));
-        scrollRect.content = content.GetComponent<RectTransform>();
+        GameObject content = CreateUiObject("Content", viewport.transform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(0f, 102f));
+        VerticalLayoutGroup layout = content.AddComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(4, 4, 4, 4);
+        layout.spacing = 2f;
+        layout.childAlignment = TextAnchor.UpperLeft;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+        ContentSizeFitter fitter = content.AddComponent<ContentSizeFitter>();
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        RectTransform contentRect = content.GetComponent<RectTransform>();
+        scrollRect.content = contentRect;
         scrollRect.viewport = viewport.GetComponent<RectTransform>();
         scrollRect.horizontal = false;
-        scrollRect.vertical = true;
+        scrollRect.vertical = false;
         scrollRect.movementType = ScrollRect.MovementType.Clamped;
 
-        GameObject item = CreateUiObject("Item", content.transform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(0f, 36f));
-        Toggle toggle = item.AddComponent<Toggle>();
+        GameObject item = CreateUiObject("Item", content.transform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(0f, 30f));
+        LayoutElement itemLayout = item.AddComponent<LayoutElement>();
+        itemLayout.preferredHeight = 30f;
         Image itemBackground = item.AddComponent<Image>();
-        itemBackground.color = new Color(0f, 0f, 0f, 0f);
+        itemBackground.sprite = skin.Select != null ? skin.Select : skin.Button;
+        itemBackground.type = itemBackground.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        itemBackground.color = new Color(0.02f, 0.06f, 0.06f, 0.3f);
+        Toggle toggle = item.AddComponent<Toggle>();
         toggle.targetGraphic = itemBackground;
+        toggle.transition = Selectable.Transition.ColorTint;
+        ColorBlock toggleColors = toggle.colors;
+        toggleColors.normalColor = new Color(1f, 1f, 1f, 0.45f);
+        toggleColors.highlightedColor = new Color(0.34f, 0.9f, 0.78f, 0.85f);
+        toggleColors.pressedColor = new Color(0.2f, 0.55f, 0.5f, 0.95f);
+        toggleColors.selectedColor = new Color(0.22f, 0.68f, 0.6f, 0.95f);
+        toggle.colors = toggleColors;
 
-        TMP_Text itemLabel = CreateText(item.transform, "Item Label", "Option", font, 17f, TextAlignmentOptions.MidlineLeft, TextColor);
-        SetRect(itemLabel.rectTransform, Vector2.zero, Vector2.one, new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(-16f, 0f));
+        TMP_Text itemLabel = CreateText(item.transform, "Item Label", "Option", skin.BodyFont, 15f, TextAlignmentOptions.MidlineLeft, TextColor);
+        SetRect(itemLabel.rectTransform, Vector2.zero, Vector2.one, new Vector2(0f, 0.5f), new Vector2(12f, 0f), new Vector2(-12f, 0f));
+        itemLabel.fontSizeMin = 10f;
+        itemLabel.fontSizeMax = 15f;
+        itemLabel.textWrappingMode = TextWrappingModes.NoWrap;
+
         dropdown.itemText = itemLabel;
         dropdown.template = template.GetComponent<RectTransform>();
         template.SetActive(false);
@@ -558,7 +927,7 @@ public static class Virus9FrontendRebuilder
         text.text = value;
         text.fontSize = size;
         text.fontSizeMax = size;
-        text.fontSizeMin = Mathf.Max(10f, size - 10f);
+        text.fontSizeMin = Mathf.Max(10f, size - 8f);
         text.enableAutoSizing = true;
         text.alignment = alignment;
         text.color = color;
@@ -578,6 +947,8 @@ public static class Virus9FrontendRebuilder
 
     private static void SetRect(RectTransform rect, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 position, Vector2 size)
     {
+        if (rect == null) return;
+
         rect.anchorMin = anchorMin;
         rect.anchorMax = anchorMax;
         rect.pivot = pivot;
@@ -590,6 +961,12 @@ public static class Virus9FrontendRebuilder
     {
         SerializedProperty property = serialized.FindProperty(propertyName);
         if (property != null) property.objectReferenceValue = value;
+    }
+
+    private static void SetFloat(SerializedObject serialized, string propertyName, float value)
+    {
+        SerializedProperty property = serialized.FindProperty(propertyName);
+        if (property != null) property.floatValue = value;
     }
 
     private static void SetArray(SerializedObject serialized, string propertyName, UnityEngine.Object[] values)

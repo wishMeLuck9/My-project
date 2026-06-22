@@ -95,6 +95,7 @@ public static class MenuBootSceneBuilder
         camera.fieldOfView = 60f;
         camera.allowHDR = true;
         camera.allowMSAA = true;
+        cameraObject.AddComponent<AudioListener>();
     }
 
     private static void CreateUiRoot()

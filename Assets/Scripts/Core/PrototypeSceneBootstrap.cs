@@ -28,6 +28,7 @@ public static class PrototypeSceneBootstrap
         LocalizationManager.EnsureInstance();
         SettingsManager.EnsureInstance();
         SaveGameManager.EnsureInstance();
+        EnsureAudioListener();
 
         GameObject managers = GameObject.Find("Managers") ?? GameObject.Find("Managers_Runtime");
         if (managers == null) managers = new GameObject("Managers_Runtime");
@@ -70,5 +71,21 @@ public static class PrototypeSceneBootstrap
         }
 
         player.ConfigureLocomotion(DefaultMoveSpeed, DefaultRotationSpeed, DefaultMaxTurnDegreesPerSecond);
+    }
+
+    private static void EnsureAudioListener()
+    {
+        AudioListener[] listeners = Object.FindObjectsByType<AudioListener>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        if (listeners.Length > 0) return;
+
+        Camera targetCamera = Camera.main ?? Object.FindFirstObjectByType<Camera>();
+        if (targetCamera != null)
+        {
+            targetCamera.gameObject.AddComponent<AudioListener>();
+            return;
+        }
+
+        GameObject listenerObject = new GameObject("RuntimeAudioListener");
+        listenerObject.AddComponent<AudioListener>();
     }
 }

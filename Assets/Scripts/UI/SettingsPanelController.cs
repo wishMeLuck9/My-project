@@ -10,13 +10,21 @@ public class SettingsPanelController : MonoBehaviour
     private static readonly Vector2 LeftCenterAnchor = new Vector2(0f, 0.5f);
     private static readonly Vector2 BottomCenterAnchor = new Vector2(0.5f, 0f);
     private static readonly Vector2 LeftTopAnchor = new Vector2(0f, 1f);
-    private static readonly Color PanelColor = new Color(0.025f, 0.065f, 0.09f, 0.97f);
+    private static readonly Color RootPanelColor = new Color(0.006f, 0.018f, 0.026f, 0.965f);
+    private static readonly Color PanelColor = new Color(0.012f, 0.036f, 0.048f, 0.97f);
+    private static readonly Color TabIdleColor = new Color(0.012f, 0.05f, 0.068f, 0.96f);
+    private static readonly Color TabSelectedColor = new Color(0.035f, 0.23f, 0.31f, 0.98f);
+    private static readonly Color ButtonHighlightColor = new Color(0.055f, 0.3f, 0.36f, 1f);
+    private static readonly Color AccentColor = new Color(0.21f, 0.82f, 0.94f, 1f);
+    private static readonly Color WarmAccentColor = new Color(1f, 0.58f, 0.14f, 1f);
+    private static readonly Color TextColor = new Color(0.9f, 0.97f, 0.98f, 1f);
+    private static readonly Color MutedTextColor = new Color(0.64f, 0.78f, 0.78f, 1f);
 
-    private const float FallbackRootWidth = 1040f;
-    private const float FallbackRootHeight = 620f;
-    private const float MaxRootWidth = 1080f;
-    private const float MaxRootHeight = 650f;
-    private const float MinContentHeight = 340f;
+    private const float FallbackRootWidth = 920f;
+    private const float FallbackRootHeight = 560f;
+    private const float MaxRootWidth = 960f;
+    private const float MaxRootHeight = 570f;
+    private const float MinContentHeight = 300f;
 
     [Header("Navigation")]
     [SerializeField] private GameObject[] tabPanels;
@@ -82,6 +90,7 @@ public class SettingsPanelController : MonoBehaviour
     private float staticControlsFontSize = 18f;
     private float backButtonWidth = 260f;
     private float backButtonY = 34f;
+    private int currentTabIndex;
 
     private void Awake()
     {
@@ -134,10 +143,13 @@ public class SettingsPanelController : MonoBehaviour
 
     private void ShowTab(int selected)
     {
+        currentTabIndex = Mathf.Max(0, selected);
         for (int i = 0; tabPanels != null && i < tabPanels.Length; i++)
         {
             if (tabPanels[i] != null) tabPanels[i].SetActive(i == selected);
         }
+
+        StyleTabButtons();
     }
 
     private void NormalizeLayout()
@@ -154,6 +166,7 @@ public class SettingsPanelController : MonoBehaviour
             LayoutContentPanels();
             LayoutBackButton();
             LayoutControls();
+            StylePanelVisuals();
         }
         finally
         {
@@ -212,15 +225,15 @@ public class SettingsPanelController : MonoBehaviour
         float rootHeight = root.height > 1f ? root.height : FallbackRootHeight;
         float margin = Mathf.Clamp(rootWidth * 0.025f, 16f, 32f);
         float gap = Mathf.Clamp(rootWidth * 0.032f, 18f, 48f);
-        float topClearance = Mathf.Clamp(rootHeight * 0.16f, 86f, 112f);
-        float bottomClearance = Mathf.Clamp(rootHeight * 0.13f, 74f, 94f);
+        float topClearance = Mathf.Clamp(rootHeight * 0.14f, 72f, 94f);
+        float bottomClearance = Mathf.Clamp(rootHeight * 0.12f, 58f, 78f);
 
-        tabButtonWidth = Mathf.Clamp(rootWidth * 0.2f, 140f, 230f);
+        tabButtonWidth = Mathf.Clamp(rootWidth * 0.19f, 138f, 205f);
         tabButtonHeight = Mathf.Clamp(rootHeight * 0.07f, 38f, 44f);
-        tabButtonSpacing = tabButtonHeight + Mathf.Clamp(rootHeight * 0.022f, 10f, 16f);
-        tabButtonPosition = new Vector2(margin, -(topClearance + 8f));
+        tabButtonSpacing = tabButtonHeight + Mathf.Clamp(rootHeight * 0.018f, 8f, 13f);
+        tabButtonPosition = new Vector2(margin, -(topClearance + 4f));
 
-        float contentLeft = margin + tabButtonWidth + gap;
+        float contentLeft = margin + tabButtonWidth + gap * 0.85f;
         float contentRight = margin;
         float computedContentWidth = Mathf.Max(1f, rootWidth - contentLeft - contentRight);
         float computedContentHeight = Mathf.Max(MinContentHeight, rootHeight - topClearance - bottomClearance);
@@ -235,17 +248,17 @@ public class SettingsPanelController : MonoBehaviour
         controlColumnX = contentSize.x * 0.5f - padX - controlWidth * 0.5f;
         toggleWidth = innerWidth;
 
-        rowHeight = Mathf.Clamp(contentSize.y * 0.066f, 26f, 32f);
-        normalTopY = contentSize.y * 0.5f - Mathf.Clamp(contentSize.y * 0.12f, 42f, 56f);
-        normalStep = Mathf.Clamp(contentSize.y * 0.12f, 44f, 56f);
+        rowHeight = Mathf.Clamp(contentSize.y * 0.062f, 25f, 31f);
+        normalTopY = contentSize.y * 0.5f - Mathf.Clamp(contentSize.y * 0.105f, 34f, 48f);
+        normalStep = Mathf.Clamp(contentSize.y * 0.115f, 40f, 52f);
         accessibilityTopY = contentSize.y * 0.5f - 28f;
         accessibilityStep = Mathf.Clamp((contentSize.y - 58f) / 10f, 30f, 38f);
 
-        bodyFontSize = Mathf.Clamp(contentSize.x * 0.024f, 13.5f, 16f);
-        staticControlsFontSize = Mathf.Clamp(contentSize.x * 0.027f, 14f, 18f);
-        navFontSize = Mathf.Clamp(tabButtonWidth * 0.082f, 14f, 18f);
-        backButtonWidth = Mathf.Clamp(rootWidth * 0.25f, 220f, 280f);
-        backButtonY = Mathf.Clamp(rootHeight * 0.055f, 28f, 40f);
+        bodyFontSize = Mathf.Clamp(contentSize.x * 0.024f, 13f, 15.5f);
+        staticControlsFontSize = Mathf.Clamp(contentSize.x * 0.026f, 13.5f, 17f);
+        navFontSize = Mathf.Clamp(tabButtonWidth * 0.082f, 13f, 16f);
+        backButtonWidth = Mathf.Clamp(rootWidth * 0.22f, 190f, 240f);
+        backButtonY = Mathf.Clamp(rootHeight * 0.05f, 24f, 34f);
     }
 
     private void LayoutTabButtons()
@@ -265,6 +278,8 @@ public class SettingsPanelController : MonoBehaviour
             TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
             StyleText(label, navFontSize, TextAlignmentOptions.Center, TextWrappingModes.NoWrap);
         }
+
+        StyleTabButtons();
     }
 
     private void LayoutContentPanels()
@@ -298,6 +313,7 @@ public class SettingsPanelController : MonoBehaviour
 
         TMP_Text label = backButton.GetComponentInChildren<TMP_Text>(true);
         StyleText(label, navFontSize, TextAlignmentOptions.Center, TextWrappingModes.NoWrap);
+        StyleButton(backButton, false);
     }
 
     private void LayoutControls()
@@ -364,6 +380,7 @@ public class SettingsPanelController : MonoBehaviour
 
         StyleText(dropdown.captionText, bodyFontSize, TextAlignmentOptions.Center, TextWrappingModes.NoWrap);
         StyleText(dropdown.itemText, bodyFontSize, TextAlignmentOptions.MidlineLeft, TextWrappingModes.NoWrap);
+        StyleDropdown(dropdown);
     }
 
     private void LayoutToggle(Toggle toggle, float y)
@@ -393,6 +410,8 @@ public class SettingsPanelController : MonoBehaviour
                 new Vector2(Mathf.Max(1f, toggleWidth - 46f), rowHeight));
             StyleText(label, bodyFontSize, TextAlignmentOptions.MidlineLeft, TextWrappingModes.NoWrap);
         }
+
+        StyleToggle(toggle);
     }
 
     private void LayoutAssociatedLabel(Transform control, float y)
@@ -485,6 +504,120 @@ public class SettingsPanelController : MonoBehaviour
         text.alignment = alignment;
         text.textWrappingMode = wrapping;
         text.overflowMode = TextOverflowModes.Ellipsis;
+    }
+
+    private void StylePanelVisuals()
+    {
+        Image rootImage = GetComponent<Image>();
+        if (rootImage != null)
+        {
+            rootImage.color = RootPanelColor;
+        }
+
+        StyleTabButtons();
+        StyleButton(backButton, false);
+        StyleSlider(masterVolume);
+        StyleSlider(musicVolume);
+        StyleSlider(sfxVolume);
+        StyleSlider(voiceVolume);
+        StyleSlider(brightness);
+        StyleSlider(mouseSensitivity);
+        StyleSlider(uiScale);
+        StyleDropdown(resolution);
+        StyleDropdown(quality);
+        StyleDropdown(language);
+        StyleDropdown(subtitleSize);
+        StyleToggle(muteAll);
+        StyleToggle(fullscreen);
+        StyleToggle(vSync);
+        StyleToggle(invertY);
+        StyleToggle(subtitles);
+        StyleToggle(highContrast);
+        StyleToggle(colorblindFriendly);
+        StyleToggle(reduceScreenShake);
+        StyleToggle(reduceMotion);
+        StyleToggle(tutorialHints);
+        StyleToggle(holdInsteadOfRepeat);
+        StyleToggle(toggleRun);
+        StyleToggle(simplePrompts);
+
+        foreach (TMP_Text text in GetComponentsInChildren<TMP_Text>(true))
+        {
+            if (text == null) continue;
+            if (text.name.IndexOf("Title", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                text.color = AccentColor;
+                continue;
+            }
+
+            text.color = text.fontSizeMax <= 13f ? MutedTextColor : TextColor;
+        }
+    }
+
+    private void StyleTabButtons()
+    {
+        if (tabButtons == null) return;
+
+        for (int i = 0; i < tabButtons.Length; i++)
+        {
+            StyleButton(tabButtons[i], i == currentTabIndex);
+        }
+    }
+
+    private static void StyleButton(Button button, bool selected)
+    {
+        if (button == null) return;
+
+        Image image = button.targetGraphic as Image;
+        if (image != null)
+        {
+            image.color = selected ? TabSelectedColor : TabIdleColor;
+        }
+
+        ColorBlock colors = button.colors;
+        colors.normalColor = selected ? TabSelectedColor : TabIdleColor;
+        colors.highlightedColor = ButtonHighlightColor;
+        colors.pressedColor = WarmAccentColor;
+        colors.selectedColor = selected ? TabSelectedColor : ButtonHighlightColor;
+        colors.disabledColor = new Color(0.02f, 0.03f, 0.035f, 0.65f);
+        colors.colorMultiplier = 1f;
+        button.colors = colors;
+    }
+
+    private static void StyleSlider(Slider slider)
+    {
+        if (slider == null) return;
+
+        Image target = slider.targetGraphic as Image;
+        if (target != null) target.color = new Color(0.04f, 0.13f, 0.15f, 1f);
+
+        Image fill = slider.fillRect != null ? slider.fillRect.GetComponent<Image>() : null;
+        if (fill != null) fill.color = AccentColor;
+
+        Image handle = slider.handleRect != null ? slider.handleRect.GetComponent<Image>() : null;
+        if (handle != null) handle.color = WarmAccentColor;
+    }
+
+    private static void StyleDropdown(TMP_Dropdown dropdown)
+    {
+        if (dropdown == null) return;
+
+        Image image = dropdown.targetGraphic as Image;
+        if (image != null) image.color = TabIdleColor;
+
+        if (dropdown.captionText != null) dropdown.captionText.color = TextColor;
+        if (dropdown.itemText != null) dropdown.itemText.color = TextColor;
+    }
+
+    private static void StyleToggle(Toggle toggle)
+    {
+        if (toggle == null) return;
+
+        Image box = toggle.targetGraphic as Image;
+        if (box != null) box.color = new Color(0.06f, 0.2f, 0.24f, 1f);
+
+        Image check = toggle.graphic as Image;
+        if (check != null) check.color = WarmAccentColor;
     }
 
     private void BindValueChanges()
