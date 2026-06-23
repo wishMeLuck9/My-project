@@ -85,7 +85,10 @@ public class PlayerClimbController : MonoBehaviour
         forward.Normalize();
 
         float bodyRadius = Mathf.Max(0.15f, Mathf.Min(bounds.extents.x, bounds.extents.z));
-        if (!TryFindWallHit(bounds, forward, bodyRadius, out RaycastHit wallHit)) return false;
+        if (!TryFindWallHit(bounds, forward, bodyRadius, out RaycastHit wallHit))
+        {
+            return TryFindAssistClimbTarget(bounds, bodyRadius, out target);
+        }
 
         Vector3 climbForward = Vector3.ProjectOnPlane(-wallHit.normal, Vector3.up);
         if (climbForward.sqrMagnitude <= 0.0001f) climbForward = forward;
@@ -117,6 +120,38 @@ public class PlayerClimbController : MonoBehaviour
             SupportCollider = topHit.collider,
             WallPoint = wallHit.point,
             TopPoint = topHit.point,
+            Height = climbHeight
+        };
+
+        StoreDebugTarget(target);
+        return true;
+    }
+
+    private bool TryFindAssistClimbTarget(Bounds bounds, float bodyRadius, out ClimbTarget target)
+    {
+        target = default;
+        if (!ClimbAssistVolume.TryFindBest(transform, playerCollider, out Vector3 landingBottomPoint, out Quaternion targetRotation, out Vector3 topPoint))
+        {
+            return false;
+        }
+
+        float climbHeight = landingBottomPoint.y - bounds.min.y;
+        if (climbHeight < minClimbHeight || climbHeight > maxClimbHeight + 0.35f) return false;
+
+        Vector3 bottomToRootOffset = transform.position - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+        Vector3 targetPosition = landingBottomPoint + bottomToRootOffset;
+
+        if (!ExteriorBoundaryController.TryValidateTargetPosition(targetPosition, out _, true)) return false;
+        if (!HasClearanceAt(targetPosition, targetRotation, null, null)) return false;
+
+        target = new ClimbTarget
+        {
+            Position = targetPosition,
+            Rotation = targetRotation,
+            WallCollider = null,
+            SupportCollider = null,
+            WallPoint = transform.position + transform.forward * Mathf.Max(0.25f, bodyRadius),
+            TopPoint = topPoint,
             Height = climbHeight
         };
 

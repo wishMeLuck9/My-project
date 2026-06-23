@@ -262,7 +262,8 @@ public class ExteriorGateCutsceneController : MonoBehaviour
     {
         if (portal == null || !hasPortalBasePosition) return;
 
-        if (distance > shakeDistance || cutsceneCompleted)
+        bool reduceScreenShake = SettingsManager.Instance != null && SettingsManager.Instance.ReduceScreenShake;
+        if (reduceScreenShake || distance > shakeDistance || cutsceneCompleted)
         {
             portal.transform.localPosition = portalBaseLocalPosition;
             return;

@@ -19,6 +19,8 @@ public class RuntimeHudController : MonoBehaviour
     private const float HudGap = 14f;
     private const float MinLeftPanelWidth = 320f;
     private const float MaxLeftPanelWidth = 430f;
+    private const float MinSubtitleSeconds = 3.5f;
+    private const float MaxSubtitleSeconds = 8f;
 
     public static RuntimeHudController Instance { get; private set; }
 
@@ -153,17 +155,21 @@ public class RuntimeHudController : MonoBehaviour
 
     public void ShowSystemMessage(string message, float duration = 3.5f)
     {
+        if (SettingsManager.Instance != null && !SettingsManager.Instance.Subtitles) return;
+
         string translatedMessage = LocalizationManager.EnsureInstance().TranslateRaw(message);
         if (string.IsNullOrWhiteSpace(translatedMessage)) return;
 
         if (clearSystemMessageRoutine != null) StopCoroutine(clearSystemMessageRoutine);
 
         SetSystemMessage(translatedMessage);
-        clearSystemMessageRoutine = StartCoroutine(ClearSystemMessageAfterDelay(duration));
+        clearSystemMessageRoutine = StartCoroutine(ClearSystemMessageAfterDelay(ResolveReadableDuration(translatedMessage, duration)));
     }
 
     public void ShowAmbientMessage(string message, float duration = 1.8f)
     {
+        if (SettingsManager.Instance != null && !SettingsManager.Instance.Subtitles) return;
+
         string translatedMessage = LocalizationManager.EnsureInstance().TranslateRaw(message);
         if (string.IsNullOrWhiteSpace(translatedMessage)) return;
 
@@ -431,6 +437,8 @@ public class RuntimeHudController : MonoBehaviour
 
     private IEnumerator PlayStartupSequence()
     {
+        if (SettingsManager.Instance != null && !SettingsManager.Instance.Subtitles) yield break;
+
         yield return ShowStartupLine(LocalizationManager.EnsureInstance().Get("hud.start.1"));
         yield return ShowStartupLine(LocalizationManager.EnsureInstance().Get("hud.start.2"));
         yield return ShowStartupLine(LocalizationManager.EnsureInstance().Get("hud.start.3"));
@@ -587,9 +595,9 @@ public class RuntimeHudController : MonoBehaviour
         stabilityText.alignment = TextAlignmentOptions.Center;
         stabilityPanel.SetActive(false);
 
-        systemPanel = CreatePanel("SystemPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(18f, -308f), new Vector2(680f, 112f), new Vector2(0f, 1f));
+        systemPanel = CreatePanel("SystemPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.94f), new Vector2(0f, 90f), new Vector2(780f, 116f), new Vector2(0.5f, 0f));
         systemPanelRect = systemPanel.GetComponent<RectTransform>();
-        systemText = CreateText("SystemMessage", systemPanel.transform, string.Empty, 22f, new Vector2(12f, -10f), new Vector2(656f, 92f), new Vector2(0f, 1f));
+        systemText = CreateText("SystemMessage", systemPanel.transform, string.Empty, 22f, new Vector2(12f, -10f), new Vector2(756f, 96f), new Vector2(0f, 1f));
         systemPanel.SetActive(false);
 
         minimapPanel = CreatePanel("MinimapPanel", transform, new Color(0.01f, 0.02f, 0.04f, 0.95f), new Vector2(-18f, 18f), new Vector2(190f, 190f), new Vector2(1f, 0f));
@@ -693,13 +701,14 @@ public class RuntimeHudController : MonoBehaviour
             Vector2.zero,
             new Vector2(Mathf.Max(1f, healthWidth - 20f), 38f));
 
-        float systemWidth = ClampToAvailable(safeWidth * 0.56f, 360f, 680f, availableWidth);
-        SetRect(systemPanelRect, new Vector2(0f, 1f),
-            new Vector2(leftInset + HudMargin, -(topInset + HudMargin + controlsPanelHeight + HudGap + 48f + HudGap)),
-            new Vector2(systemWidth, 112f));
+        float systemWidth = ClampToAvailable(safeWidth * 0.74f, 520f, 880f, availableWidth);
+        float systemHeight = Mathf.Clamp(safeHeight * 0.17f, 104f, 136f);
+        SetRect(systemPanelRect, new Vector2(0.5f, 0f),
+            new Vector2(0f, bottomInset + HudMargin + 70f),
+            new Vector2(systemWidth, systemHeight));
         SetRect(systemText != null ? systemText.rectTransform : null, new Vector2(0f, 1f),
             new Vector2(12f, -10f),
-            new Vector2(Mathf.Max(1f, systemWidth - 24f), 92f));
+            new Vector2(Mathf.Max(1f, systemWidth - 24f), Mathf.Max(72f, systemHeight - 20f)));
 
         float centerWidth = ClampToAvailable(safeWidth * 0.45f, 360f, 520f, availableWidth);
         SetRect(stabilityPanelRect, new Vector2(0.5f, 1f),
@@ -773,6 +782,14 @@ public class RuntimeHudController : MonoBehaviour
         label.fontSize = size;
         label.fontSizeMax = size;
         label.fontSizeMin = Mathf.Max(10f, size - 6f);
+    }
+
+    private static float ResolveReadableDuration(string message, float requestedDuration)
+    {
+        if (string.IsNullOrWhiteSpace(message)) return requestedDuration;
+
+        float byLength = MinSubtitleSeconds + Mathf.Clamp(message.Length, 0, 140) * 0.034f;
+        return Mathf.Clamp(Mathf.Max(requestedDuration, byLength), MinSubtitleSeconds, MaxSubtitleSeconds);
     }
 
     private static GameObject CreatePanel(string name, Transform parent, Color color, Vector2 position, Vector2 size, Vector2 anchor, bool stretch = false)

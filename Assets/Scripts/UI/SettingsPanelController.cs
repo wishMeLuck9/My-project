@@ -426,7 +426,8 @@ public class SettingsPanelController : MonoBehaviour
             SetRect(toggle.graphic.GetComponent<RectTransform>(), CenterAnchor, CenterAnchor, CenterAnchor, Vector2.zero, new Vector2(16f, 16f));
         }
 
-        TMP_Text label = toggle.GetComponentsInChildren<TMP_Text>(true).FirstOrDefault();
+        TMP_Text label = toggle.GetComponentsInChildren<TMP_Text>(true)
+            .FirstOrDefault(text => text != null && text.gameObject.name != "Checkmark");
         if (label != null)
         {
             SetRect(label.GetComponent<RectTransform>(), LeftCenterAnchor, LeftCenterAnchor, LeftCenterAnchor,
@@ -637,14 +638,37 @@ public class SettingsPanelController : MonoBehaviour
     {
         if (slider == null) return;
 
+        Image background = slider.transform.Find("Background")?.GetComponent<Image>();
+        if (background != null)
+        {
+            background.sprite = null;
+            background.type = Image.Type.Simple;
+            background.color = new Color(0.03f, 0.078f, 0.055f, 0.96f);
+        }
+
         Image target = slider.targetGraphic as Image;
-        if (target != null) target.color = new Color(0.035f, 0.1f, 0.075f, 1f);
+        if (target != null)
+        {
+            target.sprite = null;
+            target.type = Image.Type.Simple;
+            target.color = WarmAccentColor;
+        }
 
         Image fill = slider.fillRect != null ? slider.fillRect.GetComponent<Image>() : null;
-        if (fill != null) fill.color = AccentColor;
+        if (fill != null)
+        {
+            fill.sprite = null;
+            fill.type = Image.Type.Simple;
+            fill.color = AccentColor;
+        }
 
         Image handle = slider.handleRect != null ? slider.handleRect.GetComponent<Image>() : null;
-        if (handle != null) handle.color = WarmAccentColor;
+        if (handle != null)
+        {
+            handle.sprite = null;
+            handle.type = Image.Type.Simple;
+            handle.color = WarmAccentColor;
+        }
     }
 
     private static void StyleDropdown(TMP_Dropdown dropdown)
@@ -657,6 +681,14 @@ public class SettingsPanelController : MonoBehaviour
         if (dropdown.captionText != null) dropdown.captionText.color = TextColor;
         if (dropdown.itemText != null) dropdown.itemText.color = TextColor;
 
+        TMP_Text arrow = dropdown.transform.Find("Arrow")?.GetComponent<TMP_Text>();
+        if (arrow != null)
+        {
+            arrow.text = "▼";
+            arrow.color = AccentColor;
+            arrow.raycastTarget = false;
+        }
+
         if (dropdown.template != null)
         {
             Image templateImage = dropdown.template.GetComponent<Image>();
@@ -667,12 +699,20 @@ public class SettingsPanelController : MonoBehaviour
                 if (childImage == null || childImage == templateImage) continue;
                 if (childImage.gameObject.name.IndexOf("Checkmark", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    childImage.color = WarmAccentColor;
+                    childImage.sprite = null;
+                    childImage.color = Color.clear;
                 }
                 else
                 {
                     childImage.color = new Color(0.018f, 0.07f, 0.052f, 0.95f);
                 }
+            }
+
+            foreach (Toggle itemToggle in dropdown.template.GetComponentsInChildren<Toggle>(true))
+            {
+                Transform checkmark = itemToggle.transform.Find("Item Checkmark");
+                TMP_Text checkmarkText = EnsurePlainCheckText(checkmark);
+                if (checkmarkText != null) itemToggle.graphic = checkmarkText;
             }
         }
     }
@@ -682,10 +722,45 @@ public class SettingsPanelController : MonoBehaviour
         if (toggle == null) return;
 
         Image box = toggle.targetGraphic as Image;
-        if (box != null) box.color = new Color(0.06f, 0.18f, 0.12f, 1f);
+        if (box != null)
+        {
+            box.sprite = null;
+            box.type = Image.Type.Simple;
+            box.color = new Color(0.035f, 0.1f, 0.065f, 1f);
+        }
 
-        Image check = toggle.graphic as Image;
-        if (check != null) check.color = WarmAccentColor;
+        Transform checkTransform = toggle.graphic != null
+            ? toggle.graphic.transform
+            : toggle.transform.Find("Background/Checkmark");
+        TMP_Text check = EnsurePlainCheckText(checkTransform);
+        if (check != null)
+        {
+            check.color = WarmAccentColor;
+            toggle.graphic = check;
+        }
+    }
+
+    private static TMP_Text EnsurePlainCheckText(Transform target)
+    {
+        if (target == null) return null;
+
+        Image image = target.GetComponent<Image>();
+        if (image != null) Destroy(image);
+
+        TMP_Text text = target.GetComponent<TMP_Text>();
+        if (text == null) text = target.gameObject.AddComponent<TextMeshProUGUI>();
+        text.text = "✓";
+        text.fontSize = 16f;
+        text.fontSizeMin = 10f;
+        text.fontSizeMax = 16f;
+        text.enableAutoSizing = true;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = WarmAccentColor;
+        text.raycastTarget = false;
+
+        RectTransform rect = text.GetComponent<RectTransform>();
+        SetRect(rect, CenterAnchor, CenterAnchor, CenterAnchor, Vector2.zero, new Vector2(20f, 20f));
+        return text;
     }
 
     private void BindValueChanges()

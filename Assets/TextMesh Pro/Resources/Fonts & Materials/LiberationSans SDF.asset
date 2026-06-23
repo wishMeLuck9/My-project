@@ -30,6 +30,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _ColorMask: 15
+    - _CullMode: 0
     - _FaceDilate: 0
     - _GradientScale: 10
     - _MaskSoftnessX: 0
@@ -7970,6 +7971,7 @@ MonoBehaviour:
     m_MarkToMarkAdjustmentRecords: []
   m_ShouldReimportFontFeatures: 0
   m_FallbackFontAssetTable:
+  - {fileID: 11400000, guid: c9ca80a4425c56342ad028b856da28d8, type: 2}
   - {fileID: 11400000, guid: 2e498d1c8094910479dc3e1b768306a4, type: 2}
   m_FontWeightTable:
   - regularTypeface: {fileID: 0}

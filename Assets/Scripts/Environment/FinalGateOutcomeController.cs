@@ -1,5 +1,7 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class FinalGateOutcomeController : MonoBehaviour
 {
@@ -18,17 +20,21 @@ public class FinalGateOutcomeController : MonoBehaviour
     private bool started;
     private bool resolved;
     private bool forceResolutionQueued;
+    private bool routeRecoveryQueued;
     private float nextArenaResetTime;
 
     private void Start()
     {
         ResolveReferences();
         if (attack != null) attack.SetSceneAttackEnabled(false);
+        if (TryStartRouteRecovery()) return;
+
         Invoke(nameof(StartFinalIntro), 0.85f);
     }
 
     public void BeginResolution()
     {
+        if (routeRecoveryQueued) return;
         if (started || resolved || WorldState.Instance == null) return;
         if (!introComplete)
         {
@@ -60,6 +66,7 @@ public class FinalGateOutcomeController : MonoBehaviour
 
     public void StartForcedBattleFromIntro()
     {
+        if (routeRecoveryQueued) return;
         if (started || resolved) return;
 
         started = true;
@@ -129,6 +136,7 @@ public class FinalGateOutcomeController : MonoBehaviour
 
     private void StartFinalIntro()
     {
+        if (routeRecoveryQueued) return;
         if (introStarted || resolved || DialogueController.Instance == null) return;
         introStarted = true;
         ResolveReferences();
@@ -248,6 +256,57 @@ public class FinalGateOutcomeController : MonoBehaviour
     {
         WorldState.Instance?.ResetRun();
         GameFlowController.Instance?.TransitionToLocation(SceneIds.Exterior);
+    }
+
+    private bool TryStartRouteRecovery()
+    {
+        WorldState state = WorldState.Instance;
+        if (state == null || (state.hasExteriorFragment && state.hasInnerNightFragment)) return false;
+
+        bool hasAnyFragment = state.hasExteriorFragment || state.hasInnerNightFragment;
+        string targetScene = hasAnyFragment ? SceneIds.Night : SceneIds.Exterior;
+        string messageKey = hasAnyFragment
+            ? "raw.gate.recovery.night"
+            : "raw.gate.recovery.exterior";
+        string fallback = hasAnyFragment
+            ? "The second trace is unfinished. The gate folds you back to the protected alleys."
+            : "The route is not recorded. Your body cannot hold the third square, so the gate returns you to the beginning.";
+
+        routeRecoveryQueued = true;
+        StartCoroutine(RouteRecoveryRoutine(targetScene, messageKey, fallback));
+        return true;
+    }
+
+    private IEnumerator RouteRecoveryRoutine(string targetScene, string messageKey, string fallback)
+    {
+        Time.timeScale = 1f;
+        yield return null;
+
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        DialogueController dialogue = DialogueController.EnsureInstance();
+        if (dialogue != null)
+        {
+            bool completed = false;
+            dialogue.ShowDialogue(GateSpeaker(localizer), localizer.Get(messageKey, fallback), () => completed = true);
+            while (!completed && dialogue.IsDialogueOpen)
+            {
+                yield return null;
+            }
+        }
+        else
+        {
+            yield return new WaitForSecondsRealtime(0.75f);
+        }
+
+        GameFlowController flow = GameFlowController.Instance ?? FindFirstObjectByType<GameFlowController>();
+        if (flow != null)
+        {
+            flow.TransitionToLocation(targetScene);
+        }
+        else
+        {
+            SceneManager.LoadScene(targetScene);
+        }
     }
 
     private void ResolveReferences()

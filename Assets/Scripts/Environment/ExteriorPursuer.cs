@@ -123,6 +123,7 @@ public class ExteriorPursuer : MonoBehaviour
             UpdateHuntDestination(target);
         }
 
+        TryVaultTraversal(target);
         jumper?.TickAutoJump(player, true, true);
         TickHuntPresence(target);
         TryShovePlayerFromHighGround(target);
@@ -235,6 +236,20 @@ public class ExteriorPursuer : MonoBehaviour
         }
 
         return separation * personalSpaceWeight;
+    }
+
+    private void TryVaultTraversal(Vector3 target)
+    {
+        if (jumper == null) return;
+
+        Vector3 delta = target - transform.position;
+        Vector3 planar = delta;
+        planar.y = 0f;
+        bool playerAboveAndClose = delta.y > maxCatchHeightDifference && planar.sqrMagnitude <= 6f * 6f;
+        bool stuckNearObstacle = IsAgentStuckTryingToMove();
+        if (!playerAboveAndClose && !stuckNearObstacle) return;
+
+        jumper.TryVaultToward(target);
     }
 
     private bool IsAgentStuckTryingToMove()

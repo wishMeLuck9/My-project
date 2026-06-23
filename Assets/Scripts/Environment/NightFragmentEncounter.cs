@@ -14,10 +14,15 @@ public class NightFragmentEncounter : MonoBehaviour
     [SerializeField] private SquarePortalController exitPortal;
     [SerializeField] private float runSpeed = 3.2f;
     [SerializeField] private float helperTravelTimeout = 3f;
+    [Header("Combat Tutorial Pacing")]
+    [SerializeField] private bool waitForTrainingBeforeAggro = true;
+    [SerializeField] private CorruptionTrainingTarget[] trainingTargets;
+    [SerializeField] private float initialAggroFallbackDelay = 24f;
 
     private bool mercyStarted;
     private bool routeCompleted;
     private bool violenceChainStarted;
+    private bool initialAggroStarted;
     private int lastDefeatedCount;
     private Vector3 afraidOriginalScale;
     private Quaternion afraidOriginalRotation;
@@ -34,16 +39,27 @@ public class NightFragmentEncounter : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        CorruptionTrainingTarget.TrainingTargetCompleted += HandleTrainingTargetCompleted;
+    }
+
+    private void OnDisable()
+    {
+        CorruptionTrainingTarget.TrainingTargetCompleted -= HandleTrainingTargetCompleted;
+    }
+
     private void Start()
     {
         ResolveReferences();
+        ResolveTrainingTargets();
         if (innerNightFragment != null)
         {
             innerNightFragment.gameObject.SetActive(false);
         }
 
         if (helper != null) helper.gameObject.SetActive(false);
-        StartInitialEnemyAggro();
+        StartCoroutine(StartInitialEnemyAggroWhenReady());
     }
 
     private void Update()
@@ -134,6 +150,9 @@ public class NightFragmentEncounter : MonoBehaviour
 
     private void StartInitialEnemyAggro()
     {
+        if (initialAggroStarted) return;
+        initialAggroStarted = true;
+
         ResolveReferences();
         foreach (PrototypeShadowActor shadow in allShadows)
         {
@@ -142,6 +161,40 @@ public class NightFragmentEncounter : MonoBehaviour
             {
                 shadow.SetHunting(true);
             }
+        }
+    }
+
+    private IEnumerator StartInitialEnemyAggroWhenReady()
+    {
+        float startedAt = Time.time;
+        if (waitForTrainingBeforeAggro)
+        {
+            RuntimeHudController.Instance?.ShowSystemMessage(
+                LocalizationManager.EnsureInstance().Get("raw.night.training.prompt"),
+                6f);
+
+            while (!AreTrainingTargetsComplete() && Time.time - startedAt < initialAggroFallbackDelay)
+            {
+                if (WorldState.Instance != null && WorldState.Instance.nightViolenceAttempted) break;
+                yield return null;
+            }
+        }
+
+        RuntimeHudController.Instance?.ShowSystemMessage(
+            LocalizationManager.EnsureInstance().Get("raw.night.training.release"),
+            5f);
+        StartInitialEnemyAggro();
+    }
+
+    private void HandleTrainingTargetCompleted(CorruptionTrainingTarget target)
+    {
+        if (!waitForTrainingBeforeAggro || initialAggroStarted) return;
+        if (AreTrainingTargetsComplete())
+        {
+            RuntimeHudController.Instance?.ShowSystemMessage(
+                LocalizationManager.EnsureInstance().Get("raw.night.training.release"),
+                5f);
+            StartInitialEnemyAggro();
         }
     }
 
@@ -258,6 +311,26 @@ public class NightFragmentEncounter : MonoBehaviour
             .Concat(discovered)
             .Distinct()
             .ToArray();
+    }
+
+    private void ResolveTrainingTargets()
+    {
+        if (trainingTargets != null && trainingTargets.Any(target => target != null)) return;
+        trainingTargets = FindObjectsByType<CorruptionTrainingTarget>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+    }
+
+    private bool AreTrainingTargetsComplete()
+    {
+        ResolveTrainingTargets();
+        if (trainingTargets == null || trainingTargets.Length == 0) return true;
+
+        for (int i = 0; i < trainingTargets.Length; i++)
+        {
+            CorruptionTrainingTarget target = trainingTargets[i];
+            if (target != null && target.gameObject.activeInHierarchy && !target.IsDefeated) return false;
+        }
+
+        return true;
     }
 
     private string GetHelperSpeakerName()

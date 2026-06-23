@@ -231,10 +231,18 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
         }
 
         GuardianController guardian = target.GetComponentInParent<GuardianController>();
-        if (guardian == null) return false;
+        if (guardian != null)
+        {
+            guardian.ReceiveAttack();
+            appliedTarget = guardian.transform;
+            return true;
+        }
 
-        guardian.ReceiveAttack();
-        appliedTarget = guardian.transform;
+        CorruptionTrainingTarget trainingTarget = target.GetComponentInParent<CorruptionTrainingTarget>();
+        if (trainingTarget == null) return false;
+
+        trainingTarget.ReceiveTrainingHit();
+        appliedTarget = trainingTarget.transform;
         return true;
     }
 
@@ -307,7 +315,10 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
         if (shadow != null) return shadow.transform;
 
         GuardianController guardian = target.GetComponentInParent<GuardianController>();
-        return guardian != null ? guardian.transform : null;
+        if (guardian != null) return guardian.transform;
+
+        CorruptionTrainingTarget trainingTarget = target.GetComponentInParent<CorruptionTrainingTarget>();
+        return trainingTarget != null ? trainingTarget.transform : null;
     }
 
     private bool IsPartOfSource(Transform candidate)

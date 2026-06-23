@@ -16,6 +16,7 @@ public class PlayerAttackController : MonoBehaviour
     [SerializeField] private float spellAimAssistAngle = 26f;
     [SerializeField] private int shadowAttackDamage = 2;
     [SerializeField] private Vector3 fallbackCastOffset = new Vector3(0.35f, 1.15f, 0.45f);
+    [SerializeField] private float nonHostileShadowFearRadius = 7.5f;
 
     private readonly Collider[] hitBuffer = new Collider[16];
     private readonly RaycastHit[] spellCastHits = new RaycastHit[24];
@@ -70,6 +71,7 @@ public class PlayerAttackController : MonoBehaviour
     {
         ResolveVisualAnimator()?.PlayAttack();
         bool projectileWillResolveHit = CastCorruptionSpell(resolveGameplayHit);
+        NotifyNearbyNonHostileShadows();
         if (!resolveGameplayHit || projectileWillResolveHit) return;
 
         int mask = hitMask.value == 0 ? Physics.DefaultRaycastLayers : hitMask.value;
@@ -195,6 +197,26 @@ public class PlayerAttackController : MonoBehaviour
 
             TryConsiderSpellCombatTarget(
                 guardian.transform,
+                origin,
+                direction,
+                range,
+                mask,
+                assistRadius,
+                minForwardDot,
+                ref target,
+                ref aimPoint,
+                ref impactNormal,
+                ref bestScore);
+        }
+
+        CorruptionTrainingTarget[] trainingTargets = FindObjectsByType<CorruptionTrainingTarget>(FindObjectsSortMode.None);
+        for (int i = 0; i < trainingTargets.Length; i++)
+        {
+            CorruptionTrainingTarget trainingTarget = trainingTargets[i];
+            if (trainingTarget == null || trainingTarget.IsDefeated) continue;
+
+            TryConsiderSpellCombatTarget(
+                trainingTarget.transform,
                 origin,
                 direction,
                 range,
@@ -335,6 +357,26 @@ public class PlayerAttackController : MonoBehaviour
         return sceneName == SceneIds.Night || sceneName == SceneIds.Final;
     }
 
+    private void NotifyNearbyNonHostileShadows()
+    {
+        if (nonHostileShadowFearRadius <= 0f) return;
+
+        PrototypeShadowActor[] shadows = FindObjectsByType<PrototypeShadowActor>(FindObjectsSortMode.None);
+        float radiusSqr = nonHostileShadowFearRadius * nonHostileShadowFearRadius;
+        for (int i = 0; i < shadows.Length; i++)
+        {
+            PrototypeShadowActor shadow = shadows[i];
+            if (shadow == null || shadow.IsDefeated || shadow.IsHunting) continue;
+            if (shadow.Role == PrototypeShadowActor.ShadowRole.Enemy || shadow.Role == PrototypeShadowActor.ShadowRole.GuardianProxy) continue;
+
+            Vector3 delta = shadow.transform.position - transform.position;
+            delta.y = 0f;
+            if (delta.sqrMagnitude > radiusSqr) continue;
+
+            shadow.SetFleeingFromPlayer(true);
+        }
+    }
+
     private bool HasLineOfSight(Transform target, Collider hit)
     {
         int mask = hitMask.value == 0 ? Physics.DefaultRaycastLayers : hitMask.value;
@@ -364,7 +406,10 @@ public class PlayerAttackController : MonoBehaviour
         if (shadow != null) return shadow.transform;
 
         GuardianController guardian = target.GetComponentInParent<GuardianController>();
-        return guardian != null ? guardian.transform : null;
+        if (guardian != null) return guardian.transform;
+
+        CorruptionTrainingTarget trainingTarget = target.GetComponentInParent<CorruptionTrainingTarget>();
+        return trainingTarget != null ? trainingTarget.transform : null;
     }
 
     private static bool IsDefeatedCombatTarget(Transform target)
@@ -375,7 +420,10 @@ public class PlayerAttackController : MonoBehaviour
         if (shadow != null) return shadow.IsDefeated;
 
         GuardianController guardian = target.GetComponentInParent<GuardianController>();
-        return guardian != null && guardian.IsDefeated;
+        if (guardian != null) return guardian.IsDefeated;
+
+        CorruptionTrainingTarget trainingTarget = target.GetComponentInParent<CorruptionTrainingTarget>();
+        return trainingTarget != null && trainingTarget.IsDefeated;
     }
 
     private bool IsPartOfSource(Transform candidate)

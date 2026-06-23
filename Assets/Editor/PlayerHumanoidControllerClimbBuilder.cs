@@ -8,6 +8,7 @@ public static class PlayerHumanoidControllerClimbBuilder
 {
     private const string ControllerPath = "Assets/Art/Characters/Player/Controllers/PlayerHumanoid.controller";
     private const string PlayerAnimationsFolder = "Assets/Art/Characters/Player/Animations";
+    private const string BracedClimbPath = "Assets/Art/Characters/Player/Animations/Braced Hang To Crouch.fbx";
     private const string CourseAnimationsPath = "Assets/Course Library/_Source_Files/FBX/Animations.fbx";
     private const string ClimbParameter = "Climb";
     private const string ClimbStateName = "Climb";
@@ -23,7 +24,9 @@ public static class PlayerHumanoidControllerClimbBuilder
             throw new InvalidOperationException($"Animator controller not found at {ControllerPath}.");
         }
 
-        AnimationClip climbClip = FindPreferredClimbClip() ?? FindClipByExactName(CourseAnimationsPath, FallbackClipName);
+        AnimationClip climbClip = FindClipFromAsset(BracedClimbPath)
+                                  ?? FindPreferredClimbClip()
+                                  ?? FindClipByExactName(CourseAnimationsPath, FallbackClipName);
         if (climbClip == null)
         {
             throw new InvalidOperationException($"Neither a Climb clip nor fallback {FallbackClipName} was found.");
@@ -123,5 +126,15 @@ public static class PlayerHumanoidControllerClimbBuilder
         return AssetDatabase.LoadAllAssetsAtPath(assetPath)
             .OfType<AnimationClip>()
             .FirstOrDefault(clip => clip != null && clip.name == clipName);
+    }
+
+    private static AnimationClip FindClipFromAsset(string assetPath)
+    {
+        return AssetDatabase.LoadAllAssetsAtPath(assetPath)
+            .OfType<AnimationClip>()
+            .FirstOrDefault(clip =>
+                clip != null &&
+                !clip.name.StartsWith("__", StringComparison.Ordinal) &&
+                clip.name.IndexOf("preview", StringComparison.OrdinalIgnoreCase) < 0);
     }
 }

@@ -19,6 +19,9 @@ public static class Virus9FrontendRebuilder
     private const string UiFontAssetPath = "Assets/Fonts/UI/VIRUS9_NotoSans_UI.asset";
     private const string UiBoldFontAssetPath = "Assets/Fonts/UI/VIRUS9_NotoSans_Bold_UI.asset";
     private const string PortugueseFontAssetPath = "Assets/Fonts/UI/VIRUS9_NotoSans_Portuguese.asset";
+    private const string UiSymbolSourceFontPath = "Assets/Fonts/UI/VIRUS9-SegoeUISymbol.ttf";
+    private const string UiSymbolFontAssetPath = "Assets/Fonts/UI/VIRUS9_UI_Symbols.asset";
+    private const string WindowsSymbolFontPath = @"C:\Windows\Fonts\seguisym.ttf";
     private const string TmpDefaultFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset";
     private const string TmpFallbackFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset";
     private const string TmpLiberationSansFontPath = "Assets/TextMesh Pro/Fonts/LiberationSans.ttf";
@@ -36,10 +39,13 @@ public static class Virus9FrontendRebuilder
     private const string PauseDustTexturePath = "Assets/Art/VFX/JohnLemon/DustMote.png";
     private const string PauseAmbiencePath = "Assets/Audio/Ambience/JohnLemon/SFXHouseAmbience.wav";
     private const string PauseBuzzPath = "Assets/Audio/Ambience/JohnLemon/SFXBuzzingLight.wav";
-    private const string RequiredUiFontCharacters =
+    private const string RequiredUiTextCharacters =
         " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" +
         "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя" +
         "ÀÁÂÃÇÉÊÍÓÔÕÚÜàáâãçéêíóôõúüÊêÍíÓóÚúÇçÃãÕõ";
+    private const string RequiredUiSymbolCharacters = "\u25BC\u2713\u25A0\u25A1";
+    private const string RequiredUiFontCharacters = RequiredUiTextCharacters + RequiredUiSymbolCharacters;
+    private const string RequiredTmpFallbackCharacters = RequiredUiTextCharacters + "\u25BC\u25A0\u25A1";
 
     private static readonly Vector2 ReferenceResolution = new Vector2(1280f, 720f);
     private static readonly Color BackgroundColor = new Color(0.006f, 0.008f, 0.007f, 1f);
@@ -60,7 +66,9 @@ public static class Virus9FrontendRebuilder
         TMP_FontAsset uiFont = EnsureFontAsset("VIRUS9_NotoSans_UI", UiFontAssetPath, NotoSansRegularPath);
         TMP_FontAsset uiBoldFont = EnsureFontAsset("VIRUS9_NotoSans_Bold_UI", UiBoldFontAssetPath, NotoSansBoldPath);
         TMP_FontAsset portugueseFont = EnsureFontAsset("VIRUS9_NotoSans_Portuguese", PortugueseFontAssetPath, NotoSansRegularPath);
-        EnsureTmpFallbackFontAsset();
+        TMP_FontAsset symbolFont = EnsureUiSymbolFontAsset();
+        TMP_FontAsset tmpFallbackFont = EnsureTmpFallbackFontAsset();
+        ApplyUiFontFallbacks(symbolFont, tmpFallbackFont, uiFont, uiBoldFont, portugueseFont);
 
         FrontendSkin skin = new FrontendSkin(uiFont, uiBoldFont, portugueseFont);
         RebuildLocalizationCatalog();
@@ -158,7 +166,7 @@ public static class Virus9FrontendRebuilder
                 AtlasPopulationMode.Dynamic,
                 true);
             fontAsset.name = assetName;
-            if (!fontAsset.TryAddCharacters(RequiredUiFontCharacters, out string missingCharacters) && !string.IsNullOrEmpty(missingCharacters))
+            if (!fontAsset.TryAddCharacters(RequiredUiTextCharacters, out string missingCharacters) && !string.IsNullOrEmpty(missingCharacters))
             {
                 Debug.LogWarning($"{assetName} could not pack UI characters: {missingCharacters}");
             }
@@ -177,6 +185,74 @@ public static class Virus9FrontendRebuilder
 
         EditorUtility.SetDirty(fontAsset);
         return fontAsset;
+    }
+
+    private static TMP_FontAsset EnsureUiSymbolFontAsset()
+    {
+        TMP_FontAsset fontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(UiSymbolFontAssetPath);
+        if (fontAsset != null && !HasValidSymbolFontAsset(fontAsset))
+        {
+            AssetDatabase.DeleteAsset(UiSymbolFontAssetPath);
+            fontAsset = null;
+        }
+
+        if (fontAsset == null)
+        {
+            Font sourceFont = EnsureUiSymbolSourceFontImported();
+            if (sourceFont == null)
+            {
+                Debug.LogWarning("VIRUS9 symbol fallback skipped because no symbol source font was available.");
+                return null;
+            }
+
+            fontAsset = TMP_FontAsset.CreateFontAsset(
+                sourceFont,
+                90,
+                9,
+                GlyphRenderMode.SDFAA,
+                512,
+                512,
+                AtlasPopulationMode.Dynamic,
+                true);
+
+            if (fontAsset == null)
+            {
+                Debug.LogWarning("VIRUS9 symbol fallback creation failed.");
+                return null;
+            }
+
+            fontAsset.name = "VIRUS9_UI_Symbols";
+            if (!fontAsset.TryAddCharacters(RequiredUiSymbolCharacters, out string missingCharacters) && !string.IsNullOrEmpty(missingCharacters))
+            {
+                Debug.LogWarning($"VIRUS9 symbol fallback could not pack UI characters: {missingCharacters}");
+            }
+
+            fontAsset.atlasPopulationMode = AtlasPopulationMode.Static;
+            AssetDatabase.CreateAsset(fontAsset, UiSymbolFontAssetPath);
+            AddFontSubAssets(fontAsset);
+        }
+
+        fontAsset.name = "VIRUS9_UI_Symbols";
+        fontAsset.atlasPopulationMode = AtlasPopulationMode.Static;
+        EditorUtility.SetDirty(fontAsset);
+        return fontAsset;
+    }
+
+    private static Font EnsureUiSymbolSourceFontImported()
+    {
+        Font sourceFont = AssetDatabase.LoadAssetAtPath<Font>(UiSymbolSourceFontPath);
+        if (sourceFont != null) return sourceFont;
+
+        if (!File.Exists(WindowsSymbolFontPath))
+        {
+            Debug.LogWarning($"VIRUS9 symbol source font missing: {WindowsSymbolFontPath}");
+            return null;
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(UiSymbolSourceFontPath) ?? FontsFolder);
+        File.Copy(WindowsSymbolFontPath, Path.GetFullPath(UiSymbolSourceFontPath), true);
+        AssetDatabase.ImportAsset(UiSymbolSourceFontPath, ImportAssetOptions.ForceUpdate);
+        return AssetDatabase.LoadAssetAtPath<Font>(UiSymbolSourceFontPath);
     }
 
     [MenuItem("VIRUS9/Repair TMP Fallback Font")]
@@ -224,7 +300,7 @@ public static class Virus9FrontendRebuilder
             }
 
             fallbackFont.name = "LiberationSans SDF - Fallback";
-            if (!fallbackFont.TryAddCharacters(RequiredUiFontCharacters, out string missingCharacters) && !string.IsNullOrEmpty(missingCharacters))
+            if (!fallbackFont.TryAddCharacters(RequiredTmpFallbackCharacters, out string missingCharacters) && !string.IsNullOrEmpty(missingCharacters))
             {
                 Debug.LogWarning($"TMP fallback font could not pack UI characters: {missingCharacters}");
             }
@@ -261,6 +337,36 @@ public static class Virus9FrontendRebuilder
         return fallbackFont;
     }
 
+    private static void ApplyUiFontFallbacks(TMP_FontAsset symbolFont, TMP_FontAsset tmpFallbackFont, params TMP_FontAsset[] primaryFonts)
+    {
+        foreach (TMP_FontAsset primaryFont in primaryFonts)
+        {
+            SetFontFallbacks(primaryFont, symbolFont, tmpFallbackFont);
+        }
+
+        TMP_FontAsset defaultFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(TmpDefaultFontPath);
+        SetFontFallbacks(defaultFont, symbolFont, tmpFallbackFont);
+    }
+
+    private static void SetFontFallbacks(TMP_FontAsset fontAsset, params TMP_FontAsset[] fallbacks)
+    {
+        if (fontAsset == null) return;
+
+        if (fontAsset.fallbackFontAssetTable == null)
+        {
+            fontAsset.fallbackFontAssetTable = new List<TMP_FontAsset>();
+        }
+
+        fontAsset.fallbackFontAssetTable.Clear();
+        foreach (TMP_FontAsset fallback in fallbacks)
+        {
+            if (fallback == null || fallback == fontAsset || fontAsset.fallbackFontAssetTable.Contains(fallback)) continue;
+            fontAsset.fallbackFontAssetTable.Add(fallback);
+        }
+
+        EditorUtility.SetDirty(fontAsset);
+    }
+
     private static bool HasValidStaticFontAsset(TMP_FontAsset fontAsset, int minimumAtlasSize)
     {
         if (fontAsset == null ||
@@ -278,7 +384,7 @@ public static class Virus9FrontendRebuilder
             return false;
         }
 
-        return ContainsRequiredCharacters(fontAsset);
+        return ContainsRequiredCharacters(fontAsset, RequiredTmpFallbackCharacters);
     }
 
     private static void AddFontSubAssets(TMP_FontAsset fontAsset)
@@ -312,14 +418,29 @@ public static class Virus9FrontendRebuilder
             return false;
         }
 
-        return ContainsRequiredCharacters(fontAsset);
+        return ContainsRequiredCharacters(fontAsset, RequiredUiTextCharacters);
     }
 
-    private static bool ContainsRequiredCharacters(TMP_FontAsset fontAsset)
+    private static bool HasValidSymbolFontAsset(TMP_FontAsset fontAsset)
     {
-        for (int i = 0; i < RequiredUiFontCharacters.Length; i++)
+        if (fontAsset == null ||
+            fontAsset.atlasTextures == null ||
+            fontAsset.atlasTextures.Length == 0 ||
+            fontAsset.atlasTextures[0] == null ||
+            fontAsset.atlasTextures[0].width < 256 ||
+            fontAsset.atlasTextures[0].height < 256)
         {
-            if (!ContainsCharacter(fontAsset, RequiredUiFontCharacters[i])) return false;
+            return false;
+        }
+
+        return ContainsRequiredCharacters(fontAsset, RequiredUiSymbolCharacters);
+    }
+
+    private static bool ContainsRequiredCharacters(TMP_FontAsset fontAsset, string requiredCharacters)
+    {
+        for (int i = 0; i < requiredCharacters.Length; i++)
+        {
+            if (!ContainsCharacter(fontAsset, requiredCharacters[i])) return false;
         }
 
         return true;
@@ -482,6 +603,34 @@ public static class Virus9FrontendRebuilder
             "Ты выпал за границы сцены. Возвращаю к безопасной точке.",
             "You left the scene bounds. Returning you to a safe point.",
             "Saíste dos limites da cena. A voltar para um ponto seguro.");
+        Upsert(entries, "raw.return_gate.prompt",
+            "Обратные врата открыты. Вернуться к предыдущему квадрату?",
+            "The return gate is open. Go back to the previous square?",
+            "Os portoes de regresso estao abertos. Voltar ao quadrado anterior?");
+        Upsert(entries, "raw.return_gate.locked",
+            "Обратный маршрут еще не записан. Сначала нужен фрагмент.",
+            "The return route is not recorded yet. A fragment must anchor it first.",
+            "A rota de regresso ainda nao foi registada. Primeiro precisas de um fragmento.");
+        Upsert(entries, "raw.return_gate.enter",
+            "Вернуться",
+            "Return",
+            "Voltar");
+        Upsert(entries, "raw.return_gate.leave",
+            "Остаться",
+            "Stay",
+            "Ficar");
+        Upsert(entries, "raw.night.training.prompt",
+            "Сила уже в руке. Попробуй ударить по неподвижной тени, прежде чем ночь заметит тебя.",
+            "The force is already in your hand. Strike the still shadow before the night notices you.",
+            "A forca ja esta na tua mao. Atinge a sombra parada antes que a noite repare em ti.");
+        Upsert(entries, "raw.night.training.hit",
+            "Пространство треснуло. Теперь живые тени тоже почувствуют удар.",
+            "The space cracked. Now the living shadows will feel the strike too.",
+            "O espaco rachou. Agora as sombras vivas tambem vao sentir o golpe.");
+        Upsert(entries, "raw.night.training.release",
+            "Ночь услышала. Теперь двигайся.",
+            "The night heard it. Move now.",
+            "A noite ouviu. Agora mexe-te.");
 
         catalog.ReplaceEntries(entries);
         EditorUtility.SetDirty(catalog);
@@ -809,10 +958,9 @@ public static class Virus9FrontendRebuilder
 
         if (objectName == "Checkmark" || objectName == "Item Checkmark")
         {
-            image.sprite = skin.Select;
-            image.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
-            image.color = new Color(1f, 0.58f, 0.14f, 1f);
-            image.preserveAspect = true;
+            image.sprite = null;
+            image.type = Image.Type.Simple;
+            image.color = Color.clear;
             return;
         }
 
@@ -856,32 +1004,32 @@ public static class Virus9FrontendRebuilder
         Image background = backgroundTransform != null ? backgroundTransform.GetComponent<Image>() : null;
         if (background != null)
         {
-            background.sprite = skin.SliderTrack;
-            background.type = skin.SliderTrack != null ? Image.Type.Sliced : Image.Type.Simple;
+            background.sprite = null;
+            background.type = Image.Type.Simple;
             background.color = new Color(0.03f, 0.078f, 0.055f, 0.96f);
         }
 
         Image target = slider.targetGraphic as Image;
         if (target != null && slider.handleRect != null && target.transform == slider.handleRect)
         {
-            target.sprite = skin.Select;
-            target.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
+            target.sprite = null;
+            target.type = Image.Type.Simple;
             target.color = new Color(0.86f, 0.55f, 0.19f, 1f);
         }
 
         Image fill = slider.fillRect != null ? slider.fillRect.GetComponent<Image>() : null;
         if (fill != null)
         {
-            fill.sprite = skin.SliderFill;
-            fill.type = skin.SliderFill != null ? Image.Type.Sliced : Image.Type.Simple;
+            fill.sprite = null;
+            fill.type = Image.Type.Simple;
             fill.color = new Color(0.62f, 0.86f, 0.64f, 0.96f);
         }
 
         Image handle = slider.handleRect != null ? slider.handleRect.GetComponent<Image>() : null;
         if (handle != null)
         {
-            handle.sprite = skin.Select;
-            handle.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
+            handle.sprite = null;
+            handle.type = Image.Type.Simple;
             handle.color = new Color(0.86f, 0.55f, 0.19f, 1f);
         }
     }
@@ -916,10 +1064,9 @@ public static class Virus9FrontendRebuilder
                 if (templateChildImage == null || templateChildImage == templateImage) continue;
                 if (templateChildImage.gameObject.name == "Item Checkmark")
                 {
-                    templateChildImage.sprite = skin.Select;
-                    templateChildImage.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
-                    templateChildImage.preserveAspect = true;
-                    templateChildImage.color = new Color(0.86f, 0.55f, 0.19f, 1f);
+                    templateChildImage.sprite = null;
+                    templateChildImage.type = Image.Type.Simple;
+                    templateChildImage.color = Color.clear;
                 }
                 else
                 {
@@ -927,6 +1074,13 @@ public static class Virus9FrontendRebuilder
                     templateChildImage.type = templateChildImage.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
                     templateChildImage.color = new Color(0.026f, 0.075f, 0.052f, 0.94f);
                 }
+            }
+
+            foreach (Toggle itemToggle in dropdown.template.GetComponentsInChildren<Toggle>(true))
+            {
+                Transform checkmark = itemToggle.transform.Find("Item Checkmark");
+                TMP_Text checkmarkText = EnsurePlainCheckText(checkmark, skin.DisplayFont, 15f);
+                if (checkmarkText != null) itemToggle.graphic = checkmarkText;
             }
         }
 
@@ -939,7 +1093,7 @@ public static class Virus9FrontendRebuilder
         TMP_Text arrowText;
         if (arrow == null)
         {
-            arrowText = CreateText(dropdown.transform, "Arrow", "v", skin.DisplayFont, 16f, TextAlignmentOptions.Center, AccentColor);
+            arrowText = CreateText(dropdown.transform, "Arrow", "▼", skin.DisplayFont, 16f, TextAlignmentOptions.Center, AccentColor);
         }
         else
         {
@@ -949,7 +1103,7 @@ public static class Virus9FrontendRebuilder
 
         SetRect(arrowText.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(-16f, 0f), new Vector2(28f, 0f));
         arrowText.font = skin.DisplayFont;
-        arrowText.text = "v";
+        arrowText.text = "▼";
         arrowText.color = AccentColor;
         arrowText.raycastTarget = false;
     }
@@ -961,19 +1115,43 @@ public static class Virus9FrontendRebuilder
         Image box = toggle.targetGraphic as Image;
         if (box != null)
         {
-            box.sprite = skin.Select != null ? skin.Select : skin.Button;
-            box.type = box.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
-            box.color = new Color(0.06f, 0.2f, 0.24f, 1f);
+            box.sprite = null;
+            box.type = Image.Type.Simple;
+            box.color = new Color(0.035f, 0.1f, 0.065f, 1f);
         }
 
-        Image check = toggle.graphic as Image;
+        Transform checkTransform = toggle.graphic != null
+            ? toggle.graphic.transform
+            : toggle.transform.Find("Background/Checkmark");
+        TMP_Text check = EnsurePlainCheckText(checkTransform, skin.DisplayFont, 16f);
         if (check != null)
         {
-            check.sprite = skin.Select;
-            check.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
-            check.preserveAspect = true;
             check.color = new Color(0.86f, 0.55f, 0.19f, 1f);
+            toggle.graphic = check;
         }
+    }
+
+    private static TMP_Text EnsurePlainCheckText(Transform target, TMP_FontAsset font, float fontSize)
+    {
+        if (target == null) return null;
+
+        Image image = target.GetComponent<Image>();
+        if (image != null) UnityEngine.Object.DestroyImmediate(image);
+
+        TMP_Text text = target.GetComponent<TMP_Text>();
+        if (text == null) text = target.gameObject.AddComponent<TextMeshProUGUI>();
+        text.font = font;
+        text.text = "✓";
+        text.fontSize = fontSize;
+        text.fontSizeMin = Mathf.Max(9f, fontSize - 4f);
+        text.fontSizeMax = fontSize;
+        text.enableAutoSizing = true;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = new Color(0.86f, 0.55f, 0.19f, 1f);
+        text.raycastTarget = false;
+        RectTransform rect = text.rectTransform;
+        SetRect(rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(20f, 20f));
+        return text;
     }
 
     private static void StylePauseText(TMP_Text text, FrontendSkin skin)
@@ -1119,10 +1297,20 @@ public static class Virus9FrontendRebuilder
         titlePlateImage.color = new Color(0.015f, 0.046f, 0.052f, 0.7f);
         titlePlateImage.raycastTarget = false;
 
-        TMP_Text title = CreateText(panel.transform, "Title", "VIRUS9", skin.DisplayFont, 78f, TextAlignmentOptions.Left, TextColor);
+        TMP_Text titleGhost = CreateText(panel.transform, "TitleGhost", "VIRUS 9", skin.DisplayFont, 78f, TextAlignmentOptions.Left, new Color(0.22f, 0.52f, 0.34f, 0.22f));
+        SetRect(titleGhost.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(104f, 116f), new Vector2(560f, 104f));
+        titleGhost.characterSpacing = 10f;
+        titleGhost.fontStyle = FontStyles.UpperCase;
+
+        TMP_Text title = CreateText(panel.transform, "Title", "VIRUS 9", skin.DisplayFont, 78f, TextAlignmentOptions.Left, TextColor);
         SetRect(title.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(98f, 112f), new Vector2(520f, 104f));
-        title.characterSpacing = 12f;
+        title.characterSpacing = 10f;
         title.fontStyle = FontStyles.UpperCase;
+        MenuTitleFlicker flicker = title.gameObject.AddComponent<MenuTitleFlicker>();
+        SerializedObject flickerSerialized = new SerializedObject(flicker);
+        SetObject(flickerSerialized, "primary", title);
+        SetObject(flickerSerialized, "ghost", titleGhost);
+        flickerSerialized.ApplyModifiedPropertiesWithoutUndo();
 
         TMP_Text subtitle = CreateLocalizedText(panel.transform, "Subtitle", "menu.intro", "THE SYSTEM RECORDS EVERY STEP.", skin.BodyFont, 18f, TextAlignmentOptions.TopLeft, MutedTextColor);
         SetRect(subtitle.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 1f), new Vector2(102f, 22f), new Vector2(560f, 94f));
@@ -1145,10 +1333,20 @@ public static class Virus9FrontendRebuilder
     {
         GameObject panel = CreateUiObject("MainMenuPanel", parent, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 
-        TMP_Text title = CreateText(panel.transform, "Title", "VIRUS9", skin.DisplayFont, 58f, TextAlignmentOptions.Left, TextColor);
+        TMP_Text titleGhost = CreateText(panel.transform, "TitleGhost", "VIRUS 9", skin.DisplayFont, 58f, TextAlignmentOptions.Left, new Color(0.22f, 0.52f, 0.34f, 0.22f));
+        SetRect(titleGhost.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(91f, -58f), new Vector2(460f, 76f));
+        titleGhost.characterSpacing = 8f;
+        titleGhost.fontStyle = FontStyles.UpperCase;
+
+        TMP_Text title = CreateText(panel.transform, "Title", "VIRUS 9", skin.DisplayFont, 58f, TextAlignmentOptions.Left, TextColor);
         SetRect(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(86f, -62f), new Vector2(430f, 74f));
-        title.characterSpacing = 10f;
+        title.characterSpacing = 8f;
         title.fontStyle = FontStyles.UpperCase;
+        MenuTitleFlicker flicker = title.gameObject.AddComponent<MenuTitleFlicker>();
+        SerializedObject flickerSerialized = new SerializedObject(flicker);
+        SetObject(flickerSerialized, "primary", title);
+        SetObject(flickerSerialized, "ghost", titleGhost);
+        flickerSerialized.ApplyModifiedPropertiesWithoutUndo();
 
         GameObject rail = CreateUiObject("ButtonRail", panel.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(82f, -44f), new Vector2(348f, 374f));
         Image railImage = rail.AddComponent<Image>();
@@ -1321,22 +1519,22 @@ public static class Virus9FrontendRebuilder
 
         GameObject background = CreateUiObject("Background", root.transform, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(0f, 8f));
         Image backgroundImage = background.AddComponent<Image>();
-        backgroundImage.sprite = skin.SliderTrack;
-        backgroundImage.type = skin.SliderTrack != null ? Image.Type.Sliced : Image.Type.Simple;
+        backgroundImage.sprite = null;
+        backgroundImage.type = Image.Type.Simple;
         backgroundImage.color = new Color(0.03f, 0.078f, 0.055f, 0.96f);
 
         GameObject fillArea = CreateUiObject("Fill Area", root.transform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(-18f, 0f));
         GameObject fill = CreateUiObject("Fill", fillArea.transform, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(0f, 10f));
         Image fillImage = fill.AddComponent<Image>();
-        fillImage.sprite = skin.SliderFill;
-        fillImage.type = skin.SliderFill != null ? Image.Type.Sliced : Image.Type.Simple;
+        fillImage.sprite = null;
+        fillImage.type = Image.Type.Simple;
         fillImage.color = new Color(0.62f, 0.86f, 0.64f, 0.96f);
 
         GameObject handleArea = CreateUiObject("Handle Slide Area", root.transform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(-18f, 0f));
         GameObject handle = CreateUiObject("Handle", handleArea.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(18f, 42f));
         Image handleImage = handle.AddComponent<Image>();
-        handleImage.sprite = skin.Select;
-        handleImage.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
+        handleImage.sprite = null;
+        handleImage.type = Image.Type.Simple;
         handleImage.color = new Color(0.86f, 0.55f, 0.19f, 1f);
 
         slider.targetGraphic = handleImage;
@@ -1362,22 +1560,27 @@ public static class Virus9FrontendRebuilder
 
         GameObject background = CreateUiObject("Background", root.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(22f, 22f));
         Image backgroundImage = background.AddComponent<Image>();
-        backgroundImage.sprite = skin.Select;
-        backgroundImage.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
-        backgroundImage.color = new Color(0.04f, 0.12f, 0.075f, 1f);
+        backgroundImage.sprite = null;
+        backgroundImage.type = Image.Type.Simple;
+        backgroundImage.color = new Color(0.035f, 0.1f, 0.065f, 1f);
 
         GameObject checkmark = CreateUiObject("Checkmark", background.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(16f, 16f));
-        Image checkmarkImage = checkmark.AddComponent<Image>();
-        checkmarkImage.sprite = skin.Select;
-        checkmarkImage.type = skin.Select != null ? Image.Type.Sliced : Image.Type.Simple;
-        checkmarkImage.preserveAspect = true;
-        checkmarkImage.color = new Color(0.86f, 0.55f, 0.19f, 1f);
+        TMP_Text checkmarkText = checkmark.AddComponent<TextMeshProUGUI>();
+        checkmarkText.font = skin.DisplayFont;
+        checkmarkText.text = "✓";
+        checkmarkText.fontSize = 16f;
+        checkmarkText.fontSizeMin = 10f;
+        checkmarkText.fontSizeMax = 16f;
+        checkmarkText.enableAutoSizing = true;
+        checkmarkText.alignment = TextAlignmentOptions.Center;
+        checkmarkText.color = new Color(0.86f, 0.55f, 0.19f, 1f);
+        checkmarkText.raycastTarget = false;
 
         TMP_Text label = CreateLocalizedText(root.transform, "Label", key, fallback, skin.BodyFont, 16f, TextAlignmentOptions.MidlineLeft, TextColor);
         SetRect(label.rectTransform, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 0.5f), new Vector2(34f, 0f), new Vector2(-34f, 30f));
 
         toggle.targetGraphic = backgroundImage;
-        toggle.graphic = checkmarkImage;
+        toggle.graphic = checkmarkText;
         toggle.isOn = false;
         return toggle;
     }
@@ -1529,7 +1732,7 @@ public static class Virus9FrontendRebuilder
         label.textWrappingMode = TextWrappingModes.NoWrap;
         dropdown.captionText = label;
 
-        TMP_Text arrow = CreateText(root.transform, "Arrow", "v", skin.DisplayFont, 16f, TextAlignmentOptions.Center, AccentColor);
+        TMP_Text arrow = CreateText(root.transform, "Arrow", "▼", skin.DisplayFont, 16f, TextAlignmentOptions.Center, AccentColor);
         SetRect(arrow.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(-17f, 0f), new Vector2(28f, 0f));
 
         GameObject template = CreateUiObject("Template", root.transform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 1f), new Vector2(0f, -3f), new Vector2(0f, 112f));

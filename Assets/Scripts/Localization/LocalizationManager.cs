@@ -163,6 +163,42 @@ public class LocalizationManager : MonoBehaviour
         AddBuiltInEntry("save.scene.final", "Финальные врата", "Final gate", "Portoes finais");
         AddBuiltInEntry("ending.restart", "Начать заново", "Start again", "Recomecar");
         AddBuiltInEntry("ui.missing", "Не назначено", "Not assigned", "Nao atribuido");
+        AddBuiltInEntry("raw.return_gate.prompt",
+            "Обратные врата открыты. Вернуться к предыдущему квадрату?",
+            "The return gate is open. Go back to the previous square?",
+            "Os portoes de regresso estao abertos. Voltar ao quadrado anterior?");
+        AddBuiltInEntry("raw.return_gate.locked",
+            "Обратный маршрут еще не записан. Сначала нужен фрагмент.",
+            "The return route is not recorded yet. A fragment must anchor it first.",
+            "A rota de regresso ainda nao foi registada. Primeiro precisas de um fragmento.");
+        AddBuiltInEntry("raw.return_gate.enter",
+            "Вернуться",
+            "Return",
+            "Voltar");
+        AddBuiltInEntry("raw.return_gate.leave",
+            "Остаться",
+            "Stay",
+            "Ficar");
+        AddBuiltInEntry("raw.night.training.prompt",
+            "Сила уже в руке. Попробуй ударить по неподвижной тени, прежде чем ночь заметит тебя.",
+            "The force is already in your hand. Strike the still shadow before the night notices you.",
+            "A forca ja esta na tua mao. Atinge a sombra parada antes que a noite repare em ti.");
+        AddBuiltInEntry("raw.night.training.hit",
+            "Пространство треснуло. Теперь живые тени тоже почувствуют удар.",
+            "The space cracked. Now the living shadows will feel the strike too.",
+            "O espaco rachou. Agora as sombras vivas tambem vao sentir o golpe.");
+        AddBuiltInEntry("raw.night.training.release",
+            "Ночь услышала. Теперь двигайся.",
+            "The night heard it. Move now.",
+            "A noite ouviu. Agora mexe-te.");
+        AddBuiltInEntry("raw.gate.recovery.exterior",
+            "Маршрут не записан. Тело не выдерживает третий квадрат. Врата возвращают тебя к началу.",
+            "The route is not recorded. Your body cannot hold the third square, so the gate returns you to the beginning.",
+            "A rota nao esta registada. O teu corpo nao aguenta o terceiro quadrado, por isso os portoes devolvem-te ao inicio.");
+        AddBuiltInEntry("raw.gate.recovery.night",
+            "След не завершён. Врата складывают путь назад, во второй квадрат.",
+            "The trace is unfinished. The gate folds the route back to the second square.",
+            "O rasto esta incompleto. Os portoes dobram o caminho de volta ao segundo quadrado.");
     }
 
     private void AddBuiltInEntry(string key, string russian, string english, string portuguese)

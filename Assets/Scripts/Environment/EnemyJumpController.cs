@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -10,6 +11,13 @@ public class EnemyJumpController : MonoBehaviour
     [SerializeField] private float triggerDistance = 8f;
     [SerializeField] private float targetAirborneHeight = 0.35f;
     [SerializeField] private float activeHopInterval = 2.4f;
+    [Header("Traversal Vault")]
+    [SerializeField] private bool vaultEnabled = true;
+    [SerializeField] private float vaultDistance = 2.35f;
+    [SerializeField] private float vaultHeight = 1.1f;
+    [SerializeField] private float vaultDuration = 0.42f;
+    [SerializeField] private float vaultCooldown = 1.15f;
+    [SerializeField] private float vaultLandingSampleRadius = 1.8f;
 
     private NavMeshAgent agent;
     private Transform trackedTarget;
@@ -21,8 +29,11 @@ public class EnemyJumpController : MonoBehaviour
     private float jumpStartedAt = -1f;
     private float nextJumpTime;
     private float nextActiveHopTime;
+    private float nextVaultTime;
+    private Coroutine vaultRoutine;
 
     public bool JumpEnabled => jumpEnabled;
+    public bool IsBusy => IsJumping || vaultRoutine != null;
 
     private void Awake()
     {
@@ -61,7 +72,7 @@ public class EnemyJumpController : MonoBehaviour
 
     public void TryJump()
     {
-        if (!jumpEnabled || IsJumping || Time.time < nextJumpTime) return;
+        if (!jumpEnabled || IsBusy || Time.time < nextJumpTime) return;
 
         if (agent != null) defaultBaseOffset = agent.baseOffset;
         else fallbackGroundY = transform.position.y;
@@ -70,7 +81,72 @@ public class EnemyJumpController : MonoBehaviour
         nextJumpTime = Time.time + jumpCooldown;
     }
 
+    public bool TryVaultToward(Vector3 targetPosition)
+    {
+        if (!vaultEnabled || !jumpEnabled || IsBusy || Time.time < nextVaultTime) return false;
+
+        Vector3 start = transform.position;
+        Vector3 planar = targetPosition - start;
+        planar.y = 0f;
+        if (planar.sqrMagnitude <= 0.05f) return false;
+
+        Vector3 direction = planar.normalized;
+        float distance = Mathf.Min(vaultDistance, Mathf.Max(1f, planar.magnitude * 0.55f));
+        Vector3 candidate = start + direction * distance;
+        candidate.y = Mathf.Max(start.y, targetPosition.y);
+
+        if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, vaultLandingSampleRadius, NavMesh.AllAreas))
+        {
+            candidate = start + direction * Mathf.Min(1.2f, distance);
+            if (!NavMesh.SamplePosition(candidate, out hit, vaultLandingSampleRadius, NavMesh.AllAreas)) return false;
+        }
+
+        nextVaultTime = Time.time + vaultCooldown;
+        vaultRoutine = StartCoroutine(VaultRoutine(hit.position));
+        return true;
+    }
+
     private bool IsJumping => jumpStartedAt >= 0f && Time.time - jumpStartedAt < jumpDuration;
+
+    private IEnumerator VaultRoutine(Vector3 landingPosition)
+    {
+        Vector3 start = transform.position;
+        Quaternion startRotation = transform.rotation;
+        Vector3 direction = landingPosition - start;
+        direction.y = 0f;
+        Quaternion endRotation = direction.sqrMagnitude > 0.01f
+            ? Quaternion.LookRotation(direction.normalized, Vector3.up)
+            : startRotation;
+
+        bool hadAgent = agent != null && agent.enabled;
+        bool wasStopped = hadAgent && agent.isStopped;
+        if (hadAgent)
+        {
+            agent.isStopped = true;
+            agent.ResetPath();
+        }
+
+        float elapsed = 0f;
+        float duration = Mathf.Max(0.08f, vaultDuration);
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float eased = t * t * (3f - 2f * t);
+            Vector3 position = Vector3.Lerp(start, landingPosition, eased) + Vector3.up * (Mathf.Sin(eased * Mathf.PI) * vaultHeight);
+            transform.SetPositionAndRotation(position, Quaternion.Slerp(startRotation, endRotation, eased));
+            yield return null;
+        }
+
+        transform.SetPositionAndRotation(landingPosition, endRotation);
+        if (hadAgent)
+        {
+            agent.Warp(landingPosition);
+            agent.isStopped = wasStopped;
+        }
+
+        vaultRoutine = null;
+    }
 
     private void LateUpdate()
     {
