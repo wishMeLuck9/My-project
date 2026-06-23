@@ -222,7 +222,10 @@ public class SaveGameManager : MonoBehaviour
 
         if (pendingLoad != null)
         {
-            StartCoroutine(RestorePendingLoad());
+            SaveSlotData data = pendingLoad;
+            pendingLoad = null;
+            RestoreWorldState(data);
+            StartCoroutine(RestorePendingLoad(data));
             return;
         }
 
@@ -235,14 +238,9 @@ public class SaveGameManager : MonoBehaviour
         StartCoroutine(SaveAfterSceneReady());
     }
 
-    private IEnumerator RestorePendingLoad()
+    private IEnumerator RestorePendingLoad(SaveSlotData data)
     {
         yield return null;
-        SaveSlotData data = pendingLoad;
-        pendingLoad = null;
-
-        WorldState state = EnsureWorldState();
-        data.worldState?.Apply(state);
 
         PlayerController3D player = FindFirstObjectByType<PlayerController3D>();
         if (player != null && data.hasPlayerTransform)
@@ -255,6 +253,12 @@ public class SaveGameManager : MonoBehaviour
         }
 
         skipNextAutosave = false;
+    }
+
+    private static void RestoreWorldState(SaveSlotData data)
+    {
+        WorldState state = EnsureWorldState();
+        data.worldState?.Apply(state);
     }
 
     private IEnumerator StartNewGameRoutine()

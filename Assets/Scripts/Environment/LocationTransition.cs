@@ -177,7 +177,7 @@ public class LocationTransition : Interactable
 
     private bool IsNightFinalTransition()
     {
-        return requiresInnerNightFragment && targetScene == SceneIds.Final && SceneManager.GetActiveScene().name == SceneIds.Night;
+        return targetScene == SceneIds.Final && SceneManager.GetActiveScene().name == SceneIds.Night;
     }
 
     private void ResolvePlayer()
