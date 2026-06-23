@@ -80,15 +80,20 @@ public class PlayerClimbController : MonoBehaviour
         target = default;
 
         Bounds bounds = playerCollider.bounds;
-        Vector3 forward = transform.forward;
+        Vector3 forward = body != null ? body.linearVelocity : Vector3.zero;
         forward.y = 0f;
+        if (forward.sqrMagnitude < 0.15f)
+        {
+            forward = transform.forward;
+            forward.y = 0f;
+        }
         if (forward.sqrMagnitude <= 0.0001f) return false;
         forward.Normalize();
 
         float bodyRadius = Mathf.Max(0.15f, Mathf.Min(bounds.extents.x, bounds.extents.z));
         if (!TryFindWallHit(bounds, forward, bodyRadius, out RaycastHit wallHit))
         {
-            return TryFindAssistClimbTarget(bounds, bodyRadius, out target);
+            return false;
         }
 
         Vector3 climbForward = Vector3.ProjectOnPlane(-wallHit.normal, Vector3.up);
