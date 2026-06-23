@@ -54,7 +54,7 @@ public class CorruptionTrainingTarget : MonoBehaviour
         {
             RuntimeHudController.Instance?.ShowSystemMessage(
                 LocalizationManager.EnsureInstance().Get(completionMessageKey),
-                4.5f);
+                1.0f);
             TrainingTargetCompleted?.Invoke(this);
             gameObject.SetActive(false);
         }

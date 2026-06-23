@@ -255,15 +255,7 @@ public class PrototypeShadowActor : MonoBehaviour
 
     private void ShowGuardianProxyHitFeedback()
     {
-        if (Time.time < nextGuardianProxyHitFeedbackTime) return;
 
-        nextGuardianProxyHitFeedbackTime = Time.time + 0.85f;
-        RuntimeHudController.Instance?.ShowSystemMessage(
-            LocalizationManager.EnsureInstance().Format(
-                "hud.shadow_guardian_hit",
-                healthComponent.CurrentHealth,
-                healthComponent.MaxHealth),
-            1.6f);
     }
 
     public void RestoreForEvent()
