@@ -18,6 +18,14 @@ public class EnemyJumpController : MonoBehaviour
     [SerializeField] private float vaultDuration = 0.42f;
     [SerializeField] private float vaultCooldown = 1.15f;
     [SerializeField] private float vaultLandingSampleRadius = 1.8f;
+    [Header("Traversal Drop")]
+    [SerializeField] private bool dropEnabled = true;
+    [SerializeField] private float dropHeightThreshold = 0.75f;
+    [SerializeField] private float dropDistance = 6.5f;
+    [SerializeField] private float dropArcHeight = 0.35f;
+    [SerializeField] private float dropDuration = 0.38f;
+    [SerializeField] private float dropCooldown = 1.1f;
+    [SerializeField] private float dropLandingSampleRadius = 4.5f;
 
     private NavMeshAgent agent;
     private Transform trackedTarget;
@@ -30,10 +38,12 @@ public class EnemyJumpController : MonoBehaviour
     private float nextJumpTime;
     private float nextActiveHopTime;
     private float nextVaultTime;
+    private float nextDropTime;
     private Coroutine vaultRoutine;
+    private Coroutine dropRoutine;
 
     public bool JumpEnabled => jumpEnabled;
-    public bool IsBusy => IsJumping || vaultRoutine != null;
+    public bool IsBusy => IsJumping || vaultRoutine != null || dropRoutine != null;
 
     private void Awake()
     {
@@ -102,13 +112,118 @@ public class EnemyJumpController : MonoBehaviour
         }
 
         nextVaultTime = Time.time + vaultCooldown;
-        vaultRoutine = StartCoroutine(VaultRoutine(hit.position));
+        vaultRoutine = StartCoroutine(TraversalRoutine(hit.position, vaultDuration, vaultHeight, true));
         return true;
+    }
+
+    public bool TryDropToward(Vector3 targetPosition)
+    {
+        if (!dropEnabled || !jumpEnabled || IsBusy || Time.time < nextDropTime) return false;
+
+        Vector3 start = transform.position;
+        Vector3 planar = targetPosition - start;
+        float verticalDrop = start.y - targetPosition.y;
+        planar.y = 0f;
+        if (verticalDrop < dropHeightThreshold || planar.sqrMagnitude <= 0.05f) return false;
+
+        Vector3 direction = planar.normalized;
+        if (!TryResolveDropLanding(start, direction, targetPosition, verticalDrop, planar.magnitude, out Vector3 landingPosition))
+        {
+            return false;
+        }
+
+        nextDropTime = Time.time + dropCooldown;
+        dropRoutine = StartCoroutine(TraversalRoutine(landingPosition, dropDuration, dropArcHeight, false));
+        return true;
+    }
+
+    public bool TryResolveTraversalToward(Vector3 targetPosition, bool pathTroubled)
+    {
+        if (!jumpEnabled || IsBusy) return false;
+
+        Vector3 delta = targetPosition - transform.position;
+        Vector3 planar = delta;
+        planar.y = 0f;
+
+        bool targetBelow = delta.y < -dropHeightThreshold && planar.sqrMagnitude <= dropDistance * dropDistance * 8f;
+        if ((targetBelow || (pathTroubled && delta.y < -0.35f)) && TryDropToward(targetPosition))
+        {
+            return true;
+        }
+
+        bool targetAbove = delta.y > targetAirborneHeight && planar.sqrMagnitude <= vaultDistance * vaultDistance * 7f;
+        if (targetAbove || pathTroubled)
+        {
+            return TryVaultToward(targetPosition);
+        }
+
+        return false;
     }
 
     private bool IsJumping => jumpStartedAt >= 0f && Time.time - jumpStartedAt < jumpDuration;
 
-    private IEnumerator VaultRoutine(Vector3 landingPosition)
+    private bool TryResolveDropLanding(
+        Vector3 start,
+        Vector3 direction,
+        Vector3 targetPosition,
+        float verticalDrop,
+        float planarDistance,
+        out Vector3 landingPosition)
+    {
+        landingPosition = targetPosition;
+        float maxDistance = Mathf.Min(dropDistance, Mathf.Max(1.8f, planarDistance * 0.9f));
+        float[] distanceChecks =
+        {
+            Mathf.Min(1.4f, maxDistance),
+            Mathf.Min(2.4f, maxDistance),
+            Mathf.Min(3.8f, maxDistance),
+            maxDistance
+        };
+
+        for (int i = 0; i < distanceChecks.Length; i++)
+        {
+            Vector3 candidate = start + direction * distanceChecks[i];
+            if (TryResolveGroundedDropPoint(candidate, verticalDrop, out landingPosition))
+            {
+                return true;
+            }
+        }
+
+        if (NavMesh.SamplePosition(targetPosition, out NavMeshHit targetHit, dropLandingSampleRadius + 1.5f, NavMesh.AllAreas))
+        {
+            landingPosition = targetHit.position;
+            return true;
+        }
+
+        return TryResolveGroundedDropPoint(targetPosition, verticalDrop, out landingPosition);
+    }
+
+    private bool TryResolveGroundedDropPoint(Vector3 candidate, float verticalDrop, out Vector3 landingPosition)
+    {
+        landingPosition = candidate;
+        Vector3 rayOrigin = candidate + Vector3.up * 2.5f;
+        float rayDistance = Mathf.Max(6f, verticalDrop + 8f);
+        if (!Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit groundHit, rayDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+        {
+            return false;
+        }
+
+        if (groundHit.point.y > transform.position.y - dropHeightThreshold * 0.45f)
+        {
+            return false;
+        }
+
+        if (NavMesh.SamplePosition(groundHit.point, out NavMeshHit navHit, dropLandingSampleRadius, NavMesh.AllAreas))
+        {
+            landingPosition = navHit.position;
+            return true;
+        }
+
+        landingPosition = groundHit.point;
+        return true;
+    }
+
+    private IEnumerator TraversalRoutine(Vector3 landingPosition, float moveDuration, float arcHeight, bool isVault)
     {
         Vector3 start = transform.position;
         Quaternion startRotation = transform.rotation;
@@ -127,13 +242,13 @@ public class EnemyJumpController : MonoBehaviour
         }
 
         float elapsed = 0f;
-        float duration = Mathf.Max(0.08f, vaultDuration);
+        float duration = Mathf.Max(0.08f, moveDuration);
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
             float eased = t * t * (3f - 2f * t);
-            Vector3 position = Vector3.Lerp(start, landingPosition, eased) + Vector3.up * (Mathf.Sin(eased * Mathf.PI) * vaultHeight);
+            Vector3 position = Vector3.Lerp(start, landingPosition, eased) + Vector3.up * (Mathf.Sin(eased * Mathf.PI) * arcHeight);
             transform.SetPositionAndRotation(position, Quaternion.Slerp(startRotation, endRotation, eased));
             yield return null;
         }
@@ -141,11 +256,16 @@ public class EnemyJumpController : MonoBehaviour
         transform.SetPositionAndRotation(landingPosition, endRotation);
         if (hadAgent)
         {
-            agent.Warp(landingPosition);
+            if (!agent.Warp(landingPosition))
+            {
+                transform.position = landingPosition;
+            }
+
             agent.isStopped = wasStopped;
         }
 
-        vaultRoutine = null;
+        if (isVault) vaultRoutine = null;
+        else dropRoutine = null;
     }
 
     private void LateUpdate()

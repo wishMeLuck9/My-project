@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
@@ -59,19 +60,28 @@ public class PrototypeShadowActor : MonoBehaviour
     private bool hunting;
     private bool fleeing;
     private float nextGuardianProxyHitFeedbackTime;
+    private Renderer roleRenderer;
+    private MaterialPropertyBlock propertyBlock;
 
     private static float nextSharedReactionTime;
-    private static readonly string[] HuntReactionKeys =
-    {
-        "raw.shadow.hunt.reaction.seen",
-        "raw.shadow.hunt.reaction.close"
-    };
-
+    private static readonly List<PrototypeShadowActor> activeShadows = new List<PrototypeShadowActor>();
+    private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+    private static readonly int ColorId = Shader.PropertyToID("_Color");
     public bool IsDefeated => defeated;
     public bool IsHunting => hunting && !defeated;
     public bool WasAttacked { get; private set; }
     public ShadowRole Role => role;
     public event Action<PrototypeShadowActor> Defeated;
+
+    private void OnEnable()
+    {
+        if (!activeShadows.Contains(this)) activeShadows.Add(this);
+    }
+
+    private void OnDisable()
+    {
+        activeShadows.Remove(this);
+    }
 
     private void Awake()
     {
@@ -116,6 +126,45 @@ public class PrototypeShadowActor : MonoBehaviour
         fleeing = state;
         if (state) hunting = false;
         ResolvePlayer();
+    }
+
+    public void ForceFearFrom(Transform source, float duration)
+    {
+        if (defeated || role == ShadowRole.GuardianProxy) return;
+
+        ResolvePlayer();
+        hunting = false;
+        fleeing = true;
+        fearUntil = Time.time + Mathf.Max(fearDuration, duration);
+        if (agent != null)
+        {
+            agent.isStopped = false;
+        }
+    }
+
+    public static void FearNearby(Vector3 origin, Transform source, float radius, float duration, bool includeEnemies)
+    {
+        if (radius <= 0f) return;
+
+        float radiusSqr = radius * radius;
+        for (int i = activeShadows.Count - 1; i >= 0; i--)
+        {
+            PrototypeShadowActor shadow = activeShadows[i];
+            if (shadow == null)
+            {
+                activeShadows.RemoveAt(i);
+                continue;
+            }
+
+            if (shadow.IsDefeated || shadow.Role == ShadowRole.GuardianProxy) continue;
+            if (!includeEnemies && shadow.Role == ShadowRole.Enemy) continue;
+
+            Vector3 delta = shadow.transform.position - origin;
+            delta.y = 0f;
+            if (delta.sqrMagnitude > radiusSqr) continue;
+
+            shadow.ForceFearFrom(source, duration);
+        }
     }
 
     public void PromoteToGuardianProxy()
@@ -169,8 +218,9 @@ public class PrototypeShadowActor : MonoBehaviour
         if (defeated) return;
 
         WasAttacked = true;
-        hunting = true;
-        fleeing = false;
+        bool isGuardianProxy = role == ShadowRole.GuardianProxy;
+        hunting = isGuardianProxy;
+        fleeing = !isGuardianProxy;
         if (!healthComponent.ApplyDamage(Mathf.Max(1, damage), attacker != null ? attacker.gameObject : null)) return;
         health = healthComponent.CurrentHealth;
         fearUntil = Time.time + fearDuration;
@@ -189,6 +239,11 @@ public class PrototypeShadowActor : MonoBehaviour
             {
                 ShowGuardianProxyHitFeedback();
             }
+        }
+
+        if (!isGuardianProxy && !nowDefeated)
+        {
+            ForceFearFrom(attacker, fearDuration + 1.2f);
         }
 
         ApplyRoleColor();
@@ -269,6 +324,7 @@ public class PrototypeShadowActor : MonoBehaviour
             UpdateHuntDestination();
         }
 
+        jumper?.TryResolveTraversalToward(player.position, IsAgentStuckTryingToMove());
         TickHuntPresence();
 
         if (!IsPlayerInContactRange() || Time.time < nextContactDamageTime) return;
@@ -330,11 +386,16 @@ public class PrototypeShadowActor : MonoBehaviour
         if (personalSpaceRadius <= 0.01f) return Vector3.zero;
 
         Vector3 separation = Vector3.zero;
-        PrototypeShadowActor[] shadows = FindObjectsByType<PrototypeShadowActor>(FindObjectsSortMode.None);
-        for (int i = 0; i < shadows.Length; i++)
+        for (int i = activeShadows.Count - 1; i >= 0; i--)
         {
-            PrototypeShadowActor other = shadows[i];
-            if (other == null || other == this || !other.IsHunting) continue;
+            PrototypeShadowActor other = activeShadows[i];
+            if (other == null)
+            {
+                activeShadows.RemoveAt(i);
+                continue;
+            }
+
+            if (other == this || !other.IsHunting) continue;
 
             Vector3 away = transform.position - other.transform.position;
             away.y = 0f;
@@ -349,10 +410,16 @@ public class PrototypeShadowActor : MonoBehaviour
 
     private bool IsAgentStuckTryingToMove()
     {
-        if (agent == null || !agent.hasPath || agent.pathPending)
+        if (agent == null || agent.pathPending)
         {
             stuckStartedAt = -1f;
             return false;
+        }
+
+        if (!agent.hasPath || agent.pathStatus != NavMeshPathStatus.PathComplete)
+        {
+            if (stuckStartedAt < 0f) stuckStartedAt = Time.time;
+            return Time.time - stuckStartedAt >= stuckRepathAfter;
         }
 
         if (agent.remainingDistance <= agent.stoppingDistance + 0.35f)
@@ -392,11 +459,6 @@ public class PrototypeShadowActor : MonoBehaviour
         if (Time.time < nextReactionTime || Time.time < nextSharedReactionTime) return;
         if (planar.sqrMagnitude > reactionDistance * reactionDistance) return;
         if (!HasClearPathToPlayer()) return;
-
-        string key = playerIsAbove
-            ? "raw.shadow.hunt.reaction.above"
-            : HuntReactionKeys[UnityEngine.Random.Range(0, HuntReactionKeys.Length)];
-        RuntimeHudController.Instance?.ShowAmbientMessage(LocalizationManager.EnsureInstance().Get(key), 1.8f);
 
         float cooldown = UnityEngine.Random.Range(reactionCooldownMin, reactionCooldownMax);
         nextReactionTime = Time.time + cooldown;
@@ -439,9 +501,13 @@ public class PrototypeShadowActor : MonoBehaviour
 
     private void ApplyRoleColor()
     {
-        Renderer renderer = GetComponentsInChildren<Renderer>(true)
-            .FirstOrDefault(candidate => candidate.enabled);
-        if (renderer == null) return;
+        if (roleRenderer == null || !roleRenderer.enabled)
+        {
+            roleRenderer = GetComponentsInChildren<Renderer>(true)
+                .FirstOrDefault(candidate => candidate.enabled);
+        }
+
+        if (roleRenderer == null) return;
 
         Color color = role switch
         {
@@ -453,7 +519,11 @@ public class PrototypeShadowActor : MonoBehaviour
         };
 
         if (defeated) color = new Color(0.02f, 0.02f, 0.025f, 1f);
-        renderer.material.color = color;
+        propertyBlock ??= new MaterialPropertyBlock();
+        roleRenderer.GetPropertyBlock(propertyBlock);
+        propertyBlock.SetColor(BaseColorId, color);
+        propertyBlock.SetColor(ColorId, color);
+        roleRenderer.SetPropertyBlock(propertyBlock);
     }
 
     private void ShowReaction(bool nowDefeated)

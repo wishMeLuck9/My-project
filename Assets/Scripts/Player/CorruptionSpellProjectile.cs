@@ -150,9 +150,9 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
             RaycastHit candidate = travelHits[i];
             Collider collider = candidate.collider;
             if (collider == null || IsPartOfSource(collider.transform)) continue;
-            if (collider.isTrigger) continue;
 
             Transform candidateCombatRoot = ResolveCombatRoot(collider.transform);
+            if (collider.isTrigger && candidateCombatRoot == null) continue;
             if (lockedCombatRoot != null && candidateCombatRoot != lockedCombatRoot) continue;
             if (candidate.distance >= nearestDistance) continue;
 
@@ -239,10 +239,17 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
         }
 
         CorruptionTrainingTarget trainingTarget = target.GetComponentInParent<CorruptionTrainingTarget>();
-        if (trainingTarget == null) return false;
+        if (trainingTarget != null)
+        {
+            trainingTarget.ReceiveTrainingHit();
+            appliedTarget = trainingTarget.transform;
+            return true;
+        }
 
-        trainingTarget.ReceiveTrainingHit();
-        appliedTarget = trainingTarget.transform;
+        CorruptionGateHitReceiver gate = target.GetComponentInParent<CorruptionGateHitReceiver>();
+        if (gate == null || !gate.ReceiveCorruptionHit(attackSource)) return false;
+
+        appliedTarget = gate.transform;
         return true;
     }
 
@@ -318,7 +325,10 @@ public sealed class CorruptionSpellProjectile : MonoBehaviour
         if (guardian != null) return guardian.transform;
 
         CorruptionTrainingTarget trainingTarget = target.GetComponentInParent<CorruptionTrainingTarget>();
-        return trainingTarget != null ? trainingTarget.transform : null;
+        if (trainingTarget != null) return trainingTarget.transform;
+
+        CorruptionGateHitReceiver gate = target.GetComponentInParent<CorruptionGateHitReceiver>();
+        return gate != null ? gate.transform : null;
     }
 
     private bool IsPartOfSource(Transform candidate)

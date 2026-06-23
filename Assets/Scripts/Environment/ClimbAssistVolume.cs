@@ -5,9 +5,10 @@ using UnityEngine.SceneManagement;
 public class ClimbAssistVolume : MonoBehaviour
 {
     [SerializeField] private Transform landingPoint;
-    [SerializeField] private float activationRadius = 2.2f;
-    [SerializeField] private float maxVerticalDelta = 2.6f;
+    [SerializeField] private float activationRadius = 3.1f;
+    [SerializeField] private float maxVerticalDelta = 3f;
     [SerializeField] private bool requirePlayerInFront = true;
+    [SerializeField] private bool ignoreSmallObstacles = true;
 
     private Collider triggerCollider;
     private static readonly List<ClimbAssistVolume> ActiveVolumes = new List<ClimbAssistVolume>();
@@ -96,13 +97,14 @@ public class ClimbAssistVolume : MonoBehaviour
         {
             Vector3 toPlayer = Vector3.ProjectOnPlane(playerPosition - transform.position, Vector3.up);
             Vector3 front = Vector3.ProjectOnPlane(-transform.forward, Vector3.up);
-            if (toPlayer.sqrMagnitude > 0.001f && front.sqrMagnitude > 0.001f && Vector3.Dot(toPlayer.normalized, front.normalized) < -0.25f)
+            if (toPlayer.sqrMagnitude > 0.001f && front.sqrMagnitude > 0.001f && Vector3.Dot(toPlayer.normalized, front.normalized) < -0.65f)
             {
                 return false;
             }
         }
 
-        score = planarDistance + Mathf.Abs(verticalDelta - 1.1f) * 0.25f;
+        float smallObstacleBonus = ignoreSmallObstacles && verticalDelta < 0.7f ? 0.35f : 0f;
+        score = planarDistance + Mathf.Abs(verticalDelta - 1.1f) * 0.25f - smallObstacleBonus;
         return true;
     }
 

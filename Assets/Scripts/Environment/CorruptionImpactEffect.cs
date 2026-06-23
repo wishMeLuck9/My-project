@@ -101,7 +101,9 @@ public sealed class CorruptionImpactEffect : MonoBehaviour
         particleObject.transform.rotation = Quaternion.LookRotation(normal);
 
         ParticleSystem particles = particleObject.AddComponent<ParticleSystem>();
+        particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         ParticleSystem.MainModule main = particles.main;
+        main.playOnAwake = false;
         main.duration = 0.35f;
         main.loop = false;
         main.startLifetime = new ParticleSystem.MinMaxCurve(0.25f, 0.75f);
@@ -133,7 +135,9 @@ public sealed class CorruptionImpactEffect : MonoBehaviour
         particleObject.transform.position = position + normal * 0.04f;
 
         ParticleSystem particles = particleObject.AddComponent<ParticleSystem>();
+        particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         ParticleSystem.MainModule main = particles.main;
+        main.playOnAwake = false;
         main.duration = lifetime;
         main.loop = true;
         main.startLifetime = new ParticleSystem.MinMaxCurve(0.6f, 1.4f);

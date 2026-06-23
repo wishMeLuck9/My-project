@@ -1,11 +1,12 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(CombatantHealth))]
 public class PlayerHealthController : MonoBehaviour
 {
-    [SerializeField] private int maxHealth = 3;
+    [SerializeField] private int maxHealth = 5;
     [SerializeField] private float invulnerabilitySeconds = 1.1f;
     [SerializeField] private float respawnDelay = 0.75f;
     [SerializeField] private Transform checkpoint;
@@ -15,6 +16,7 @@ public class PlayerHealthController : MonoBehaviour
     private PlayerAttackController attack;
     private float invulnerableUntil;
     private bool respawning;
+    private static readonly List<IPlayerDeathHandler> deathHandlers = new List<IPlayerDeathHandler>();
 
     public int CurrentHealth => Health.CurrentHealth;
     public int MaxHealth => Health.MaxHealth;
@@ -25,6 +27,18 @@ public class PlayerHealthController : MonoBehaviour
     public event Action<PlayerHealthController> HealthChanged;
     public event Action<PlayerHealthController> PlayerDied;
     public event Action<PlayerHealthController> PlayerRespawned;
+
+    public static void RegisterDeathHandler(IPlayerDeathHandler handler)
+    {
+        if (handler == null || deathHandlers.Contains(handler)) return;
+        deathHandlers.Add(handler);
+    }
+
+    public static void UnregisterDeathHandler(IPlayerDeathHandler handler)
+    {
+        if (handler == null) return;
+        deathHandlers.Remove(handler);
+    }
 
     private void Awake()
     {
@@ -105,7 +119,30 @@ public class PlayerHealthController : MonoBehaviour
 
     private void HandleDied(CombatantHealth changed, GameObject source)
     {
-        if (!respawning) RespawnAtCheckpoint();
+        if (respawning) return;
+        if (TryHandleSceneDeath()) return;
+
+        RespawnAtCheckpoint();
+    }
+
+    private bool TryHandleSceneDeath()
+    {
+        for (int i = deathHandlers.Count - 1; i >= 0; i--)
+        {
+            IPlayerDeathHandler handler = deathHandlers[i];
+            if (handler == null || handler is UnityEngine.Object unityObject && unityObject == null)
+            {
+                deathHandlers.RemoveAt(i);
+                continue;
+            }
+
+            if (handler.HandlePlayerDeath(this))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void SetControlState(bool state)
@@ -113,4 +150,9 @@ public class PlayerHealthController : MonoBehaviour
         if (movement != null) movement.SetCanMove(state);
         if (attack != null) attack.SetCanAttack(state);
     }
+}
+
+public interface IPlayerDeathHandler
+{
+    bool HandlePlayerDeath(PlayerHealthController health);
 }

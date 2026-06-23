@@ -7,35 +7,38 @@ public class PriceAltar : Interactable
     {
         if (DialogueController.Instance == null || WorldState.Instance == null) return;
 
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        string systemSpeaker = localizer.Get("speaker.system", "SYSTEM");
+
         DialogueController.Instance.ShowChoices(
-            "PRICE_ALTAR",
-            "Проход требует потери. Выбери, что перестанет быть твоим.",
+            localizer.Get("speaker.price_altar", "PRICE_ALTAR"),
+            localizer.Get("raw.price.prompt"),
             new List<DialogueChoice>
             {
-                new DialogueChoice("Отдать память", () =>
+                new DialogueChoice(localizer.Get("raw.price.memory"), () =>
                 {
                     WorldState.Instance.paidMemory = true;
                     WorldState.Instance.nightDebt += 1;
-                    DialogueController.Instance.ShowDialogue("SYSTEM", "Память принята. Воспоминание о цене удалено не полностью.");
+                    DialogueController.Instance.ShowDialogue(systemSpeaker, localizer.Get("raw.price.memory.accepted"));
                 }),
-                new DialogueChoice("Отдать имя", () =>
+                new DialogueChoice(localizer.Get("raw.price.name"), () =>
                 {
                     WorldState.Instance.paidName = true;
                     WorldState.Instance.nightDebt += 1;
-                    DialogueController.Instance.ShowDialogue("SYSTEM", "Имя принято. Обращение к тебе больше не гарантирует ответ.");
+                    DialogueController.Instance.ShowDialogue(systemSpeaker, localizer.Get("raw.price.name.accepted"));
                 }),
-                new DialogueChoice("Отдать радость", () =>
+                new DialogueChoice(localizer.Get("raw.price.joy"), () =>
                 {
                     WorldState.Instance.paidJoy = true;
                     WorldState.Instance.nightDebt += 1;
-                    DialogueController.Instance.ShowDialogue("SYSTEM", "Радость принята. Улыбка сохранена как внешний жест.");
+                    DialogueController.Instance.ShowDialogue(systemSpeaker, localizer.Get("raw.price.joy.accepted"));
                 }),
-                new DialogueChoice("Отказаться", () =>
+                new DialogueChoice(localizer.Get("raw.price.refuse"), () =>
                 {
                     WorldState.Instance.resistedSystem = true;
                     WorldState.Instance.pursuitLevel += 20;
                     WorldState.Instance.nonStepBias += 10;
-                    DialogueController.Instance.ShowDialogue("SYSTEM", "Отказ записан как лишнее движение.");
+                    DialogueController.Instance.ShowDialogue(systemSpeaker, localizer.Get("raw.price.refused"));
                 })
             });
     }

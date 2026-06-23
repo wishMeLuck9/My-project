@@ -126,6 +126,8 @@ public class GuardianController : Interactable
             if (!agent.isStopped) agent.SetDestination(player.position);
         }
 
+        bool pathTroubled = agent != null && !agent.pathPending && (!agent.hasPath || agent.pathStatus != NavMeshPathStatus.PathComplete);
+        jumper?.TryResolveTraversalToward(player.position, pathTroubled);
         jumper?.TickAutoJump(player, true, true);
         attacks?.TickBattle();
 

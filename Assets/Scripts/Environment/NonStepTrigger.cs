@@ -20,9 +20,10 @@ public class NonStepTrigger : MonoBehaviour
 
         if (DialogueController.Instance != null)
         {
+            LocalizationManager localizer = LocalizationManager.EnsureInstance();
             DialogueController.Instance.ShowDialogue(
-                "SYSTEM",
-                "Действие зарегистрировано. Ввод корректен. Результат отклонен. Ты сделал всё правильно. Но не получилось.");
+                localizer.Get("speaker.system", "SYSTEM"),
+                localizer.Get("raw.nonstep"));
         }
 
         yield return new WaitForSeconds(3f);

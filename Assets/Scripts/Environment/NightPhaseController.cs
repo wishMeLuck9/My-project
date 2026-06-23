@@ -2,12 +2,14 @@ using UnityEngine;
 
 public class NightPhaseController : MonoBehaviour
 {
+    public static bool IntroComplete { get; private set; }
+
     private void Start()
     {
+        IntroComplete = false;
         if (GameFlowController.Instance != null) GameFlowController.Instance.SetNight(true);
         PlayerAttackController attack = FindFirstObjectByType<PlayerAttackController>();
         if (attack != null) attack.SetSceneAttackEnabled(true);
-        RuntimeHudController.Instance?.NotifyNightUnlocked();
 
         RenderSettings.ambientLight = new Color(0.08f, 0.08f, 0.16f);
         RenderSettings.fog = true;
@@ -15,7 +17,14 @@ public class NightPhaseController : MonoBehaviour
         RenderSettings.fogDensity = 0.045f;
 
         LocalizationManager localizer = LocalizationManager.EnsureInstance();
-        DialogueController.Instance?.ShowDialoguePages(
+        DialogueController dialogue = DialogueController.Instance;
+        if (dialogue == null)
+        {
+            MarkIntroComplete();
+            return;
+        }
+
+        dialogue.ShowDialoguePages(
             "SYSTEM",
             new[]
             {
@@ -23,6 +32,13 @@ public class NightPhaseController : MonoBehaviour
                 localizer.Get("raw.night.intro.attack"),
                 localizer.Get("raw.night.intro.shadows"),
                 localizer.Get("raw.night.intro.hunted")
-            });
+            },
+            MarkIntroComplete);
+    }
+
+    private static void MarkIntroComplete()
+    {
+        IntroComplete = true;
+        RuntimeHudController.Instance?.NotifyNightUnlocked();
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -51,13 +52,18 @@ public class ExteriorPursuer : MonoBehaviour
 
     private static float nextSharedReactionTime;
     private static float nextSharedShoveMessageTime;
-    private static readonly string[] HuntReactionKeys =
-    {
-        "raw.hunt.reaction.seen",
-        "raw.hunt.reaction.close"
-    };
-
+    private static readonly List<ExteriorPursuer> activePursuers = new List<ExteriorPursuer>();
     public bool IsHunting => isHunting;
+
+    private void OnEnable()
+    {
+        if (!activePursuers.Contains(this)) activePursuers.Add(this);
+    }
+
+    private void OnDisable()
+    {
+        activePursuers.Remove(this);
+    }
 
     private void Awake()
     {
@@ -164,11 +170,6 @@ public class ExteriorPursuer : MonoBehaviour
         if (planar.sqrMagnitude > reactionDistance * reactionDistance) return;
         if (!HasClearPathToPlayer(target)) return;
 
-        string key = playerIsAbove
-            ? "raw.hunt.reaction.above"
-            : HuntReactionKeys[Random.Range(0, HuntReactionKeys.Length)];
-        RuntimeHudController.Instance?.ShowAmbientMessage(LocalizationManager.EnsureInstance().Get(key), 1.8f);
-
         float cooldown = Random.Range(reactionCooldownMin, reactionCooldownMax);
         nextReactionTime = Time.time + cooldown;
         nextSharedReactionTime = Time.time + cooldown * 0.75f;
@@ -221,11 +222,16 @@ public class ExteriorPursuer : MonoBehaviour
         if (personalSpaceRadius <= 0.01f) return Vector3.zero;
 
         Vector3 separation = Vector3.zero;
-        ExteriorPursuer[] pursuers = FindObjectsByType<ExteriorPursuer>(FindObjectsSortMode.None);
-        for (int i = 0; i < pursuers.Length; i++)
+        for (int i = activePursuers.Count - 1; i >= 0; i--)
         {
-            ExteriorPursuer other = pursuers[i];
-            if (other == null || other == this || !other.IsHunting) continue;
+            ExteriorPursuer other = activePursuers[i];
+            if (other == null)
+            {
+                activePursuers.RemoveAt(i);
+                continue;
+            }
+
+            if (other == this || !other.IsHunting) continue;
 
             Vector3 away = transform.position - other.transform.position;
             away.y = 0f;
@@ -246,18 +252,27 @@ public class ExteriorPursuer : MonoBehaviour
         Vector3 planar = delta;
         planar.y = 0f;
         bool playerAboveAndClose = delta.y > maxCatchHeightDifference && planar.sqrMagnitude <= 6f * 6f;
+        bool playerBelowAndClose = delta.y < -maxCatchHeightDifference && planar.sqrMagnitude <= 9f * 9f;
         bool stuckNearObstacle = IsAgentStuckTryingToMove();
-        if (!playerAboveAndClose && !stuckNearObstacle) return;
+        if (!playerAboveAndClose && !playerBelowAndClose && !stuckNearObstacle) return;
 
+        if (jumper.TryResolveTraversalToward(target, stuckNearObstacle)) return;
+        if (playerBelowAndClose && jumper.TryDropToward(target)) return;
         jumper.TryVaultToward(target);
     }
 
     private bool IsAgentStuckTryingToMove()
     {
-        if (agent == null || !agent.hasPath || agent.pathPending)
+        if (agent == null || agent.pathPending)
         {
             stuckStartedAt = -1f;
             return false;
+        }
+
+        if (!agent.hasPath || agent.pathStatus != NavMeshPathStatus.PathComplete)
+        {
+            if (stuckStartedAt < 0f) stuckStartedAt = Time.time;
+            return Time.time - stuckStartedAt >= stuckRepathAfter;
         }
 
         if (agent.remainingDistance <= agent.stoppingDistance + 0.35f)
@@ -301,13 +316,7 @@ public class ExteriorPursuer : MonoBehaviour
             shoveControlLockDuration);
         nextShoveTime = Time.time + shoveCooldown;
 
-        if (Time.time >= nextSharedShoveMessageTime)
-        {
-            RuntimeHudController.Instance?.ShowAmbientMessage(
-                LocalizationManager.EnsureInstance().Get("raw.hunt.reaction.shove"),
-                1.6f);
-            nextSharedShoveMessageTime = Time.time + 2.8f;
-        }
+        nextSharedShoveMessageTime = Time.time + 2.8f;
     }
 
     private bool IsLargePursuer()
@@ -336,10 +345,17 @@ public class ExteriorPursuer : MonoBehaviour
     private bool IsPlayerCatchable(Vector3 target)
     {
         Vector3 separation = target - transform.position;
-        if (Mathf.Abs(separation.y) > maxCatchHeightDifference) return false;
+        float vertical = separation.y;
 
         separation.y = 0f;
         if (separation.sqrMagnitude > catchDistance * catchDistance) return false;
+        if (Mathf.Abs(vertical) > maxCatchHeightDifference)
+        {
+            bool playerStandingOnPursuer = vertical > 0f &&
+                                           separation.sqrMagnitude <= Mathf.Max(0.75f, catchDistance * 0.72f) * Mathf.Max(0.75f, catchDistance * 0.72f) &&
+                                           vertical <= ResolveVisualHeight() + 0.85f;
+            if (!playerStandingOnPursuer) return false;
+        }
 
         return HasClearPathToPlayer(target);
     }

@@ -41,6 +41,7 @@ public class ShadowNPC : Interactable
         if (DialogueController.Instance == null || WorldState.Instance == null) return;
         if (TryShowHostileInteraction()) return;
 
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
         if (reactsToNightPath)
         {
             if (WorldState.Instance.nightViolenceAttempted)
@@ -53,7 +54,7 @@ public class ShadowNPC : Interactable
             }
             else
             {
-                DialogueController.Instance.ShowDialogue(npcName, GetLineOrFallback("Я не знаю, зачем ты здесь."));
+                DialogueController.Instance.ShowDialogue(npcName, GetLineOrFallback(localizer.Get("raw.shadow_npc.unknown")));
             }
             return;
         }
@@ -62,28 +63,28 @@ public class ShadowNPC : Interactable
         {
             DialogueController.Instance.ShowChoices(
                 npcName,
-                GetLineOrFallback("Если ты поможешь мне, они увидят тебя."),
+                GetLineOrFallback(localizer.Get("raw.shadow_npc.help_prompt")),
                 new List<DialogueChoice>
                 {
-                    new DialogueChoice("Помочь", () =>
+                    new DialogueChoice(localizer.Get("raw.shadow_npc.choice.help"), () =>
                     {
                         WorldState.Instance.helpedShadow = true;
                         WorldState.Instance.mercyChoice += 1;
                         WorldState.Instance.recognition += 10;
                         WorldState.Instance.lightLevel += 1;
-                        DialogueController.Instance.ShowDialogue(npcName, "Ты сделал это не для меня. Но я запомню один цикл.");
+                        DialogueController.Instance.ShowDialogue(npcName, localizer.Get("raw.shadow_npc.help"));
                     }),
-                    new DialogueChoice("Игнорировать", () =>
+                    new DialogueChoice(localizer.Get("raw.shadow_npc.choice.ignore"), () =>
                     {
                         WorldState.Instance.ignoredShadow = true;
                         WorldState.Instance.apathyTimer += 10;
-                        DialogueController.Instance.ShowDialogue(npcName, "Так проще. Так система любит.");
+                        DialogueController.Instance.ShowDialogue(npcName, localizer.Get("raw.shadow_npc.ignore"));
                     }),
-                    new DialogueChoice("Оттолкнуть", () =>
+                    new DialogueChoice(localizer.Get("raw.shadow_npc.choice.push"), () =>
                     {
                         WorldState.Instance.aggressionChoice += 1;
                         WorldState.Instance.pursuitLevel += 10;
-                        DialogueController.Instance.ShowDialogue(npcName, "Ночь быстро учит тебя быть сильным.");
+                        DialogueController.Instance.ShowDialogue(npcName, localizer.Get("raw.shadow_npc.push"));
                     })
                 });
             return;

@@ -135,7 +135,8 @@ public class LocalizationManager : MonoBehaviour
         AddBuiltInEntry("hud.health", "ЖИЗНЬ {0}/{1}", "HP {0}/{1}", "VIDA {0}/{1}");
         AddBuiltInEntry("hud.boss", "СТРАЖИ {0}%", "GUARDIANS {0}%", "GUARDIOES {0}%");
         AddBuiltInEntry("hud.boss.phase2", "СТРАЖИ {0}%  ФАЗА 2", "GUARDIANS {0}%  PHASE 2", "GUARDIOES {0}%  FASE 2");
-        AddBuiltInEntry("hud.damage", "Страж попал. Жизнь {0}/{1}", "Guardian hit. HP {0}/{1}", "O guardiao acertou. Vida {0}/{1}");
+        AddBuiltInEntry("hud.damage", "Страж попал. Устойчивость {0}/{1}", "Guardian hit. Stability {0}/{1}", "O guardiao acertou. Estabilidade {0}/{1}");
+        AddBuiltInEntry("hud.exterior.stability_lost", "Фрагмент выпал из тебя. Первый квадрат возвращает тебя к старту.", "The fragment falls out of you. The first square returns you to the start.", "O fragmento cai de ti. O primeiro quadrado devolve-te ao inicio.");
         AddBuiltInEntry("boss.intro", "Стражи проснулись. Выживи в суде.", "The guardians wake. Survive the judgement.", "Os guardioes acordaram. Sobrevive ao julgamento.");
         AddBuiltInEntry("boss.phase2", "Врата отвечают силой.", "The gate answers with force.", "Os portoes respondem com forca.");
         AddBuiltInEntry("hud.shadow_guardian_promoted", "Тень стала стражем. Ей нужно больше одного удара.", "A shadow hardens into a guardian. It takes more than one strike.", "Uma sombra endurece num guardiao. Precisa de mais de um golpe.");
@@ -167,10 +168,18 @@ public class LocalizationManager : MonoBehaviour
             "Обратные врата открыты. Вернуться к предыдущему квадрату?",
             "The return gate is open. Go back to the previous square?",
             "Os portoes de regresso estao abertos. Voltar ao quadrado anterior?");
+        AddBuiltInEntry("raw.return_gate.shoot_prompt",
+            "Обратные врата открыты. Выстрели в раму, чтобы вернуться назад.",
+            "The return gate is open. Shoot the frame to return.",
+            "O portal de regresso esta aberto. Dispara contra a moldura para voltar.");
         AddBuiltInEntry("raw.return_gate.locked",
             "Обратный маршрут еще не записан. Сначала нужен фрагмент.",
             "The return route is not recorded yet. A fragment must anchor it first.",
             "A rota de regresso ainda nao foi registada. Primeiro precisas de um fragmento.");
+        AddBuiltInEntry("raw.return_gate.shot",
+            "Рама приняла удар. Маршрут сворачивается назад.",
+            "The frame takes the strike. The route folds backward.",
+            "A moldura aceitou o impacto. A rota dobra para tras.");
         AddBuiltInEntry("raw.return_gate.enter",
             "Вернуться",
             "Return",
@@ -199,6 +208,21 @@ public class LocalizationManager : MonoBehaviour
             "След не завершён. Врата складывают путь назад, во второй квадрат.",
             "The trace is unfinished. The gate folds the route back to the second square.",
             "O rasto esta incompleto. Os portoes dobram o caminho de volta ao segundo quadrado.");
+        AddReadableBuiltInOverrides();
+    }
+
+    private void AddReadableBuiltInOverrides()
+    {
+        AddBuiltInEntry("speaker.gate", "ВРАТА", "GATE", "PORTOES");
+        AddBuiltInEntry("speaker.system", "SYSTEM", "SYSTEM", "SYSTEM");
+        AddBuiltInEntry("speaker.price_altar", "АЛТАРЬ ЦЕНЫ", "PRICE ALTAR", "ALTAR DO PRECO");
+        AddBuiltInEntry("hud.health", "УСТОЙЧИВОСТЬ {0}/{1}", "STABILITY {0}/{1}", "ESTABILIDADE {0}/{1}");
+        AddBuiltInEntry("hud.damage", "Страж попал. Устойчивость {0}/{1}", "Guardian hit. Stability {0}/{1}", "O guardiao acertou. Estabilidade {0}/{1}");
+        AddBuiltInEntry("dialogue.continue", "Продолжить", "Continue", "Continuar");
+        AddBuiltInEntry("dialogue.next", "Далее ({0}/{1})", "Next ({0}/{1})", "Seguinte ({0}/{1})");
+        AddBuiltInEntry("raw.nonstep", "Действие зарегистрировано. Ввод корректен. Результат отклонён. Ты сделал всё правильно, но проход всё равно не открылся.", "Action registered. Input correct. Result denied. You did everything right, but the passage still did not open.", "Acao registada. Entrada correta. Resultado recusado. Fizeste tudo certo, mas a passagem nao abriu.");
+        AddBuiltInEntry("raw.night.training.release", "Ночь признала твою силу. Теперь двигайся: живые тени услышали удар.", "The night recognized your force. Move now: the living shadows heard the strike.", "A noite reconheceu a tua forca. Mexe-te: as sombras vivas ouviram o golpe.");
+        AddBuiltInEntry("raw.night.fragment.ready", "Фрагмент появился на дороге. Подбери его, прежде чем идти к Вратам.", "The fragment appeared on the road. Pick it up before going to the Gate.", "O fragmento apareceu na estrada. Apanha-o antes de ires aos Portoes.");
     }
 
     private void AddBuiltInEntry(string key, string russian, string english, string portuguese)

@@ -7,12 +7,13 @@ using UnityEngine;
 public class PlayerClimbController : MonoBehaviour
 {
     [SerializeField] private LayerMask climbMask = ~0;
-    [SerializeField] private float probeDistance = 0.95f;
+    [SerializeField] private float probeDistance = 1.15f;
     [SerializeField] private float minClimbHeight = 0.55f;
-    [SerializeField] private float maxClimbHeight = 2.4f;
+    [SerializeField] private float maxClimbHeight = 2.6f;
     [SerializeField] private float topProbeHeight = 2.75f;
     [SerializeField] private float topProbeForwardOffset = 0.55f;
-    [SerializeField] private float landingInset = 0.55f;
+    [SerializeField] private float landingInset = 0.42f;
+    [SerializeField] private float maxLandingTravel = 1.55f;
     [SerializeField] private float climbDuration = 0.55f;
     [SerializeField] private bool debugDraw;
 
@@ -94,37 +95,8 @@ public class PlayerClimbController : MonoBehaviour
         if (climbForward.sqrMagnitude <= 0.0001f) climbForward = forward;
         climbForward.Normalize();
 
-        Vector3 topOrigin = wallHit.point + climbForward * topProbeForwardOffset + Vector3.up * topProbeHeight;
-        float topProbeDistance = topProbeHeight + 0.35f;
-        if (!Physics.Raycast(topOrigin, Vector3.down, out RaycastHit topHit, topProbeDistance, climbMask, QueryTriggerInteraction.Ignore)) return false;
-        if (topHit.collider == null || IsSelfCollider(topHit.collider)) return false;
-        if (Vector3.Dot(topHit.normal, Vector3.up) < 0.65f) return false;
-
-        float climbHeight = topHit.point.y - bounds.min.y;
-        if (climbHeight < minClimbHeight || climbHeight > maxClimbHeight) return false;
-
-        float horizontalInset = Mathf.Max(landingInset, bodyRadius + 0.25f);
-        Vector3 landingPoint = topHit.point + climbForward * horizontalInset;
-        Vector3 bottomToRootOffset = transform.position - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
-        Vector3 targetPosition = new Vector3(landingPoint.x, topHit.point.y, landingPoint.z) + bottomToRootOffset;
-        Quaternion targetRotation = Quaternion.LookRotation(climbForward, Vector3.up);
-
-        if (!ExteriorBoundaryController.TryValidateTargetPosition(targetPosition, out _, true)) return false;
-        if (!HasClearanceAt(targetPosition, targetRotation, wallHit.collider, topHit.collider)) return false;
-
-        target = new ClimbTarget
-        {
-            Position = targetPosition,
-            Rotation = targetRotation,
-            WallCollider = wallHit.collider,
-            SupportCollider = topHit.collider,
-            WallPoint = wallHit.point,
-            TopPoint = topHit.point,
-            Height = climbHeight
-        };
-
-        StoreDebugTarget(target);
-        return true;
+        if (TryFindTopProbeTarget(bounds, bodyRadius, wallHit, climbForward, out target)) return true;
+        return TryFindBoundsTopFallback(bounds, bodyRadius, wallHit, climbForward, out target);
     }
 
     private bool TryFindAssistClimbTarget(Bounds bounds, float bodyRadius, out ClimbTarget target)
@@ -178,6 +150,100 @@ public class PlayerClimbController : MonoBehaviour
 
         wallHit = default;
         return false;
+    }
+
+    private bool TryFindTopProbeTarget(Bounds bounds, float bodyRadius, RaycastHit wallHit, Vector3 climbForward, out ClimbTarget target)
+    {
+        Vector3 side = Vector3.Cross(Vector3.up, climbForward);
+        if (side.sqrMagnitude <= 0.0001f) side = transform.right;
+        side.Normalize();
+
+        float lateralStep = Mathf.Max(bodyRadius * 0.85f, 0.32f);
+        float[] offsets = { 0f, -lateralStep, lateralStep, -lateralStep * 1.65f, lateralStep * 1.65f };
+        float topProbeDistance = topProbeHeight + 0.5f;
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            Vector3 topOrigin = wallHit.point
+                                + climbForward * topProbeForwardOffset
+                                + side * offsets[i]
+                                + Vector3.up * topProbeHeight;
+            if (!Physics.Raycast(topOrigin, Vector3.down, out RaycastHit topHit, topProbeDistance, climbMask, QueryTriggerInteraction.Ignore)) continue;
+            if (topHit.collider == null || IsSelfCollider(topHit.collider)) continue;
+            if (Vector3.Dot(topHit.normal, Vector3.up) < 0.62f) continue;
+            if (TryCreateClimbTarget(bounds, bodyRadius, wallHit.collider, topHit.collider, wallHit.point, topHit.point, climbForward, out target))
+            {
+                return true;
+            }
+        }
+
+        target = default;
+        return false;
+    }
+
+    private bool TryFindBoundsTopFallback(Bounds bounds, float bodyRadius, RaycastHit wallHit, Vector3 climbForward, out ClimbTarget target)
+    {
+        target = default;
+        if (wallHit.collider == null) return false;
+
+        Bounds supportBounds = wallHit.collider.bounds;
+        float climbHeight = supportBounds.max.y - bounds.min.y;
+        if (climbHeight < minClimbHeight || climbHeight > maxClimbHeight + 0.25f) return false;
+        if (supportBounds.size.x * supportBounds.size.z < bodyRadius * bodyRadius * 4f) return false;
+
+        Vector3 topPoint = wallHit.point + climbForward * Mathf.Max(topProbeForwardOffset, bodyRadius + 0.35f);
+        topPoint.x = Mathf.Clamp(topPoint.x, supportBounds.min.x + bodyRadius, supportBounds.max.x - bodyRadius);
+        topPoint.z = Mathf.Clamp(topPoint.z, supportBounds.min.z + bodyRadius, supportBounds.max.z - bodyRadius);
+        topPoint.y = supportBounds.max.y;
+
+        return TryCreateClimbTarget(bounds, bodyRadius, wallHit.collider, wallHit.collider, wallHit.point, topPoint, climbForward, out target);
+    }
+
+    private bool TryCreateClimbTarget(
+        Bounds bounds,
+        float bodyRadius,
+        Collider wallCollider,
+        Collider supportCollider,
+        Vector3 wallPoint,
+        Vector3 topPoint,
+        Vector3 climbForward,
+        out ClimbTarget target)
+    {
+        target = default;
+
+        float climbHeight = topPoint.y - bounds.min.y;
+        if (climbHeight < minClimbHeight || climbHeight > maxClimbHeight + 0.25f) return false;
+
+        float horizontalInset = Mathf.Clamp(Mathf.Max(landingInset, bodyRadius + 0.12f), 0.42f, 0.72f);
+        Vector3 landingPoint = topPoint + climbForward * horizontalInset;
+        Vector3 bottomToRootOffset = transform.position - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+        Vector3 targetPosition = new Vector3(landingPoint.x, topPoint.y, landingPoint.z) + bottomToRootOffset;
+        Quaternion targetRotation = Quaternion.LookRotation(climbForward, Vector3.up);
+
+        Vector3 planarTravel = targetPosition - transform.position;
+        planarTravel.y = 0f;
+        float maxTravel = Mathf.Max(bodyRadius + 0.65f, maxLandingTravel);
+        if (planarTravel.sqrMagnitude > maxTravel * maxTravel)
+        {
+            Vector3 clamped = transform.position + planarTravel.normalized * maxTravel;
+            targetPosition = new Vector3(clamped.x, targetPosition.y, clamped.z);
+        }
+
+        if (!ExteriorBoundaryController.TryValidateTargetPosition(targetPosition, out _, true)) return false;
+        if (!HasClearanceAt(targetPosition, targetRotation, wallCollider, supportCollider)) return false;
+
+        target = new ClimbTarget
+        {
+            Position = targetPosition,
+            Rotation = targetRotation,
+            WallCollider = wallCollider,
+            SupportCollider = supportCollider,
+            WallPoint = wallPoint,
+            TopPoint = topPoint,
+            Height = climbHeight
+        };
+
+        StoreDebugTarget(target);
+        return true;
     }
 
     private bool HasClearanceAt(Vector3 targetRootPosition, Quaternion targetRotation, Collider wallCollider, Collider supportCollider)
@@ -249,7 +315,9 @@ public class PlayerClimbController : MonoBehaviour
 
         float elapsed = 0f;
         float duration = Mathf.Max(0.05f, climbDuration);
-        float arcHeight = Mathf.Clamp(target.Height * 0.35f, 0.22f, 0.75f);
+        float arcHeight = target.Height < 0.9f
+            ? Mathf.Clamp(target.Height * 0.18f, 0.08f, 0.2f)
+            : Mathf.Clamp(target.Height * 0.28f, 0.18f, 0.52f);
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;

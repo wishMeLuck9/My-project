@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class FinalGateOutcomeController : MonoBehaviour
+public class FinalGateOutcomeController : MonoBehaviour, IPlayerDeathHandler
 {
     [SerializeField] private GuardianController[] guardians;
     [SerializeField] private Transform arenaRespawnPoint;
@@ -23,9 +23,20 @@ public class FinalGateOutcomeController : MonoBehaviour
     private bool routeRecoveryQueued;
     private float nextArenaResetTime;
 
+    private void OnEnable()
+    {
+        PlayerHealthController.RegisterDeathHandler(this);
+    }
+
+    private void OnDisable()
+    {
+        PlayerHealthController.UnregisterDeathHandler(this);
+    }
+
     private void Start()
     {
         ResolveReferences();
+        EnsureCompletedNightRouteState();
         if (attack != null) attack.SetSceneAttackEnabled(false);
         if (TryStartRouteRecovery()) return;
 
@@ -47,7 +58,8 @@ public class FinalGateOutcomeController : MonoBehaviour
 
         WorldState state = WorldState.Instance;
         LocalizationManager localizer = LocalizationManager.EnsureInstance();
-        if (!state.hasExteriorFragment || !state.hasInnerNightFragment)
+        EnsureCompletedNightRouteState();
+        if (!state.hasExteriorFragment || !HasCompletedNightRoute(state))
         {
             DialogueController.Instance?.ShowDialogue(GateSpeaker(localizer), localizer.Get("raw.gate.incomplete"));
             started = false;
@@ -84,6 +96,7 @@ public class FinalGateOutcomeController : MonoBehaviour
         Quaternion respawnRotation = arenaRespawnPoint != null ? arenaRespawnPoint.rotation : player.transform.rotation;
         player.Teleport(respawnPosition, respawnRotation);
         playerHealth?.ConfigureCheckpoint(arenaRespawnPoint);
+        playerHealth?.ResetToFullHealth();
 
         foreach (GuardianController guardian in guardians)
         {
@@ -92,6 +105,16 @@ public class FinalGateOutcomeController : MonoBehaviour
 
         LocalizationManager localizer = LocalizationManager.EnsureInstance();
         DialogueController.Instance?.ShowDialogue(GateSpeaker(localizer), localizer.Get("raw.gate.restart"));
+    }
+
+    public bool HandlePlayerDeath(PlayerHealthController health)
+    {
+        if (resolved || health == null) return false;
+
+        ResolveReferences();
+        playerHealth = health;
+        ResetArenaAfterPlayerHit();
+        return true;
     }
 
     public void NotifyPlayerDamaged(PlayerHealthController health)
@@ -261,14 +284,16 @@ public class FinalGateOutcomeController : MonoBehaviour
     private bool TryStartRouteRecovery()
     {
         WorldState state = WorldState.Instance;
-        if (state == null || (state.hasExteriorFragment && state.hasInnerNightFragment)) return false;
+        if (state == null) return false;
+        EnsureCompletedNightRouteState();
+        if (state.hasExteriorFragment && HasCompletedNightRoute(state)) return false;
 
-        bool hasAnyFragment = state.hasExteriorFragment || state.hasInnerNightFragment;
-        string targetScene = hasAnyFragment ? SceneIds.Night : SceneIds.Exterior;
-        string messageKey = hasAnyFragment
+        bool shouldReturnToNight = state.hasExteriorFragment || HasCompletedNightRoute(state);
+        string targetScene = shouldReturnToNight ? SceneIds.Night : SceneIds.Exterior;
+        string messageKey = shouldReturnToNight
             ? "raw.gate.recovery.night"
             : "raw.gate.recovery.exterior";
-        string fallback = hasAnyFragment
+        string fallback = shouldReturnToNight
             ? "The second trace is unfinished. The gate folds you back to the protected alleys."
             : "The route is not recorded. Your body cannot hold the third square, so the gate returns you to the beginning.";
 
@@ -340,6 +365,17 @@ public class FinalGateOutcomeController : MonoBehaviour
         return state.enemyShadowsDefeated > 0 ||
                state.nightViolenceAttempted ||
                state.nightFragmentRoute == WorldState.NightFragmentRoute.Violence;
+    }
+
+    private static bool HasCompletedNightRoute(WorldState state)
+    {
+        return state != null && state.hasInnerNightFragment;
+    }
+
+    private static void EnsureCompletedNightRouteState()
+    {
+        // Kept as a compatibility hook for older call sites. Night route choice alone
+        // must not grant the fragment; the player has to pick up the visible fragment.
     }
 
     private static string GateSpeaker(LocalizationManager localizer)

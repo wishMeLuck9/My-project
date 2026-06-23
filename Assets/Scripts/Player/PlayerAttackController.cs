@@ -16,7 +16,7 @@ public class PlayerAttackController : MonoBehaviour
     [SerializeField] private float spellAimAssistAngle = 26f;
     [SerializeField] private int shadowAttackDamage = 2;
     [SerializeField] private Vector3 fallbackCastOffset = new Vector3(0.35f, 1.15f, 0.45f);
-    [SerializeField] private float nonHostileShadowFearRadius = 7.5f;
+    [SerializeField] private float corruptionFearPulseRadius = 10.5f;
 
     private readonly Collider[] hitBuffer = new Collider[16];
     private readonly RaycastHit[] spellCastHits = new RaycastHit[24];
@@ -71,7 +71,7 @@ public class PlayerAttackController : MonoBehaviour
     {
         ResolveVisualAnimator()?.PlayAttack();
         bool projectileWillResolveHit = CastCorruptionSpell(resolveGameplayHit);
-        NotifyNearbyNonHostileShadows();
+        NotifyNearbyShadowsOfCorruptionPulse();
         if (!resolveGameplayHit || projectileWillResolveHit) return;
 
         int mask = hitMask.value == 0 ? Physics.DefaultRaycastLayers : hitMask.value;
@@ -229,6 +229,26 @@ public class PlayerAttackController : MonoBehaviour
                 ref bestScore);
         }
 
+        CorruptionGateHitReceiver[] gates = FindObjectsByType<CorruptionGateHitReceiver>(FindObjectsSortMode.None);
+        for (int i = 0; i < gates.Length; i++)
+        {
+            CorruptionGateHitReceiver gate = gates[i];
+            if (gate == null || !gate.CanReceiveHit) continue;
+
+            TryConsiderSpellCombatTarget(
+                gate.transform,
+                origin,
+                direction,
+                range,
+                mask,
+                assistRadius,
+                minForwardDot,
+                ref target,
+                ref aimPoint,
+                ref impactNormal,
+                ref bestScore);
+        }
+
         return target != null;
     }
 
@@ -357,24 +377,9 @@ public class PlayerAttackController : MonoBehaviour
         return sceneName == SceneIds.Night || sceneName == SceneIds.Final;
     }
 
-    private void NotifyNearbyNonHostileShadows()
+    private void NotifyNearbyShadowsOfCorruptionPulse()
     {
-        if (nonHostileShadowFearRadius <= 0f) return;
-
-        PrototypeShadowActor[] shadows = FindObjectsByType<PrototypeShadowActor>(FindObjectsSortMode.None);
-        float radiusSqr = nonHostileShadowFearRadius * nonHostileShadowFearRadius;
-        for (int i = 0; i < shadows.Length; i++)
-        {
-            PrototypeShadowActor shadow = shadows[i];
-            if (shadow == null || shadow.IsDefeated || shadow.IsHunting) continue;
-            if (shadow.Role == PrototypeShadowActor.ShadowRole.Enemy || shadow.Role == PrototypeShadowActor.ShadowRole.GuardianProxy) continue;
-
-            Vector3 delta = shadow.transform.position - transform.position;
-            delta.y = 0f;
-            if (delta.sqrMagnitude > radiusSqr) continue;
-
-            shadow.SetFleeingFromPlayer(true);
-        }
+        PrototypeShadowActor.FearNearby(transform.position, transform, corruptionFearPulseRadius, 3.2f, true);
     }
 
     private bool HasLineOfSight(Transform target, Collider hit)
@@ -409,7 +414,10 @@ public class PlayerAttackController : MonoBehaviour
         if (guardian != null) return guardian.transform;
 
         CorruptionTrainingTarget trainingTarget = target.GetComponentInParent<CorruptionTrainingTarget>();
-        return trainingTarget != null ? trainingTarget.transform : null;
+        if (trainingTarget != null) return trainingTarget.transform;
+
+        CorruptionGateHitReceiver gate = target.GetComponentInParent<CorruptionGateHitReceiver>();
+        return gate != null ? gate.transform : null;
     }
 
     private static bool IsDefeatedCombatTarget(Transform target)
@@ -423,7 +431,10 @@ public class PlayerAttackController : MonoBehaviour
         if (guardian != null) return guardian.IsDefeated;
 
         CorruptionTrainingTarget trainingTarget = target.GetComponentInParent<CorruptionTrainingTarget>();
-        return trainingTarget != null && trainingTarget.IsDefeated;
+        if (trainingTarget != null) return trainingTarget.IsDefeated;
+
+        CorruptionGateHitReceiver gate = target.GetComponentInParent<CorruptionGateHitReceiver>();
+        return gate != null && !gate.CanReceiveHit;
     }
 
     private bool IsPartOfSource(Transform candidate)

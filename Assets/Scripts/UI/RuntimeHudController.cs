@@ -10,7 +10,7 @@ public class RuntimeHudController : MonoBehaviour
     private const string ExteriorScene = "LOCATION_01_EXTERIOR_DAY";
     private const string NightScene = "LOCATION_02_PROTECTED_ALLEYS_NIGHT";
     private const float ExteriorHintDelay = 45f;
-    private const float ControlsFullDisplaySeconds = 10f;
+    private const float ControlsFullDisplaySeconds = 16f;
     private const float AmbientSystemMessageCooldown = 3.2f;
     private const float DuplicateAmbientMessageCooldown = 6f;
     private const float HudReferenceWidth = 1280f;
@@ -19,8 +19,8 @@ public class RuntimeHudController : MonoBehaviour
     private const float HudGap = 14f;
     private const float MinLeftPanelWidth = 320f;
     private const float MaxLeftPanelWidth = 430f;
-    private const float MinSubtitleSeconds = 3.5f;
-    private const float MaxSubtitleSeconds = 8f;
+    private const float MinSubtitleSeconds = 4.2f;
+    private const float MaxSubtitleSeconds = 10.5f;
 
     public static RuntimeHudController Instance { get; private set; }
 
@@ -69,9 +69,10 @@ public class RuntimeHudController : MonoBehaviour
     private string lastControlsText;
     private string lastObjectiveText;
     private string lastStabilityText;
-    private string lastHealthText;
     private string lastBossText;
     private Coroutine clearSystemMessageRoutine;
+    private readonly Queue<SystemMessageRequest> queuedSystemMessages = new Queue<SystemMessageRequest>();
+    private bool systemMessageActive;
     private float sceneStartedAt;
     private float nextAmbientSystemMessageAllowedAt;
     private readonly Dictionary<string, float> recentAmbientMessages = new Dictionary<string, float>();
@@ -82,6 +83,18 @@ public class RuntimeHudController : MonoBehaviour
     private bool isGameplayScene;
 
     public bool IsPaused => PauseMenuController.Instance != null && PauseMenuController.Instance.IsPaused;
+
+    private readonly struct SystemMessageRequest
+    {
+        public readonly string Message;
+        public readonly float Duration;
+
+        public SystemMessageRequest(string message, float duration)
+        {
+            Message = message;
+            Duration = duration;
+        }
+    }
 
     public static RuntimeHudController EnsureInstance()
     {
@@ -160,10 +173,7 @@ public class RuntimeHudController : MonoBehaviour
         string translatedMessage = LocalizationManager.EnsureInstance().TranslateRaw(message);
         if (string.IsNullOrWhiteSpace(translatedMessage)) return;
 
-        if (clearSystemMessageRoutine != null) StopCoroutine(clearSystemMessageRoutine);
-
-        SetSystemMessage(translatedMessage);
-        clearSystemMessageRoutine = StartCoroutine(ClearSystemMessageAfterDelay(ResolveReadableDuration(translatedMessage, duration)));
+        QueueSystemMessage(translatedMessage, duration);
     }
 
     public void ShowAmbientMessage(string message, float duration = 1.8f)
@@ -182,7 +192,7 @@ public class RuntimeHudController : MonoBehaviour
 
         recentAmbientMessages[translatedMessage] = Time.unscaledTime;
         nextAmbientSystemMessageAllowedAt = Time.unscaledTime + AmbientSystemMessageCooldown;
-        ShowSystemMessage(translatedMessage, duration);
+        QueueSystemMessage(translatedMessage, duration);
     }
 
     public void ShowPurgatoryTransition(string message)
@@ -212,7 +222,6 @@ public class RuntimeHudController : MonoBehaviour
         lastControlsText = null;
         lastObjectiveText = null;
         lastStabilityText = null;
-        lastHealthText = null;
         lastBossText = null;
         recentAmbientMessages.Clear();
 
@@ -221,6 +230,9 @@ public class RuntimeHudController : MonoBehaviour
             StopCoroutine(clearSystemMessageRoutine);
             clearSystemMessageRoutine = null;
         }
+
+        queuedSystemMessages.Clear();
+        systemMessageActive = false;
     }
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -245,7 +257,6 @@ public class RuntimeHudController : MonoBehaviour
         lastControlsText = null;
         lastObjectiveText = null;
         lastStabilityText = null;
-        lastHealthText = null;
         lastBossText = null;
 
         if (!isGameplayScene)
@@ -307,13 +318,13 @@ public class RuntimeHudController : MonoBehaviour
     private void RefreshSettings()
     {
         lastControlsText = null;
-        lastHealthText = null;
         lastBossText = null;
         ApplySettingsPresentation();
         if (!isGameplayScene) return;
 
         UpdateControls();
         UpdateInteractionPrompt();
+        UpdateStability();
         UpdateHealth();
         UpdateBossHealth();
     }
@@ -382,12 +393,23 @@ public class RuntimeHudController : MonoBehaviour
 
     private void UpdateStability()
     {
-        bool visible = hunt != null && hunt.IsHunting && WorldState.Instance != null;
+        bool visible = playerHealth != null || (hunt != null && hunt.IsHunting && WorldState.Instance != null);
         stabilityPanel.SetActive(visible);
         if (!visible) return;
 
-        int remaining = Mathf.Clamp(5 - WorldState.Instance.exteriorCaptureCount, 0, 5);
-        string blocks = new string('\u25a0', remaining) + new string('\u25a1', 5 - remaining);
+        int max = 5;
+        int remaining = 5;
+        if (hunt != null && hunt.IsHunting && WorldState.Instance != null)
+        {
+            remaining = Mathf.Clamp(5 - WorldState.Instance.exteriorCaptureCount, 0, 5);
+        }
+        else if (playerHealth != null)
+        {
+            max = Mathf.Max(1, playerHealth.MaxHealth);
+            remaining = Mathf.Clamp(playerHealth.CurrentHealth, 0, max);
+        }
+
+        string blocks = new string('\u25a0', remaining) + new string('\u25a1', max - remaining);
         string text = LocalizationManager.EnsureInstance().Format("hud.stability", blocks);
         if (lastStabilityText == text) return;
 
@@ -397,15 +419,7 @@ public class RuntimeHudController : MonoBehaviour
 
     private void UpdateHealth()
     {
-        bool visible = playerHealth != null;
-        healthPanel.SetActive(visible);
-        if (!visible) return;
-
-        string text = LocalizationManager.EnsureInstance().Format("hud.health", playerHealth.CurrentHealth, playerHealth.MaxHealth);
-        if (lastHealthText == text) return;
-
-        lastHealthText = text;
-        healthText.text = text;
+        healthPanel.SetActive(false);
     }
 
     private void UpdateBossHealth()
@@ -447,22 +461,55 @@ public class RuntimeHudController : MonoBehaviour
     private IEnumerator ShowStartupLine(string line)
     {
         SetSystemMessage(line);
-        yield return new WaitForSecondsRealtime(SettingsManager.Instance != null && SettingsManager.Instance.ReduceMotion ? 1.4f : 2.4f);
+        yield return new WaitForSecondsRealtime(ResolveReadableDuration(line, MinSubtitleSeconds));
         SetSystemMessage(string.Empty);
         yield return new WaitForSecondsRealtime(0.25f);
     }
 
     private IEnumerator ClearSystemMessageAfterDelay(float duration)
     {
+        systemMessageActive = true;
         yield return new WaitForSecondsRealtime(duration);
+        systemMessageActive = false;
         SetSystemMessage(string.Empty);
-        clearSystemMessageRoutine = null;
     }
 
     private void SetSystemMessage(string message)
     {
         systemText.text = message;
         systemPanel.SetActive(!string.IsNullOrWhiteSpace(message));
+    }
+
+    private void QueueSystemMessage(string message, float duration)
+    {
+        if (string.IsNullOrWhiteSpace(message)) return;
+        if (systemMessageActive && systemText != null && systemText.text == message) return;
+        foreach (SystemMessageRequest queued in queuedSystemMessages)
+        {
+            if (queued.Message == message) return;
+        }
+
+        queuedSystemMessages.Enqueue(new SystemMessageRequest(message, ResolveReadableDuration(message, duration)));
+        if (clearSystemMessageRoutine == null)
+        {
+            clearSystemMessageRoutine = StartCoroutine(PlayQueuedSystemMessages());
+        }
+    }
+
+    private IEnumerator PlayQueuedSystemMessages()
+    {
+        while (queuedSystemMessages.Count > 0)
+        {
+            SystemMessageRequest request = queuedSystemMessages.Dequeue();
+            SetSystemMessage(request.Message);
+            systemMessageActive = true;
+            yield return new WaitForSecondsRealtime(request.Duration);
+            systemMessageActive = false;
+            SetSystemMessage(string.Empty);
+            if (queuedSystemMessages.Count > 0) yield return new WaitForSecondsRealtime(0.12f);
+        }
+
+        clearSystemMessageRoutine = null;
     }
 
     private void SetRuntimeUiVisible(bool visible)
@@ -788,7 +835,7 @@ public class RuntimeHudController : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(message)) return requestedDuration;
 
-        float byLength = MinSubtitleSeconds + Mathf.Clamp(message.Length, 0, 140) * 0.034f;
+        float byLength = MinSubtitleSeconds + Mathf.Clamp(message.Length, 0, 160) * 0.05f;
         return Mathf.Clamp(Mathf.Max(requestedDuration, byLength), MinSubtitleSeconds, MaxSubtitleSeconds);
     }
 

@@ -9,13 +9,14 @@ public class ExteriorBoundaryController : MonoBehaviour
 
     private static ExteriorBoundaryController instance;
 
-    [SerializeField] private Vector2 minimumHalfExtents = new Vector2(28f, 28f);
-    [SerializeField] private float anchorMargin = 3f;
-    [SerializeField] private float wallInnerPadding = 0.65f;
-    [SerializeField] private float clampInset = 0.08f;
+    [SerializeField] private Vector2 minimumHalfExtents = new Vector2(42f, 42f);
+    [SerializeField] private float anchorMargin = 8f;
+    [SerializeField] private float wallInnerPadding = 0f;
+    [SerializeField] private float clampInset = 0.03f;
     [SerializeField] private float wallThickness = 5f;
     [SerializeField] private float wallHeight = 40f;
-    [SerializeField] private float escapePadding = 10f;
+    [SerializeField] private float escapePadding = 16f;
+    [SerializeField] private float validationGrace = 2.5f;
     [SerializeField] private float minimumY = -18f;
     [SerializeField] private float messageCooldown = 2.6f;
 
@@ -60,7 +61,7 @@ public class ExteriorBoundaryController : MonoBehaviour
         if (instance == null || !instance.EnsureRuntimeReady()) return false;
 
         clampedPosition = instance.ClampInside(targetPosition);
-        bool isAllowed = instance.IsInsidePlayableBounds(targetPosition) && !instance.IsEscaped(targetPosition);
+        bool isAllowed = instance.IsInsidePlayableBounds(targetPosition, instance.validationGrace) && !instance.IsEscaped(targetPosition);
         if (!isAllowed && showMessage) instance.ShowBoundaryMessage();
         return isAllowed;
     }
@@ -377,12 +378,13 @@ public class ExteriorBoundaryController : MonoBehaviour
         return wall;
     }
 
-    private bool IsInsidePlayableBounds(Vector3 position)
+    private bool IsInsidePlayableBounds(Vector3 position, float grace = 0f)
     {
-        return position.x >= playableBounds.min.x &&
-               position.x <= playableBounds.max.x &&
-               position.z >= playableBounds.min.z &&
-               position.z <= playableBounds.max.z;
+        grace = Mathf.Max(0f, grace);
+        return position.x >= playableBounds.min.x - grace &&
+               position.x <= playableBounds.max.x + grace &&
+               position.z >= playableBounds.min.z - grace &&
+               position.z <= playableBounds.max.z + grace;
     }
 
     private bool IsEscaped(Vector3 position)

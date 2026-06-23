@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -11,25 +12,27 @@ public class ExteriorGateCutsceneController : MonoBehaviour
     [SerializeField] private PlayerInputReader playerInput;
     [SerializeField] private PlayerAttackController playerAttack;
     [SerializeField] private Light playerGateLight;
+    [SerializeField] private Light playerGateDirectionLight;
     [SerializeField] private Light gateGlow;
     [Header("Guiding Fragment Light")]
     [SerializeField] private bool guidePlayerToGate = true;
-    [SerializeField] private float guideDistance = 55f;
-    [SerializeField] private float guideMinIntensity = 0.12f;
-    [SerializeField] private float guideFacingBoost = 0.35f;
-    [SerializeField] private float guideDistanceBoost = 0.28f;
+    [SerializeField] private float guideDistance = 120f;
+    [SerializeField] private float guideMinIntensity = 0.24f;
+    [SerializeField] private float guideFacingBoost = 0.12f;
+    [SerializeField] private float guideDistanceBoost = 0.72f;
     [SerializeField] private float guidePulseSpeed = 2.6f;
-    [SerializeField] private float guideLightForwardOffset = 0.75f;
-    [SerializeField] private float guideSpotAngle = 34f;
+    [SerializeField] private float guideOrbDistance = 0.75f;
+    [SerializeField] private float guideOrbHeight = 1.2f;
 
     [Header("Gate Reveal / Cutscene")]
-    [SerializeField] private float revealDistance = 9f;
+    [SerializeField] private float revealDistance = 16f;
     [SerializeField] private float shakeDistance = 5.5f;
     [SerializeField] private float cutsceneDistance = 2.8f;
-    [SerializeField] private float maxPlayerLightIntensity = 3.2f;
+    [SerializeField] private float maxPlayerLightIntensity = 4.6f;
     [SerializeField] private float maxGateLightIntensity = 3.8f;
     [SerializeField] private float shakeAmplitude = 0.045f;
     [SerializeField] private float shadowRingRadius = 3.8f;
+    [SerializeField] private int minimumCutscenePursuers = 6;
 
     private Vector3 portalBaseLocalPosition;
     private bool hasPortalBasePosition;
@@ -37,6 +40,7 @@ public class ExteriorGateCutsceneController : MonoBehaviour
     private bool cutsceneCompleted;
     private bool attackRequested;
     private Coroutine cutsceneRoutine;
+    private readonly List<GameObject> temporaryRingShadows = new List<GameObject>();
 
     public bool IsCutsceneActive => cutsceneStarted && !cutsceneCompleted;
 
@@ -50,6 +54,7 @@ public class ExteriorGateCutsceneController : MonoBehaviour
     private void OnDestroy()
     {
         if (playerInput != null) playerInput.AttackPressed -= HandleAttackPressed;
+        ClearTemporaryRingShadows();
     }
 
     private void Update()
@@ -218,21 +223,59 @@ public class ExteriorGateCutsceneController : MonoBehaviour
     {
         if (player == null) return;
 
-        ExteriorPursuer[] pursuers = FindObjectsByType<ExteriorPursuer>(FindObjectsSortMode.None);
-        if (pursuers == null || pursuers.Length == 0) return;
+        ClearTemporaryRingShadows();
+        ExteriorPursuer[] pursuers = FindObjectsByType<ExteriorPursuer>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        int realCount = pursuers != null ? pursuers.Length : 0;
+        int ringCount = Mathf.Max(minimumCutscenePursuers, realCount);
 
-        for (int i = 0; i < pursuers.Length; i++)
+        for (int i = 0; i < ringCount; i++)
         {
-            ExteriorPursuer pursuer = pursuers[i];
-            if (pursuer == null) continue;
+            Vector3 target = ResolveRingPosition(i, ringCount);
+            if (i < realCount && pursuers[i] != null)
+            {
+                PlacePursuerInRing(pursuers[i], target);
+            }
+            else
+            {
+                CreateTemporaryRingShadow(i, target);
+            }
+        }
+    }
 
-            float angle = (360f / pursuers.Length) * i;
-            Vector3 offset = Quaternion.Euler(0f, angle, 0f) * Vector3.forward * shadowRingRadius;
-            Vector3 target = player.transform.position + offset;
-            target.y = pursuer.transform.position.y;
+    private Vector3 ResolveRingPosition(int index, int count)
+    {
+        float angle = (360f / Mathf.Max(1, count)) * index;
+        Vector3 offset = Quaternion.Euler(0f, angle, 0f) * Vector3.forward * shadowRingRadius;
+        Vector3 target = player.transform.position + offset;
+        if (NavMesh.SamplePosition(target, out NavMeshHit hit, 2.8f, NavMesh.AllAreas))
+        {
+            return hit.position;
+        }
 
-            NavMeshAgent agent = pursuer.GetComponent<NavMeshAgent>();
-            if (agent != null && agent.enabled && agent.isOnNavMesh)
+        Vector3 rayOrigin = target + Vector3.up * 8f;
+        if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit groundHit, 18f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+        {
+            return groundHit.point;
+        }
+
+        target.y = player.transform.position.y;
+        return target;
+    }
+
+    private void PlacePursuerInRing(ExteriorPursuer pursuer, Vector3 target)
+    {
+        pursuer.gameObject.SetActive(true);
+        pursuer.PauseForGateSequence(true);
+
+        NavMeshAgent agent = pursuer.GetComponent<NavMeshAgent>();
+        if (agent != null && agent.enabled)
+        {
+            if (!agent.isOnNavMesh && NavMesh.SamplePosition(target, out NavMeshHit hit, 2.8f, NavMesh.AllAreas))
+            {
+                target = hit.position;
+            }
+
+            if (agent.isOnNavMesh)
             {
                 agent.isStopped = true;
                 agent.ResetPath();
@@ -242,12 +285,53 @@ public class ExteriorGateCutsceneController : MonoBehaviour
             {
                 pursuer.transform.position = target;
             }
-
-            Vector3 look = player.transform.position - pursuer.transform.position;
-            look.y = 0f;
-            if (look.sqrMagnitude > 0.001f) pursuer.transform.rotation = Quaternion.LookRotation(look.normalized);
-            TintShadow(pursuer);
         }
+        else
+        {
+            pursuer.transform.position = target;
+        }
+
+        LookAtPlayer(pursuer.transform);
+        TintShadow(pursuer);
+    }
+
+    private void CreateTemporaryRingShadow(int index, Vector3 target)
+    {
+        GameObject shadow = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+        shadow.name = $"VIRUS9_GateRingShadow_{index:00}";
+        shadow.transform.position = target + Vector3.up * 0.9f;
+        shadow.transform.localScale = new Vector3(0.52f, 0.92f, 0.52f);
+        Collider collider = shadow.GetComponent<Collider>();
+        if (collider != null) Destroy(collider);
+
+        Renderer renderer = shadow.GetComponentInChildren<Renderer>();
+        if (renderer != null)
+        {
+            renderer.material.color = new Color(0.025f, 0.05f, 0.07f, 1f);
+        }
+
+        LookAtPlayer(shadow.transform);
+        temporaryRingShadows.Add(shadow);
+    }
+
+    private void LookAtPlayer(Transform target)
+    {
+        if (target == null || player == null) return;
+
+        Vector3 look = player.transform.position - target.position;
+        look.y = 0f;
+        if (look.sqrMagnitude > 0.001f) target.rotation = Quaternion.LookRotation(look.normalized);
+    }
+
+    private void ClearTemporaryRingShadows()
+    {
+        for (int i = temporaryRingShadows.Count - 1; i >= 0; i--)
+        {
+            GameObject shadow = temporaryRingShadows[i];
+            if (shadow != null) Destroy(shadow);
+        }
+
+        temporaryRingShadows.Clear();
     }
 
     private void TintShadow(ExteriorPursuer pursuer)
@@ -280,7 +364,7 @@ public class ExteriorGateCutsceneController : MonoBehaviour
     private float CalculateGuidingIntensity(float distance)
     {
         if (!guidePlayerToGate || player == null) return 0f;
-        if (IsCutsceneActive || distance <= revealDistance || distance > guideDistance) return 0f;
+        if (IsCutsceneActive || distance > guideDistance) return 0f;
 
         Vector3 toGate = Planar(transform.position - player.transform.position);
         if (toGate.sqrMagnitude < 0.001f) return 0f;
@@ -292,7 +376,7 @@ public class ExteriorGateCutsceneController : MonoBehaviour
             facingGate = Mathf.Clamp01((Vector3.Dot(playerForward.normalized, toGate.normalized) + 1f) * 0.5f);
         }
 
-        float closeness = Mathf.Clamp01(1f - Mathf.InverseLerp(revealDistance, guideDistance, distance));
+        float closeness = Mathf.Clamp01(1f - Mathf.InverseLerp(cutsceneDistance, guideDistance, distance));
         float pulse = 0.7f + Mathf.Sin(Time.time * guidePulseSpeed) * 0.3f;
 
         return Mathf.Clamp01(guideMinIntensity + facingGate * guideFacingBoost + closeness * guideDistanceBoost) * pulse;
@@ -309,50 +393,83 @@ public class ExteriorGateCutsceneController : MonoBehaviour
         gateT = Mathf.Clamp01(gateT);
 
         EnsurePlayerLight();
+        EnsureDirectionLight();
         EnsureGateGlow();
-        ConfigurePlayerLightMode(playerT > 0.01f && gateT <= 0.01f && !IsCutsceneActive);
+        ConfigurePlayerLightMode();
         PositionPlayerGuideLight();
+        PositionDirectionLight(playerT);
 
-        if (playerGateLight != null)
+        Light playerLight = ResolveUsableLight(playerGateLight);
+        if (playerLight != null)
         {
-            playerGateLight.enabled = playerT > 0.01f;
-            playerGateLight.intensity = Mathf.Lerp(0f, maxPlayerLightIntensity, playerT);
-            playerGateLight.range = Mathf.Lerp(1.2f, 6f, playerT);
+            playerLight.enabled = playerT > 0.01f;
+            playerLight.intensity = Mathf.Lerp(0f, maxPlayerLightIntensity, playerT);
+            playerLight.range = Mathf.Lerp(2.4f, 7.5f, playerT);
         }
 
-        if (gateGlow != null)
+        Light directionLight = ResolveUsableLight(playerGateDirectionLight);
+        if (directionLight != null)
         {
-            gateGlow.enabled = gateT > 0.01f;
-            gateGlow.intensity = Mathf.Lerp(0f, maxGateLightIntensity, gateT);
-            gateGlow.range = Mathf.Lerp(2f, 9f, gateT);
+            directionLight.enabled = playerT > 0.01f;
+            directionLight.intensity = Mathf.Lerp(0f, 1.9f, playerT);
+            directionLight.range = Mathf.Lerp(1.1f, 2.6f, playerT);
+        }
+
+        Light portalGlow = ResolveUsableLight(gateGlow);
+        if (portalGlow != null)
+        {
+            portalGlow.enabled = gateT > 0.01f;
+            portalGlow.intensity = Mathf.Lerp(0f, maxGateLightIntensity, gateT);
+            portalGlow.range = Mathf.Lerp(2f, 9f, gateT);
         }
     }
 
     private void PositionPlayerGuideLight()
     {
+        playerGateLight = ResolveUsableLight(playerGateLight);
         if (playerGateLight == null || player == null) return;
 
-        Vector3 toGate = Planar(transform.position - player.transform.position);
-        if (toGate.sqrMagnitude > 0.001f)
+        if (playerGateLight.transform.parent != player.transform)
         {
-            Vector3 direction = toGate.normalized;
-            playerGateLight.transform.position = player.transform.position
-                                                 + Vector3.up * 1.15f
-                                                 + direction * guideLightForwardOffset;
-            playerGateLight.transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
+            playerGateLight.transform.SetParent(player.transform, false);
         }
-        else
-        {
-            playerGateLight.transform.localPosition = new Vector3(0f, 1.15f, 0.18f);
-        }
+
+        playerGateLight.transform.localPosition = new Vector3(0f, 1.15f, 0.18f);
+        playerGateLight.transform.localRotation = Quaternion.identity;
     }
 
-    private void ConfigurePlayerLightMode(bool guideOnly)
+    private void ConfigurePlayerLightMode()
     {
+        playerGateLight = ResolveUsableLight(playerGateLight);
         if (playerGateLight == null) return;
 
-        playerGateLight.type = guideOnly ? LightType.Spot : LightType.Point;
-        if (guideOnly) playerGateLight.spotAngle = guideSpotAngle;
+        playerGateLight.type = LightType.Point;
+    }
+
+    private void PositionDirectionLight(float intensity)
+    {
+        playerGateDirectionLight = ResolveUsableLight(playerGateDirectionLight);
+        if (playerGateDirectionLight == null || player == null)
+        {
+            return;
+        }
+
+        Vector3 toGate = transform.position - player.transform.position;
+        toGate.y = 0f;
+        if (toGate.sqrMagnitude <= 0.001f || intensity <= 0.01f)
+        {
+            playerGateDirectionLight.enabled = false;
+            return;
+        }
+
+        Vector3 worldPosition = player.transform.position + Vector3.up * guideOrbHeight + toGate.normalized * guideOrbDistance;
+        if (playerGateDirectionLight.transform.parent != player.transform)
+        {
+            playerGateDirectionLight.transform.SetParent(player.transform, false);
+        }
+
+        playerGateDirectionLight.transform.position = worldPosition;
+        playerGateDirectionLight.transform.rotation = Quaternion.LookRotation(toGate.normalized, Vector3.up);
     }
 
     private void TryStartFromTrigger(Collider other)
@@ -377,35 +494,87 @@ public class ExteriorGateCutsceneController : MonoBehaviour
         if (playerInput == null && player != null) playerInput = player.GetComponent<PlayerInputReader>();
         if (playerAttack == null && player != null) playerAttack = player.GetComponent<PlayerAttackController>();
         EnsurePlayerLight();
+        EnsureDirectionLight();
         EnsureGateGlow();
     }
 
     private void EnsurePlayerLight()
     {
+        playerGateLight = ResolveUsableLight(playerGateLight);
         if (playerGateLight != null || player == null) return;
 
-        Transform existing = player.transform.Find("ExteriorGatePlayerLight");
-        GameObject lightObject = existing != null ? existing.gameObject : new GameObject("ExteriorGatePlayerLight");
-        lightObject.transform.SetParent(player.transform, false);
-        lightObject.transform.localPosition = new Vector3(0f, 1.15f, 0.18f);
-        playerGateLight = lightObject.GetComponent<Light>() ?? lightObject.AddComponent<Light>();
+        playerGateLight = EnsureChildLight(
+            player.transform,
+            "ExteriorGatePlayerLight",
+            new Vector3(0f, 1.15f, 0.18f),
+            new Color(1f, 0.78f, 0.34f, 1f));
         playerGateLight.type = LightType.Point;
-        playerGateLight.color = new Color(1f, 0.78f, 0.34f, 1f);
         playerGateLight.shadows = LightShadows.None;
+    }
+
+    private void EnsureDirectionLight()
+    {
+        playerGateDirectionLight = ResolveUsableLight(playerGateDirectionLight);
+        if (playerGateDirectionLight != null || player == null) return;
+
+        playerGateDirectionLight = EnsureChildLight(
+            player.transform,
+            "ExteriorGateGuideDirectionLight",
+            new Vector3(0f, guideOrbHeight, guideOrbDistance),
+            new Color(1f, 0.58f, 0.22f, 1f));
+        playerGateDirectionLight.type = LightType.Point;
+        playerGateDirectionLight.shadows = LightShadows.None;
     }
 
     private void EnsureGateGlow()
     {
+        gateGlow = ResolveUsableLight(gateGlow);
         if (gateGlow != null || portal == null) return;
 
-        Transform existing = portal.transform.Find("ExteriorGateCutsceneGlow");
-        GameObject lightObject = existing != null ? existing.gameObject : new GameObject("ExteriorGateCutsceneGlow");
-        lightObject.transform.SetParent(portal.transform, false);
-        lightObject.transform.localPosition = new Vector3(0f, 2.2f, -0.4f);
-        gateGlow = lightObject.GetComponent<Light>() ?? lightObject.AddComponent<Light>();
+        gateGlow = EnsureChildLight(
+            portal.transform,
+            "ExteriorGateCutsceneGlow",
+            new Vector3(0f, 2.2f, -0.4f),
+            new Color(1f, 0.42f, 0.22f, 1f));
         gateGlow.type = LightType.Point;
-        gateGlow.color = new Color(1f, 0.42f, 0.22f, 1f);
         gateGlow.shadows = LightShadows.None;
+    }
+
+    private static Light EnsureChildLight(Transform parent, string childName, Vector3 localPosition, Color color)
+    {
+        Transform existing = parent.Find(childName);
+        GameObject lightObject = existing != null ? existing.gameObject : new GameObject(childName);
+        lightObject.transform.SetParent(parent, false);
+        lightObject.transform.localPosition = localPosition;
+        Light light = ResolveUsableLight(lightObject.GetComponent<Light>());
+        if (light == null)
+        {
+            light = lightObject.AddComponent<Light>();
+        }
+
+        light.color = color;
+        light.enabled = false;
+        return light;
+    }
+
+    private static Light ResolveUsableLight(Light light)
+    {
+        if (light == null) return null;
+
+        try
+        {
+            _ = light.enabled;
+            _ = light.transform;
+            return light;
+        }
+        catch (MissingComponentException)
+        {
+            return null;
+        }
+        catch (MissingReferenceException)
+        {
+            return null;
+        }
     }
 
     private void CapturePortalBasePosition()

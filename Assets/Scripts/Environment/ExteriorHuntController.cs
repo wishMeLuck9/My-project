@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-public class ExteriorHuntController : MonoBehaviour
+public class ExteriorHuntController : MonoBehaviour, IPlayerDeathHandler
 {
     [SerializeField] private PlayerController3D player;
     [SerializeField] private PlayerAttackController playerAttack;
@@ -18,6 +18,16 @@ public class ExteriorHuntController : MonoBehaviour
 
     public bool IsHunting => hunting;
     public Transform RespawnPoint => respawnPoint;
+
+    private void OnEnable()
+    {
+        PlayerHealthController.RegisterDeathHandler(this);
+    }
+
+    private void OnDisable()
+    {
+        PlayerHealthController.UnregisterDeathHandler(this);
+    }
 
     private void Start()
     {
@@ -93,6 +103,26 @@ public class ExteriorHuntController : MonoBehaviour
         RespawnPlayer();
         DialogueController.Instance?.ShowDialogue("SHADOW", "Тебя вернули в начало. Следующий побег будет тяжелее.");
         StartCoroutine(UnlockCapture());
+    }
+
+    public bool HandlePlayerDeath(PlayerHealthController health)
+    {
+        if (WorldState.Instance == null || player == null || gateSequencePaused) return false;
+        if (!WorldState.Instance.hasExteriorFragment && !hunting) return false;
+
+        captureLocked = true;
+        WorldState.Instance.ResetExteriorAttempt();
+        exteriorFragment?.RestoreForRetry();
+        SetHunting(false);
+        RespawnPlayer();
+        health.ResetToFullHealth();
+        RuntimeHudController.Instance?.ShowSystemMessage(
+            LocalizationManager.EnsureInstance().Get(
+                "hud.exterior.stability_lost",
+                "The fragment falls out of you. The first square returns you to the start."),
+            5f);
+        StartCoroutine(UnlockCapture());
+        return true;
     }
 
     private IEnumerator HandlePurgatoryFailure()

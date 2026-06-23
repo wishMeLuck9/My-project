@@ -23,6 +23,7 @@ public class NightFragmentEncounter : MonoBehaviour
     private bool routeCompleted;
     private bool violenceChainStarted;
     private bool initialAggroStarted;
+    private bool releaseSequenceStarted;
     private int lastDefeatedCount;
     private Vector3 afraidOriginalScale;
     private Quaternion afraidOriginalRotation;
@@ -53,13 +54,22 @@ public class NightFragmentEncounter : MonoBehaviour
     {
         ResolveReferences();
         ResolveTrainingTargets();
-        if (innerNightFragment != null)
+
+        WorldState state = WorldState.Instance;
+        if (state != null &&
+            state.nightFragmentRoute != WorldState.NightFragmentRoute.None &&
+            !state.hasInnerNightFragment)
+        {
+            routeCompleted = true;
+            RevealNightFragment(state.nightFragmentRoute);
+        }
+        else if (innerNightFragment != null)
         {
             innerNightFragment.gameObject.SetActive(false);
         }
 
         if (helper != null) helper.gameObject.SetActive(false);
-        StartCoroutine(StartInitialEnemyAggroWhenReady());
+        if (!routeCompleted) StartCoroutine(StartInitialEnemyAggroWhenReady());
     }
 
     private void Update()
@@ -81,10 +91,7 @@ public class NightFragmentEncounter : MonoBehaviour
 
         if (AreAllShadowsDefeated())
         {
-            CompleteRoute(WorldState.NightFragmentRoute.Violence);
-            DialogueController.Instance?.ShowDialogue(
-                "SYSTEM",
-                LocalizationManager.EnsureInstance().Get("raw.night.drop"));
+            CompleteRoute(WorldState.NightFragmentRoute.Violence, "SYSTEM", "raw.night.drop");
         }
     }
 
@@ -144,8 +151,7 @@ public class NightFragmentEncounter : MonoBehaviour
 
         afraid.transform.rotation = afraidOriginalRotation;
         afraid.transform.localScale = afraidOriginalScale;
-        CompleteRoute(WorldState.NightFragmentRoute.Mercy);
-        DialogueController.Instance?.ShowDialogue(GetHelperSpeakerName(), localizer.Get("raw.night.mercy"));
+        CompleteRoute(WorldState.NightFragmentRoute.Mercy, GetHelperSpeakerName(), "raw.night.mercy");
     }
 
     private void StartInitialEnemyAggro()
@@ -166,6 +172,11 @@ public class NightFragmentEncounter : MonoBehaviour
 
     private IEnumerator StartInitialEnemyAggroWhenReady()
     {
+        while (!NightPhaseController.IntroComplete)
+        {
+            yield return null;
+        }
+
         float startedAt = Time.time;
         if (waitForTrainingBeforeAggro)
         {
@@ -180,10 +191,7 @@ public class NightFragmentEncounter : MonoBehaviour
             }
         }
 
-        RuntimeHudController.Instance?.ShowSystemMessage(
-            LocalizationManager.EnsureInstance().Get("raw.night.training.release"),
-            5f);
-        StartInitialEnemyAggro();
+        yield return ReleaseAggroAfterDialogue();
     }
 
     private void HandleTrainingTargetCompleted(CorruptionTrainingTarget target)
@@ -191,11 +199,37 @@ public class NightFragmentEncounter : MonoBehaviour
         if (!waitForTrainingBeforeAggro || initialAggroStarted) return;
         if (AreTrainingTargetsComplete())
         {
-            RuntimeHudController.Instance?.ShowSystemMessage(
-                LocalizationManager.EnsureInstance().Get("raw.night.training.release"),
-                5f);
-            StartInitialEnemyAggro();
+            StartCoroutine(ReleaseAggroAfterDialogue());
         }
+    }
+
+    private IEnumerator ReleaseAggroAfterDialogue()
+    {
+        if (releaseSequenceStarted) yield break;
+        releaseSequenceStarted = true;
+
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        DialogueController dialogue = DialogueController.Instance;
+        if (dialogue != null)
+        {
+            bool completed = false;
+            dialogue.ShowDialogue(
+                localizer.Get("speaker.system", "SYSTEM"),
+                localizer.Get("raw.night.training.release"),
+                () => completed = true);
+
+            while (!completed && dialogue.IsDialogueOpen)
+            {
+                yield return null;
+            }
+        }
+        else
+        {
+            RuntimeHudController.Instance?.ShowSystemMessage(localizer.Get("raw.night.training.release"), 5f);
+            yield return new WaitForSecondsRealtime(1.2f);
+        }
+
+        StartInitialEnemyAggro();
     }
 
     private void StartViolenceRoute()
@@ -239,17 +273,31 @@ public class NightFragmentEncounter : MonoBehaviour
         }
     }
 
-    private void CompleteRoute(WorldState.NightFragmentRoute route)
+    private void CompleteRoute(WorldState.NightFragmentRoute route, string speaker, string messageKey)
     {
         routeCompleted = true;
-        WorldState.Instance.GrantNightFragmentRoute(route);
+        WorldState state = WorldState.Instance;
+        state?.GrantNightFragmentRoute(route);
         exitPortal?.Lock();
+        RevealNightFragment(route);
 
-        if (innerNightFragment != null)
+        LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        DialogueController.Instance?.ShowDialogue(
+            localizer.TranslateRaw(speaker),
+            localizer.Get(messageKey));
+    }
+
+    private void RevealNightFragment(WorldState.NightFragmentRoute route)
+    {
+        if (innerNightFragment == null) return;
+
+        innerNightFragment.Configure(LightFragmentPickup.FragmentKind.InnerNight);
+        if (mercyDropPoint != null)
         {
-            if (mercyDropPoint != null) innerNightFragment.transform.position = mercyDropPoint.position;
-            innerNightFragment.gameObject.SetActive(true);
+            innerNightFragment.transform.SetPositionAndRotation(mercyDropPoint.position, mercyDropPoint.rotation);
         }
+
+        innerNightFragment.gameObject.SetActive(true);
     }
 
     private bool AreAllShadowsDefeated()

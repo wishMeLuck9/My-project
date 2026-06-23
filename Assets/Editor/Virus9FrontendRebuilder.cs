@@ -526,7 +526,7 @@ public static class Virus9FrontendRebuilder
             AssetDatabase.CreateAsset(catalog, CatalogPath);
         }
 
-        List<LocalizationCatalog.Entry> entries = new List<LocalizationCatalog.Entry>(catalog.Entries);
+        List<LocalizationCatalog.Entry> entries = DeduplicateEntriesKeepingLast(catalog.Entries);
 
         Upsert(entries, "app.title", "VIRUS9", "VIRUS9", "VIRUS9");
         Upsert(entries, "menu.start", "НАЧАТЬ", "START", "INICIAR");
@@ -607,10 +607,18 @@ public static class Virus9FrontendRebuilder
             "Обратные врата открыты. Вернуться к предыдущему квадрату?",
             "The return gate is open. Go back to the previous square?",
             "Os portoes de regresso estao abertos. Voltar ao quadrado anterior?");
+        Upsert(entries, "raw.return_gate.shoot_prompt",
+            "Обратные врата открыты. Выстрели в раму, чтобы вернуться назад.",
+            "The return gate is open. Shoot the frame to return.",
+            "O portal de regresso esta aberto. Dispara contra a moldura para voltar.");
         Upsert(entries, "raw.return_gate.locked",
             "Обратный маршрут еще не записан. Сначала нужен фрагмент.",
             "The return route is not recorded yet. A fragment must anchor it first.",
             "A rota de regresso ainda nao foi registada. Primeiro precisas de um fragmento.");
+        Upsert(entries, "raw.return_gate.shot",
+            "Рама приняла удар. Маршрут сворачивается назад.",
+            "The frame takes the strike. The route folds backward.",
+            "A moldura aceitou o impacto. A rota dobra para tras.");
         Upsert(entries, "raw.return_gate.enter",
             "Вернуться",
             "Return",
@@ -632,8 +640,238 @@ public static class Virus9FrontendRebuilder
             "The night heard it. Move now.",
             "A noite ouviu. Agora mexe-te.");
 
+        ApplyReadableLocalizationOverrides(entries);
         catalog.ReplaceEntries(entries);
         EditorUtility.SetDirty(catalog);
+    }
+
+    private static List<LocalizationCatalog.Entry> DeduplicateEntriesKeepingLast(IReadOnlyList<LocalizationCatalog.Entry> source)
+    {
+        Dictionary<string, LocalizationCatalog.Entry> byKey = new Dictionary<string, LocalizationCatalog.Entry>(StringComparer.Ordinal);
+        List<string> keyOrder = new List<string>();
+        if (source != null)
+        {
+            for (int i = 0; i < source.Count; i++)
+            {
+                LocalizationCatalog.Entry entry = source[i];
+                if (entry == null || string.IsNullOrWhiteSpace(entry.key)) continue;
+                if (!byKey.ContainsKey(entry.key)) keyOrder.Add(entry.key);
+                byKey[entry.key] = entry;
+            }
+        }
+
+        List<LocalizationCatalog.Entry> result = new List<LocalizationCatalog.Entry>(keyOrder.Count);
+        for (int i = 0; i < keyOrder.Count; i++)
+        {
+            result.Add(byKey[keyOrder[i]]);
+        }
+
+        return result;
+    }
+
+    private static void ApplyReadableLocalizationOverrides(List<LocalizationCatalog.Entry> entries)
+    {
+        Upsert(entries, "speaker.gate", "ВРАТА", "GATE", "PORTOES");
+        Upsert(entries, "speaker.system", "SYSTEM", "SYSTEM", "SYSTEM");
+        Upsert(entries, "speaker.price_altar", "АЛТАРЬ ЦЕНЫ", "PRICE ALTAR", "ALTAR DO PRECO");
+        Upsert(entries, "dialogue.continue", "Продолжить", "Continue", "Continuar");
+        Upsert(entries, "dialogue.next", "Далее ({0}/{1})", "Next ({0}/{1})", "Seguinte ({0}/{1})");
+
+        Upsert(entries, "intro.gameplay.1",
+            "ANTBORN // зона до рождения.\nЗдесь тени ждут, пока мир признает их существование.",
+            "ANTBORN // pre-birth zone.\nShadows wait here until the world recognizes them.",
+            "ANTBORN // zona antes do nascimento.\nAs sombras esperam aqui ate o mundo as reconhecer.");
+        Upsert(entries, "intro.gameplay.2",
+            "Ты появился как ошибка: маленькая доброта стала душой, которую система не умеет записать.",
+            "You appeared as an error: a small kindness became a soul the system cannot record.",
+            "Apareceste como um erro: uma pequena bondade tornou-se uma alma que o sistema nao consegue registar.");
+        Upsert(entries, "intro.gameplay.3",
+            "Система не злится. Она сверяет правила. Для нее ты запись без разрешения на жизнь.",
+            "The System is not angry. It checks the rules. To it, you are a record without permission to live.",
+            "O Sistema nao esta zangado. Verifica as regras. Para ele, es um registo sem permissao para viver.");
+        Upsert(entries, "intro.gameplay.4",
+            "Иди к свету. Собери фрагмент. Когда Врата появятся, они попросят цену.",
+            "Follow the light. Take the fragment. When the Gate appears, it will ask for a price.",
+            "Segue a luz. Apanha o fragmento. Quando os Portoes aparecerem, vao pedir um preco.");
+        Upsert(entries, "intro.gameplay.5",
+            "Управление простое: двигайся, прыгай, карабкайся рядом с краем и взаимодействуй через E.",
+            "The rules are simple: move, jump, climb near edges, and interact with E.",
+            "As regras sao simples: move-te, salta, trepa junto a beiras e interage com E.");
+
+        Upsert(entries, "raw.night.intro.square",
+            "Ты прошел через Врата и оказался во втором квадрате.",
+            "You passed through the Gate and entered the second square.",
+            "Passaste pelos Portoes e entraste no segundo quadrado.");
+        Upsert(entries, "raw.night.intro.attack",
+            "Ночь дает тебе силу удара. Сначала проверь ее на неподвижной тени.",
+            "The night gives you a strike. Test it on the still shadow first.",
+            "A noite da-te um golpe. Testa-o primeiro na sombra parada.");
+        Upsert(entries, "raw.night.intro.shadows",
+            "Живые тени почувствуют эту силу. Одни испугаются. Другие начнут охоту.",
+            "Living shadows will feel that force. Some will fear it. Others will hunt.",
+            "As sombras vivas vao sentir essa forca. Algumas terao medo. Outras vao cacar.");
+        Upsert(entries, "raw.night.intro.hunted",
+            "Выбор простой: пройти мимо или превратить ночь в бой. Второй фрагмент появится после твоего выбора.",
+            "The choice is simple: pass through, or turn the night into a fight. The second fragment appears after your choice.",
+            "A escolha e simples: passa adiante ou transforma a noite numa luta. O segundo fragmento aparece depois da tua escolha.");
+        Upsert(entries, "raw.night.training.prompt",
+            "Сила уже в руке. Ударь неподвижную тень, затем нажми «Продолжить».",
+            "The force is already in your hand. Strike the still shadow, then press Continue.",
+            "A forca ja esta na tua mao. Atinge a sombra parada e depois prime Continuar.");
+        Upsert(entries, "raw.night.training.hit",
+            "Пространство треснуло. Живые тени теперь тоже почувствуют удар.",
+            "The space cracked. The living shadows will feel the strike now.",
+            "O espaco rachou. As sombras vivas vao sentir o golpe agora.");
+        Upsert(entries, "raw.night.training.release",
+            "Ночь признала твою силу. Теперь двигайся: живые тени услышали удар.",
+            "The night recognized your force. Move now: the living shadows heard the strike.",
+            "A noite reconheceu a tua forca. Mexe-te: as sombras vivas ouviram o golpe.");
+        Upsert(entries, "raw.night.observe",
+            "Не подходи. Просто посмотри, что они делают друг с другом.",
+            "Do not come closer. Watch what they do to each other.",
+            "Nao te aproximes. Observa o que fazem umas as outras.");
+        Upsert(entries, "raw.night.mercy",
+            "Она встала. Фрагмент появился на дороге. Подбери его и иди к Вратам.",
+            "She stood up. The fragment appeared on the road. Pick it up and go to the Gate.",
+            "Ela levantou-se. O fragmento apareceu na estrada. Apanha-o e vai aos Portoes.");
+        Upsert(entries, "raw.night.drop",
+            "Площадь опустела. Фрагмент появился на дороге. Подбери его и иди к Вратам.",
+            "The square is empty. The fragment appeared on the road. Pick it up and go to the Gate.",
+            "O quadrado ficou vazio. O fragmento apareceu na estrada. Apanha-o e vai aos Portoes.");
+        Upsert(entries, "raw.fragment.night.prompt",
+            "Второй фрагмент лежит перед тобой. Взять его с собой?",
+            "The second fragment lies before you. Take it with you?",
+            "O segundo fragmento esta diante de ti. Leva-lo contigo?");
+        Upsert(entries, "raw.fragment.night.collected",
+            "Второй фрагмент принят. Теперь Врата смогут назвать цену.",
+            "Second fragment accepted. The Gate can now name its price.",
+            "Segundo fragmento aceite. Os Portoes podem agora indicar o preco.");
+        Upsert(entries, "raw.transition.locked.second",
+            "До Врат нельзя дойти без второго фрагмента. Вернись и подбери след ночи.",
+            "You cannot reach the Gate without the second fragment. Go back and pick up the night trace.",
+            "Nao podes chegar aos Portoes sem o segundo fragmento. Volta e apanha o rasto da noite.");
+
+        Upsert(entries, "raw.exterior.fragment.awakening",
+            "Фрагмент принят. Свет на тебе будет вести к Вратам. Тени тоже увидели его.",
+            "Fragment accepted. The light on you will lead to the Gate. The shadows saw it too.",
+            "Fragmento aceite. A luz em ti vai guiar-te aos Portoes. As sombras tambem a viram.");
+        Upsert(entries, "raw.exterior.gate.reveal",
+            "Врата проявились на краю квадрата.",
+            "The Gate appeared at the edge of the square.",
+            "Os Portoes apareceram na beira do quadrado.");
+        Upsert(entries, "raw.exterior.gate.cutscene.found",
+            "Ты дошел до Врат. Они не открываются от одного фрагмента.",
+            "You reached the Gate. One fragment is not enough to open it.",
+            "Chegaste aos Portoes. Um fragmento nao basta para os abrir.");
+        Upsert(entries, "raw.exterior.gate.cutscene.vision",
+            "Позади собираются тени. Они видят путь, который ты украл у системы.",
+            "Shadows gather behind you. They see the route you stole from the System.",
+            "As sombras juntam-se atras de ti. Veem a rota que roubaste ao Sistema.");
+        Upsert(entries, "raw.exterior.gate.cutscene.prompt",
+            "Выстрели во Врата, чтобы пройти дальше.",
+            "Shoot the Gate to move forward.",
+            "Dispara contra os Portoes para avancar.");
+        Upsert(entries, "raw.exterior.gate.cutscene.shadows",
+            "Ты обернулся. Тени вокруг не нападают. Они смотрят, как проход открывается.",
+            "You turned back. The shadows around you do not attack. They watch the passage open.",
+            "Olhaste para tras. As sombras a tua volta nao atacam. Observam a passagem abrir.");
+        Upsert(entries, "raw.exterior.gate.cutscene.impossible",
+            "Проход открыт. Первый квадрат отпускает тебя.",
+            "The passage is open. The first square lets you go.",
+            "A passagem esta aberta. O primeiro quadrado deixa-te partir.");
+
+        Upsert(entries, "raw.final.intro.guardians",
+            "Перед Вратами стоят стражи. Они защищают порядок от ошибок вроде тебя.",
+            "Guardians stand before the Gate. They protect order from errors like you.",
+            "Guardioes estao diante dos Portoes. Protegem a ordem de erros como tu.");
+        Upsert(entries, "raw.final.intro.boundaries",
+            "Здесь каждый шаг ограничен. Стражи держат границы своей волей.",
+            "Every step is limited here. The guardians hold the boundaries by will.",
+            "Aqui cada passo e limitado. Os guardioes seguram as fronteiras pela vontade.");
+        Upsert(entries, "raw.final.intro.violent",
+            "Ты принес долг ночи. Для Врат это путь силы.",
+            "You brought the debt of the night. To the Gate, this is the path of force.",
+            "Trouxeste a divida da noite. Para os Portoes, este e o caminho da forca.");
+        Upsert(entries, "raw.final.intro.attack",
+            "Стражи не предложат цену. Они попробуют остановить тебя.",
+            "The guardians will not offer a price. They will try to stop you.",
+            "Os guardioes nao vao oferecer um preco. Vao tentar travar-te.");
+        Upsert(entries, "raw.final.intro.peaceful",
+            "Ты принес второй фрагмент, но не превратил ночь в бой.",
+            "You brought the second fragment without turning the night into a fight.",
+            "Trouxeste o segundo fragmento sem transformar a noite numa luta.");
+        Upsert(entries, "raw.final.intro.queue",
+            "Врата видят ошибку, которая дошла до конца маршрута.",
+            "The Gate sees an error that reached the end of the route.",
+            "Os Portoes veem um erro que chegou ao fim da rota.");
+        Upsert(entries, "raw.final.intro.offer",
+            "Теперь они назовут цену. Ты выберешь, что сделать с фрагментами.",
+            "Now they will name the price. You choose what to do with the fragments.",
+            "Agora vao indicar o preco. Tu escolhes o que fazer com os fragmentos.");
+        Upsert(entries, "raw.gate.incomplete",
+            "Маршрут неполный. Вернись и забери недостающий фрагмент.",
+            "The route is incomplete. Go back and take the missing fragment.",
+            "A rota esta incompleta. Volta e apanha o fragmento em falta.");
+        Upsert(entries, "raw.gate.recovery.exterior",
+            "Маршрут не записан. Тело не выдерживает третий квадрат. Врата возвращают тебя в начало.",
+            "The route is not recorded. Your body cannot hold the third square. The Gate returns you to the beginning.",
+            "A rota nao esta registada. O teu corpo nao aguenta o terceiro quadrado. Os Portoes devolvem-te ao inicio.");
+        Upsert(entries, "raw.gate.recovery.night",
+            "Второй след не завершен. Врата возвращают тебя во второй квадрат.",
+            "The second trace is unfinished. The Gate returns you to the second square.",
+            "O segundo rasto esta incompleto. Os Portoes devolvem-te ao segundo quadrado.");
+
+        Upsert(entries, "raw.nonstep",
+            "Действие зарегистрировано. Ввод корректен. Результат отклонен. Ты сделал все правильно, но проход все равно не открылся.",
+            "Action registered. Input correct. Result denied. You did everything right, but the passage still did not open.",
+            "Acao registada. Entrada correta. Resultado recusado. Fizeste tudo certo, mas a passagem nao abriu.");
+        Upsert(entries, "raw.price.prompt",
+            "Проход требует потери. Выбери, что перестанет быть твоим.",
+            "The passage demands a loss. Choose what will stop being yours.",
+            "A passagem exige uma perda. Escolhe o que deixara de ser teu.");
+        Upsert(entries, "raw.price.memory", "Отдать память", "Give memory", "Dar memoria");
+        Upsert(entries, "raw.price.name", "Отдать имя", "Give name", "Dar nome");
+        Upsert(entries, "raw.price.joy", "Отдать радость", "Give joy", "Dar alegria");
+        Upsert(entries, "raw.price.refuse", "Отказаться", "Refuse", "Recusar");
+        Upsert(entries, "raw.price.memory.accepted",
+            "Память принята. След о цене останется неполным.",
+            "Memory accepted. The trace of the price remains incomplete.",
+            "Memoria aceite. O rasto do preco fica incompleto.");
+        Upsert(entries, "raw.price.name.accepted",
+            "Имя принято. Не каждый зов теперь будет находить тебя.",
+            "Name accepted. Not every call will find you now.",
+            "Nome aceite. Nem todo chamamento te encontrara agora.");
+        Upsert(entries, "raw.price.joy.accepted",
+            "Радость принята. Улыбка останется только движением лица.",
+            "Joy accepted. A smile remains only a movement of the face.",
+            "Alegria aceite. O sorriso fica apenas como movimento do rosto.");
+        Upsert(entries, "raw.price.refused",
+            "Отказ записан. Система считает это лишним движением.",
+            "Refusal recorded. The System marks it as unnecessary movement.",
+            "Recusa registada. O Sistema marca isso como movimento desnecessario.");
+        Upsert(entries, "raw.shadow_npc.unknown",
+            "Я не знаю, зачем ты здесь.",
+            "I do not know why you are here.",
+            "Nao sei porque estas aqui.");
+        Upsert(entries, "raw.shadow_npc.help_prompt",
+            "Если ты поможешь мне, они увидят тебя.",
+            "If you help me, they will see you.",
+            "Se me ajudares, eles vao ver-te.");
+        Upsert(entries, "raw.shadow_npc.choice.help", "Помочь", "Help", "Ajudar");
+        Upsert(entries, "raw.shadow_npc.choice.ignore", "Игнорировать", "Ignore", "Ignorar");
+        Upsert(entries, "raw.shadow_npc.choice.push", "Оттолкнуть", "Push away", "Empurrar");
+        Upsert(entries, "raw.shadow_npc.help",
+            "Ты сделал это не для меня. Но я запомню один цикл.",
+            "You did not do it for me. But I will remember one cycle.",
+            "Nao fizeste isto por mim. Mas vou lembrar um ciclo.");
+        Upsert(entries, "raw.shadow_npc.ignore",
+            "Так проще. Так система любит.",
+            "That is easier. That is what the System likes.",
+            "Assim e mais facil. E disso que o Sistema gosta.");
+        Upsert(entries, "raw.shadow_npc.push",
+            "Ночь быстро учит тебя быть сильным.",
+            "The night quickly teaches you to be strong.",
+            "A noite ensina depressa a seres forte.");
     }
 
     private static void Upsert(List<LocalizationCatalog.Entry> entries, string key, string russian, string english, string portuguese)
