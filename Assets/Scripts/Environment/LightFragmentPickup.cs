@@ -18,22 +18,23 @@ public class LightFragmentPickup : Interactable
 
     private void OnEnable()
     {
-        SyncCollectedState();
+        SyncAvailability();
     }
 
     private void Start()
     {
-        SyncCollectedState();
+        SyncAvailability();
     }
 
     public void Configure(FragmentKind kind)
     {
         fragmentKind = kind;
-        SyncCollectedState();
+        SyncAvailability();
     }
 
     public override void Interact()
     {
+        if (SyncAvailability()) return;
         if (DialogueController.Instance == null || WorldState.Instance == null) return;
 
         WorldState state = WorldState.Instance;
@@ -94,6 +95,25 @@ public class LightFragmentPickup : Interactable
     private bool SyncCollectedState()
     {
         if (WorldState.Instance == null || !WorldState.Instance.HasFragment(fragmentKind)) return false;
+
+        gameObject.SetActive(false);
+        return true;
+    }
+
+    private bool SyncAvailability()
+    {
+        if (ShouldHideUnavailableInnerNightFragment()) return true;
+        return SyncCollectedState();
+    }
+
+    private bool ShouldHideUnavailableInnerNightFragment()
+    {
+        if (!Application.isPlaying || fragmentKind != FragmentKind.InnerNight) return false;
+
+        WorldState state = WorldState.Instance;
+        if (state == null) return false;
+        if (state.hasInnerNightFragment) return false;
+        if (state.nightFragmentRoute != WorldState.NightFragmentRoute.None) return false;
 
         gameObject.SetActive(false);
         return true;

@@ -11,6 +11,8 @@ public class GuardianController : Interactable
     [SerializeField] private float catchDistance = 1.45f;
     [SerializeField] private float maxCatchHeightDifference = 0.75f;
     [SerializeField] private LayerMask catchLineOfSightMask = ~0;
+    [SerializeField] private float hitFeedbackCooldown = 1.1f;
+    [SerializeField] private float hitFeedbackDuration = 1.4f;
 
     private FinalGateOutcomeController arena;
     private Transform player;
@@ -24,6 +26,7 @@ public class GuardianController : Interactable
     private bool battling;
     private bool defeated;
     private float nextRecoveryTime;
+    private float nextHitFeedbackTime;
 
     private static readonly string[] BattleInteractionKeys =
     {
@@ -168,9 +171,7 @@ public class GuardianController : Interactable
             return;
         }
 
-        DialogueController.Instance?.ShowDialogue(
-            GuardianName,
-            LocalizationManager.EnsureInstance().Get("raw.guardian.hit"));
+        ShowHitFeedback();
     }
 
     public string BuildEvaluationMessage()
@@ -210,6 +211,16 @@ public class GuardianController : Interactable
         agent.speed = chaseSpeed;
         agent.isStopped = false;
         return agent.isOnNavMesh;
+    }
+
+    private void ShowHitFeedback()
+    {
+        if (Time.time < nextHitFeedbackTime) return;
+
+        nextHitFeedbackTime = Time.time + Mathf.Max(0f, hitFeedbackCooldown);
+        RuntimeHudController.Instance?.ShowAmbientMessage(
+            LocalizationManager.EnsureInstance().Get("raw.guardian.hit"),
+            Mathf.Max(0.2f, hitFeedbackDuration));
     }
 
     private GuardianAttackController ResolveAttackController()

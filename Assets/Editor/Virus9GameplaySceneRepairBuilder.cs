@@ -5,6 +5,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 
@@ -31,13 +32,10 @@ public static class Virus9GameplaySceneRepairBuilder
     private const string FinalScenePath = "Assets/Scenes/Playable/LOCATION_03_GATE_FINAL.unity";
     private const string NominatedMusicFolder = "Assets/Audio/Music/Nominated";
     private const string SourceMusicFolder = @"C:\Users\ACER\Desktop\Nominated";
-    private const string SourceDownloadMusicFolder = @"C:\Users\ACER\Downloads";
-    private const string CalmTrackPath = NominatedMusicFolder + "/Dreams of Quiet Waters.mp3";
-    private const string CalmFallbackTrackPath = NominatedMusicFolder + "/S.mp3.mp3";
+    private const string CalmTrackPath = NominatedMusicFolder + "/S.mp3.mp3";
     private const string EscapeTrackPath = NominatedMusicFolder + "/World in a Cup.mp3";
-    private const string NightTrackPath = NominatedMusicFolder + "/Haunted House.mp3";
-    private const string NightFallbackTrackPath = NominatedMusicFolder + "/Tired of the Fire.mp3";
-    private const string FinalTrackPath = NominatedMusicFolder + "/Untitled (4).mp3";
+    private const string NightTrackPath = NominatedMusicFolder + "/Tired of the Fire.mp3";
+    private const string FinalTrackPath = "Assets/Audio/Music/YouMayLive2.mp3";
     private const string PreviewPrefabPath = "Assets/Art/Characters/Player/Prefabs/PlayerHumanoidRetargetPreview.prefab";
     private const string PlayerModelPath = "Assets/Art/Characters/Player/Models/DEAD2.fbx";
     private const string PlayerControllerPath = "Assets/Art/Characters/Player/Controllers/PlayerHumanoid.controller";
@@ -47,6 +45,8 @@ public static class Virus9GameplaySceneRepairBuilder
     [MenuItem("VIRUS9/Repair Gameplay Scenes")]
     public static void RepairGameplayScenes()
     {
+        if (!SaveOpenSceneChangesBeforeRepair()) return;
+
         EnsureNominatedMusicImported();
         CleanDefaultVolumeProfileMissingScripts();
         RepairScene(ExteriorScenePath, SceneIds.Exterior);
@@ -56,6 +56,17 @@ public static class Virus9GameplaySceneRepairBuilder
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log("VIRUS9 gameplay scenes repaired: music, return zones, climb assists, colliders, night training target, and retarget preview.");
+    }
+
+    private static bool SaveOpenSceneChangesBeforeRepair()
+    {
+        if (Application.isBatchMode)
+        {
+            EditorSceneManager.SaveOpenScenes();
+            return true;
+        }
+
+        return EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
     }
 
     public static void RepairGameplayScenesBatch()
@@ -225,10 +236,10 @@ public static class Virus9GameplaySceneRepairBuilder
     private static void EnsureNominatedMusicImported()
     {
         Directory.CreateDirectory(NominatedMusicFolder);
-        CopyTrackWithFallback(SourceDownloadMusicFolder, "Dreams of Quiet Waters.mp3", CalmTrackPath, SourceMusicFolder, "S.mp3.mp3", CalmFallbackTrackPath);
+        CopyTrackWithFallback(SourceMusicFolder, "S.mp3.mp3", CalmTrackPath);
         CopyTrackWithFallback(SourceMusicFolder, "World in a Cup.mp3", EscapeTrackPath);
-        CopyTrackWithFallback(SourceDownloadMusicFolder, "Haunted House.mp3", NightTrackPath, SourceMusicFolder, "Tired of the Fire.mp3", NightFallbackTrackPath);
-        CopyTrackWithFallback(SourceMusicFolder, "Untitled (4).mp3", FinalTrackPath);
+        CopyTrackWithFallback(SourceMusicFolder, "Tired of the Fire.mp3", NightTrackPath);
+        if (File.Exists(FinalTrackPath)) AssetDatabase.ImportAsset(FinalTrackPath, ImportAssetOptions.ForceUpdate);
         AssetDatabase.Refresh();
     }
 
@@ -288,12 +299,13 @@ public static class Virus9GameplaySceneRepairBuilder
         EnsureGameplayMusic(sceneId);
         if (sceneId == SceneIds.Exterior) EnsureExteriorGateCutscene();
         EnsureReturnZone(sceneId);
+        EnsureEnvironmentColliders(sceneId);
         if (sceneId == SceneIds.Night)
         {
             EnsureNightTrainingTarget();
+            EnsureNightMercyWitnessPlacement();
             EnsureNightEncounterReferences();
         }
-        EnsureEnvironmentColliders(sceneId);
         EnsureClimbAssists(sceneId);
         EnsureTraversalControllers();
         if (sceneId == SceneIds.Exterior) EnsureExteriorPursuerPressure();
@@ -313,7 +325,7 @@ public static class Virus9GameplaySceneRepairBuilder
         SerializedObject serialized = new SerializedObject(controller);
         if (sceneId == SceneIds.Exterior)
         {
-            AudioClip calmClip = LoadClip(CalmTrackPath) != null ? LoadClip(CalmTrackPath) : LoadClip(CalmFallbackTrackPath);
+            AudioClip calmClip = LoadClip(CalmTrackPath);
             SetObject(serialized, "sceneClip", calmClip);
             SetObject(serialized, "exteriorCalmClip", calmClip);
             SetObject(serialized, "exteriorEscapeClip", LoadClip(EscapeTrackPath));
@@ -321,7 +333,7 @@ public static class Virus9GameplaySceneRepairBuilder
         }
         else if (sceneId == SceneIds.Night)
         {
-            AudioClip nightClip = LoadClip(NightTrackPath) != null ? LoadClip(NightTrackPath) : LoadClip(NightFallbackTrackPath);
+            AudioClip nightClip = LoadClip(NightTrackPath);
             SetObject(serialized, "sceneClip", nightClip);
             SetObject(serialized, "exteriorCalmClip", null);
             SetObject(serialized, "exteriorEscapeClip", null);
@@ -329,13 +341,16 @@ public static class Virus9GameplaySceneRepairBuilder
         }
         else
         {
-            SetObject(serialized, "sceneClip", LoadClip(FinalTrackPath));
+            AudioClip finalClip = LoadClip(FinalTrackPath);
+            SetObject(serialized, "sceneClip", finalClip);
             SetObject(serialized, "exteriorCalmClip", null);
             SetObject(serialized, "exteriorEscapeClip", null);
-            source.clip = LoadClip(FinalTrackPath);
+            source.clip = finalClip;
         }
 
         serialized.ApplyModifiedPropertiesWithoutUndo();
+        EditorUtility.SetDirty(source);
+        EditorUtility.SetDirty(controller);
         EditorUtility.SetDirty(root);
     }
 
@@ -568,9 +583,19 @@ public static class Virus9GameplaySceneRepairBuilder
 
     private static void EnsureNightTrainingTarget()
     {
-        GameObject target = FindOrCreateRoot("VIRUS9_NightSpellTrainingTarget");
-        target.transform.position = ResolveGroundedPlacement(new Vector3(3f, 0f, 6f)) + Vector3.up * 0.85f;
-        target.transform.rotation = Quaternion.identity;
+        const string targetName = "VIRUS9_NightSpellTrainingTarget";
+        GameObject existing = FindSceneGameObject(targetName);
+        GameObject target = existing != null ? existing : FindOrCreateRoot(targetName);
+        target.SetActive(true);
+        if (existing == null)
+        {
+            target.transform.position = ResolveNightTrainingTargetGround() + Vector3.up * 0.85f;
+            target.transform.rotation = Quaternion.identity;
+        }
+        else
+        {
+            AdoptMovedTrainingTargetVisual(target);
+        }
 
         CapsuleCollider collider = GetOrAdd<CapsuleCollider>(target);
         collider.center = Vector3.zero;
@@ -593,6 +618,52 @@ public static class Virus9GameplaySceneRepairBuilder
         EditorUtility.SetDirty(target);
     }
 
+    private static void EnsureNightMercyWitnessPlacement()
+    {
+        GameObject afraid = FindSceneGameObject("SHADOW_Afraid_01");
+        if (afraid == null)
+        {
+            Debug.LogWarning("Night mercy placement skipped SHADOW_Afraid_01; object not found.");
+        }
+
+        GameObject helper = ResolveNightHelperShadowObject();
+        if (helper == null)
+        {
+            Debug.LogWarning("Night mercy placement skipped helper shadow; SHADOW_Ally_01/SHADOW_Pleading_01 not found.");
+        }
+
+        GameObject trigger = FindSceneGameObject("MERCY_WITNESS_Trigger");
+        Vector3 witnessGround = ResolveNightWitnessGround(afraid, helper, trigger);
+        if (trigger != null)
+        {
+            trigger.transform.position = witnessGround;
+            trigger.transform.rotation = Quaternion.identity;
+            BoxCollider box = GetOrAdd<BoxCollider>(trigger);
+            box.isTrigger = true;
+            box.center = new Vector3(0f, 1.25f, 0f);
+            box.size = new Vector3(5.5f, 2.5f, 5.0f);
+            foreach (Collider collider in trigger.GetComponents<Collider>())
+            {
+                if (collider != null) collider.isTrigger = true;
+            }
+
+            EditorUtility.SetDirty(trigger);
+        }
+        else
+        {
+            Debug.LogWarning("Night mercy placement skipped MERCY_WITNESS_Trigger; object not found.");
+        }
+
+        GameObject drop = FindOrCreateRoot("VIRUS9_NightFragmentDropPoint");
+        drop.transform.position = ResolveNightMercyFragmentDropPosition(witnessGround, afraid, helper, drop);
+        drop.transform.rotation = Quaternion.identity;
+        EditorUtility.SetDirty(drop);
+
+        WarnIfNightShadowOffGround(afraid);
+        WarnIfNightShadowOffGround(helper);
+        LogUnexpectedOffGroundNightShadows(afraid, helper);
+    }
+
     private static void EnsureNightEncounterReferences()
     {
         NightFragmentEncounter encounter = UnityEngine.Object.FindFirstObjectByType<NightFragmentEncounter>(FindObjectsInactive.Include);
@@ -604,6 +675,8 @@ public static class Virus9GameplaySceneRepairBuilder
 
         LightFragmentPickup fragment = FindNightFragmentPickup();
         Transform dropPoint = EnsureNightFragmentDropPoint();
+        PrototypeShadowActor afraid = FindNightShadowActor("SHADOW_Afraid_01");
+        PrototypeShadowActor helper = ResolveNightHelperShadowActor();
         LocationTransition finalTransition = ResolveTransitionToScene(SceneIds.Final);
         SquarePortalController finalPortal = finalTransition != null ? finalTransition.Portal : null;
         CorruptionTrainingTarget[] targets = UnityEngine.Object.FindObjectsByType<CorruptionTrainingTarget>(
@@ -611,8 +684,11 @@ public static class Virus9GameplaySceneRepairBuilder
             FindObjectsSortMode.None);
 
         SerializedObject serialized = new SerializedObject(encounter);
+        SetObject(serialized, "helper", helper);
+        SetObject(serialized, "afraid", afraid);
         SetObject(serialized, "innerNightFragment", fragment);
         SetObject(serialized, "mercyDropPoint", dropPoint);
+        ClearObjectIfMatches(serialized, "violenceDropPoint", dropPoint);
         SetObject(serialized, "exitPortal", finalPortal);
         SetObjectArray(serialized, "trainingTargets", targets);
         SetBool(serialized, "waitForTrainingBeforeAggro", true);
@@ -622,7 +698,9 @@ public static class Virus9GameplaySceneRepairBuilder
         if (fragment != null)
         {
             fragment.Configure(LightFragmentPickup.FragmentKind.InnerNight);
+            fragment.gameObject.SetActive(false);
             EditorUtility.SetDirty(fragment);
+            EditorUtility.SetDirty(fragment.gameObject);
         }
 
         EditorUtility.SetDirty(encounter);
@@ -651,10 +729,188 @@ public static class Virus9GameplaySceneRepairBuilder
     private static Transform EnsureNightFragmentDropPoint()
     {
         GameObject drop = FindOrCreateRoot("VIRUS9_NightFragmentDropPoint");
-        drop.transform.position = ResolveGroundedPlacement(new Vector3(1.5f, 0f, 2.6f)) + Vector3.up * 0.35f;
-        drop.transform.rotation = Quaternion.identity;
         EditorUtility.SetDirty(drop);
         return drop.transform;
+    }
+
+    private static GameObject ResolveNightHelperShadowObject()
+    {
+        GameObject helper = FindSceneGameObject("SHADOW_Ally_01");
+        return helper != null ? helper : FindSceneGameObject("SHADOW_Pleading_01");
+    }
+
+    private static PrototypeShadowActor ResolveNightHelperShadowActor()
+    {
+        PrototypeShadowActor helper = FindNightShadowActor("SHADOW_Ally_01");
+        return helper != null ? helper : FindNightShadowActor("SHADOW_Pleading_01");
+    }
+
+    private static PrototypeShadowActor FindNightShadowActor(string objectName)
+    {
+        GameObject obj = FindSceneGameObject(objectName);
+        return obj != null ? obj.GetComponent<PrototypeShadowActor>() : null;
+    }
+
+    private static void PlaceNightShadow(GameObject shadow, Vector3 position)
+    {
+        shadow.transform.position = position;
+        EditorUtility.SetDirty(shadow);
+
+        NavMeshAgent agent = shadow.GetComponent<NavMeshAgent>();
+        if (agent != null)
+        {
+            EditorUtility.SetDirty(agent);
+        }
+    }
+
+    private static void AdoptMovedTrainingTargetVisual(GameObject target)
+    {
+        if (target == null) return;
+
+        Transform visual = target.transform.Find("TrainingTargetVisual");
+        if (visual == null) return;
+        if (visual.localPosition.sqrMagnitude <= 0.0001f) return;
+
+        Vector3 authoredWorldPosition = visual.position;
+        target.transform.position = authoredWorldPosition;
+        visual.localPosition = Vector3.zero;
+        EditorUtility.SetDirty(target);
+        EditorUtility.SetDirty(visual.gameObject);
+    }
+
+    private static Vector3 ResolveNightWitnessGround(GameObject afraid, GameObject helper, GameObject trigger)
+    {
+        bool hasAnchor = false;
+        Vector3 anchor = Vector3.zero;
+
+        if (afraid != null)
+        {
+            anchor += afraid.transform.position;
+            hasAnchor = true;
+        }
+
+        if (helper != null)
+        {
+            anchor = hasAnchor ? (anchor + helper.transform.position) * 0.5f : helper.transform.position;
+            hasAnchor = true;
+        }
+
+        if (!hasAnchor && trigger != null)
+        {
+            anchor = trigger.transform.position;
+            hasAnchor = true;
+        }
+
+        return ResolveGroundedWorldPosition(hasAnchor ? anchor : ResolveGroundedPlacement(new Vector3(1.5f, 0f, 2.6f)));
+    }
+
+    private static Vector3 ResolveNightMercyFragmentDropPosition(Vector3 witnessGround, GameObject afraid, GameObject helper, GameObject existingDrop)
+    {
+        const float fragmentHeight = 0.35f;
+        const float defaultDistance = 1.35f;
+        Vector3 direction = Vector3.right;
+        float distance = defaultDistance;
+        bool hasDirection = false;
+
+        if (existingDrop != null)
+        {
+            Vector3 fromWitness = existingDrop.transform.position - witnessGround;
+            fromWitness.y = 0f;
+            if (fromWitness.sqrMagnitude >= 0.25f && fromWitness.sqrMagnitude <= 10.24f)
+            {
+                direction = fromWitness.normalized;
+                distance = Mathf.Clamp(fromWitness.magnitude, 0.9f, 2.2f);
+                hasDirection = true;
+            }
+        }
+
+        if (!hasDirection && afraid != null && helper != null)
+        {
+            Vector3 pair = helper.transform.position - afraid.transform.position;
+            pair.y = 0f;
+            if (pair.sqrMagnitude > 0.01f)
+            {
+                direction = Vector3.Cross(Vector3.up, pair.normalized).normalized;
+                hasDirection = true;
+            }
+        }
+
+        Vector3 dropGround = ResolveGroundedWorldPosition(witnessGround + direction * distance);
+        return dropGround + Vector3.up * fragmentHeight;
+    }
+
+    private static void WarnIfNightShadowOffGround(GameObject shadow)
+    {
+        if (shadow == null) return;
+
+        Vector3 ground = ResolveGroundedWorldPosition(shadow.transform.position);
+        float expectedCenterY = ground.y + 0.85f;
+        float delta = shadow.transform.position.y - expectedCenterY;
+        if (delta > 1.25f)
+        {
+            Debug.LogWarning($"Night shadow remains off-ground by {delta:0.00}m; keeping authored position: {GetHierarchyPath(shadow.transform)}");
+        }
+    }
+
+    private static void LogUnexpectedOffGroundNightShadows(params GameObject[] handled)
+    {
+        foreach (GameObject candidate in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (candidate == null || !candidate.name.StartsWith("SHADOW_", StringComparison.Ordinal)) continue;
+            if (IsHandledNightShadow(candidate, handled)) continue;
+
+            Vector3 ground = ResolveGroundedWorldPosition(candidate.transform.position);
+            float expectedCenterY = ground.y + 0.85f;
+            float delta = candidate.transform.position.y - expectedCenterY;
+            if (delta > 1.25f)
+            {
+                Debug.LogWarning($"Night shadow appears off-ground by {delta:0.00}m and was not auto-moved: {GetHierarchyPath(candidate.transform)}");
+            }
+        }
+    }
+
+    private static bool IsHandledNightShadow(GameObject candidate, GameObject[] handled)
+    {
+        if (candidate == null || handled == null) return false;
+        for (int i = 0; i < handled.Length; i++)
+        {
+            if (handled[i] == candidate) return true;
+        }
+
+        return false;
+    }
+
+    private static Vector3 ResolveNightTrainingTargetGround()
+    {
+        Transform player = FindPlayerTransform();
+        if (player == null) return ResolveLowestGroundedWorldPosition(new Vector3(3f, 0f, 6f));
+
+        Vector3 fallback = ResolveLowestGroundedWorldPosition(player.position + player.TransformDirection(new Vector3(3f, 0f, 6f)));
+        Vector3 best = fallback;
+        float bestScore = Mathf.Abs(best.y - player.position.y);
+        Vector3[] offsets =
+        {
+            new Vector3(0f, 0f, 4.2f),
+            new Vector3(1.3f, 0f, 3.6f),
+            new Vector3(-1.3f, 0f, 3.6f),
+            new Vector3(2.4f, 0f, 2.8f),
+            new Vector3(-2.4f, 0f, 2.8f),
+            new Vector3(3f, 0f, 6f)
+        };
+
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            Vector3 candidate = ResolveLowestGroundedWorldPosition(player.position + player.TransformDirection(offsets[i]));
+            float heightScore = Mathf.Abs(candidate.y - player.position.y);
+            float distanceScore = Vector3.Distance(candidate, player.position) * 0.02f;
+            float score = heightScore + distanceScore;
+            if (score >= bestScore) continue;
+
+            best = candidate;
+            bestScore = score;
+        }
+
+        return best;
     }
 
     private static Light EnsureTrainingTargetLight(Transform parent)
@@ -894,6 +1150,42 @@ public static class Virus9GameplaySceneRepairBuilder
         return position;
     }
 
+    private static Vector3 ResolveGroundedWorldPosition(Vector3 position)
+    {
+        Vector3 rayOrigin = position + Vector3.up * 12f;
+        if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 40f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+        {
+            position.y = hit.point.y;
+        }
+
+        return position;
+    }
+
+    private static Vector3 ResolveLowestGroundedWorldPosition(Vector3 position)
+    {
+        Vector3 rayOrigin = position + Vector3.up * 16f;
+        RaycastHit[] hits = Physics.RaycastAll(rayOrigin, Vector3.down, 64f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        if (hits == null || hits.Length == 0) return ResolveGroundedWorldPosition(position);
+
+        bool found = false;
+        float lowestY = 0f;
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Collider collider = hits[i].collider;
+            if (collider == null || collider.isTrigger) continue;
+
+            float y = hits[i].point.y;
+            if (!found || y < lowestY)
+            {
+                lowestY = y;
+                found = true;
+            }
+        }
+
+        if (found) position.y = lowestY;
+        return position;
+    }
+
     private static Transform FindPlayerTransform()
     {
         PlayerController3D player = UnityEngine.Object.FindFirstObjectByType<PlayerController3D>(FindObjectsInactive.Include);
@@ -1088,6 +1380,15 @@ public static class Virus9GameplaySceneRepairBuilder
     {
         SerializedProperty property = serialized.FindProperty(propertyName);
         if (property != null) property.objectReferenceValue = value;
+    }
+
+    private static void ClearObjectIfMatches(SerializedObject serialized, string propertyName, UnityEngine.Object value)
+    {
+        SerializedProperty property = serialized.FindProperty(propertyName);
+        if (property != null && property.objectReferenceValue == value)
+        {
+            property.objectReferenceValue = null;
+        }
     }
 
     private static void SetFloat(SerializedObject serialized, string propertyName, float value)
