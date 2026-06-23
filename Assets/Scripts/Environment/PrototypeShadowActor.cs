@@ -323,11 +323,9 @@ public class PrototypeShadowActor : MonoBehaviour
 
         nextContactDamageTime = Time.time + contactCooldown;
         PlayerHealthController healthController = player.GetComponent<PlayerHealthController>();
-        if (healthController != null && healthController.ApplyDamage(1, gameObject))
+        if (healthController != null)
         {
-            RuntimeHudController.Instance?.ShowSystemMessage(
-                LocalizationManager.EnsureInstance().Format("hud.damage", healthController.CurrentHealth, healthController.MaxHealth),
-                1.2f);
+            healthController.ApplyDamage(1, gameObject);
         }
     }
 
