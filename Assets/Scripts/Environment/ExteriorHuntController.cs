@@ -111,16 +111,15 @@ public class ExteriorHuntController : MonoBehaviour, IPlayerDeathHandler
         if (!WorldState.Instance.hasExteriorFragment && !hunting) return false;
 
         captureLocked = true;
-        WorldState.Instance.ResetExteriorAttempt();
-        exteriorFragment?.RestoreForRetry();
-        SetHunting(false);
+        bool resumeHunt = WorldState.Instance.hasExteriorFragment || hunting;
         RespawnPlayer();
         health.ResetToFullHealth();
+        if (resumeHunt) SetHunting(true);
         RuntimeHudController.Instance?.ShowSystemMessage(
             LocalizationManager.EnsureInstance().Get(
-                "hud.exterior.stability_lost",
-                "The fragment falls out of you. The first square returns you to the start."),
-            5f);
+                "hud.exterior.retry_keep_fragment",
+                "The fragment stays with you. The first square throws you back."),
+            3f);
         StartCoroutine(UnlockCapture());
         return true;
     }

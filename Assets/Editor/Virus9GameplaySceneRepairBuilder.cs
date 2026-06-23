@@ -5,10 +5,27 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 
 public static class Virus9GameplaySceneRepairBuilder
 {
+    private readonly struct VolumeComponentSnapshot
+    {
+        public readonly Type Type;
+        public readonly string Name;
+        public readonly HideFlags HideFlags;
+        public readonly string Json;
+
+        public VolumeComponentSnapshot(VolumeComponent component)
+        {
+            Type = component.GetType();
+            Name = component.name;
+            HideFlags = component.hideFlags;
+            Json = EditorJsonUtility.ToJson(component);
+        }
+    }
+
     private const string ExteriorScenePath = "Assets/Scenes/Playable/LOCATION_01_EXTERIOR_DAY.unity";
     private const string NightScenePath = "Assets/Scenes/Playable/LOCATION_02_PROTECTED_ALLEYS_NIGHT.unity";
     private const string FinalScenePath = "Assets/Scenes/Playable/LOCATION_03_GATE_FINAL.unity";
@@ -24,11 +41,14 @@ public static class Virus9GameplaySceneRepairBuilder
     private const string PreviewPrefabPath = "Assets/Art/Characters/Player/Prefabs/PlayerHumanoidRetargetPreview.prefab";
     private const string PlayerModelPath = "Assets/Art/Characters/Player/Models/DEAD2.fbx";
     private const string PlayerControllerPath = "Assets/Art/Characters/Player/Controllers/PlayerHumanoid.controller";
+    private const string DefaultVolumeProfilePath = "Assets/Settings/DefaultVolumeProfile.asset";
+    private const string MissingScriptMarker = "m_Script: {fileID: 0}";
 
     [MenuItem("VIRUS9/Repair Gameplay Scenes")]
     public static void RepairGameplayScenes()
     {
         EnsureNominatedMusicImported();
+        CleanDefaultVolumeProfileMissingScripts();
         RepairScene(ExteriorScenePath, SceneIds.Exterior);
         RepairScene(NightScenePath, SceneIds.Night);
         RepairScene(FinalScenePath, SceneIds.Final);
@@ -41,6 +61,165 @@ public static class Virus9GameplaySceneRepairBuilder
     public static void RepairGameplayScenesBatch()
     {
         RepairGameplayScenes();
+    }
+
+    [MenuItem("VIRUS9/Repair Default Volume Profile Missing Scripts")]
+    public static void CleanDefaultVolumeProfileMissingScriptsMenu()
+    {
+        int removed = CleanDefaultVolumeProfileMissingScripts();
+        if (removed == 0) Debug.Log("Default volume profile has no missing script components to remove.");
+    }
+
+    private static int CleanDefaultVolumeProfileMissingScripts()
+    {
+        VolumeProfile profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(DefaultVolumeProfilePath);
+        if (profile == null) return 0;
+
+        int removed = profile.components != null
+            ? profile.components.RemoveAll(component => component == null)
+            : 0;
+
+        UnityEngine.Object[] subAssets = AssetDatabase.LoadAllAssetsAtPath(DefaultVolumeProfilePath);
+        for (int i = 0; i < subAssets.Length; i++)
+        {
+            UnityEngine.Object subAsset = subAssets[i];
+            if (subAsset == null || subAsset == profile) continue;
+
+            SerializedObject serialized = new SerializedObject(subAsset);
+            SerializedProperty script = serialized.FindProperty("m_Script");
+            if (script == null || script.objectReferenceValue != null) continue;
+
+            UnityEngine.Object.DestroyImmediate(subAsset, true);
+            removed++;
+        }
+
+        List<long> missingLocalIds = FindMissingScriptLocalIds(DefaultVolumeProfilePath);
+        string guid = AssetDatabase.AssetPathToGUID(DefaultVolumeProfilePath);
+        for (int i = 0; i < missingLocalIds.Count; i++)
+        {
+            UnityEngine.Object missingSubAsset = TryLoadAssetByGlobalObjectId(guid, missingLocalIds[i]);
+            if (missingSubAsset == null || missingSubAsset == profile) continue;
+
+            UnityEngine.Object.DestroyImmediate(missingSubAsset, true);
+            removed++;
+        }
+
+        if (removed <= 0 && missingLocalIds.Count > 0)
+        {
+            removed = RebuildDefaultVolumeProfileAsset(profile, missingLocalIds.Count);
+            if (removed > 0) return removed;
+        }
+
+        if (removed <= 0)
+        {
+            if (missingLocalIds.Count > 0)
+            {
+                Debug.LogWarning(
+                    $"{DefaultVolumeProfilePath} contains {missingLocalIds.Count} stale missing-script records, but Unity did not expose them as removable sub-assets.");
+            }
+
+            return 0;
+        }
+
+        EditorUtility.SetDirty(profile);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.ImportAsset(DefaultVolumeProfilePath, ImportAssetOptions.ForceUpdate);
+        Debug.Log($"Removed {removed} missing script component references from {DefaultVolumeProfilePath}.");
+        return removed;
+    }
+
+    private static int RebuildDefaultVolumeProfileAsset(VolumeProfile profile, int staleRecordCount)
+    {
+        if (profile == null || profile.components == null) return 0;
+
+        List<VolumeComponentSnapshot> snapshots = new List<VolumeComponentSnapshot>();
+        for (int i = 0; i < profile.components.Count; i++)
+        {
+            VolumeComponent component = profile.components[i];
+            if (component != null) snapshots.Add(new VolumeComponentSnapshot(component));
+        }
+
+        string profileName = profile.name;
+        HideFlags profileHideFlags = profile.hideFlags;
+
+        FileUtil.DeleteFileOrDirectory(DefaultVolumeProfilePath);
+
+        VolumeProfile cleanProfile = ScriptableObject.CreateInstance<VolumeProfile>();
+        cleanProfile.name = profileName;
+        cleanProfile.hideFlags = profileHideFlags;
+        AssetDatabase.CreateAsset(cleanProfile, DefaultVolumeProfilePath);
+        cleanProfile.components.Clear();
+
+        for (int i = 0; i < snapshots.Count; i++)
+        {
+            VolumeComponentSnapshot snapshot = snapshots[i];
+            VolumeComponent component = ScriptableObject.CreateInstance(snapshot.Type) as VolumeComponent;
+            if (component == null) continue;
+
+            EditorJsonUtility.FromJsonOverwrite(snapshot.Json, component);
+            component.name = snapshot.Name;
+            component.hideFlags = snapshot.HideFlags;
+            AssetDatabase.AddObjectToAsset(component, cleanProfile);
+            cleanProfile.components.Add(component);
+        }
+
+        EditorUtility.SetDirty(cleanProfile);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.ImportAsset(DefaultVolumeProfilePath, ImportAssetOptions.ForceUpdate);
+        Debug.Log($"Rebuilt {DefaultVolumeProfilePath} and dropped {staleRecordCount} stale missing-script records.");
+        return staleRecordCount;
+    }
+
+    private static UnityEngine.Object TryLoadAssetByGlobalObjectId(string guid, long localId)
+    {
+        Type globalObjectIdType = typeof(Editor).Assembly.GetType("UnityEditor.GlobalObjectId");
+        if (globalObjectIdType == null) return null;
+
+        System.Reflection.MethodInfo tryParse = globalObjectIdType
+            .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .FirstOrDefault(method => method.Name == "TryParse" && method.GetParameters().Length == 2);
+        System.Reflection.MethodInfo toObject = globalObjectIdType
+            .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .FirstOrDefault(method => method.Name == "GlobalObjectIdentifierToObjectSlow" && method.GetParameters().Length == 1);
+        if (tryParse == null || toObject == null) return null;
+
+        for (int identifierType = 1; identifierType <= 3; identifierType++)
+        {
+            string candidate = $"GlobalObjectId_V1-{identifierType}-{guid}-{localId}-0";
+            object[] parseArgs = { candidate, null };
+            if (!(bool)tryParse.Invoke(null, parseArgs)) continue;
+
+            UnityEngine.Object resolved = toObject.Invoke(null, new[] { parseArgs[1] }) as UnityEngine.Object;
+            if (resolved != null) return resolved;
+        }
+
+        return null;
+    }
+
+    private static List<long> FindMissingScriptLocalIds(string assetPath)
+    {
+        List<long> localIds = new List<long>();
+        if (!File.Exists(assetPath)) return localIds;
+
+        long currentLocalId = 0;
+        string[] lines = File.ReadAllLines(assetPath);
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i];
+            if (line.StartsWith("--- !u!114 &", StringComparison.Ordinal))
+            {
+                string localIdText = line.Substring("--- !u!114 &".Length).Trim();
+                long.TryParse(localIdText, out currentLocalId);
+                continue;
+            }
+
+            if (currentLocalId != 0 && line.Contains(MissingScriptMarker))
+            {
+                localIds.Add(currentLocalId);
+            }
+        }
+
+        return localIds;
     }
 
     private static void EnsureNominatedMusicImported()

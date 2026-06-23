@@ -5,6 +5,9 @@ using UnityEngine.AI;
 [RequireComponent(typeof(GuardianController))]
 public class GuardianAttackController : MonoBehaviour
 {
+    private const float MaxEffectiveRangedRange = 6.25f;
+    private const float RangedHitGrace = 0.2f;
+
     [SerializeField] private int meleeDamage = 1;
     [SerializeField] private float meleeRange = 2.05f;
     [SerializeField] private float meleeRadius = 1.15f;
@@ -36,7 +39,9 @@ public class GuardianAttackController : MonoBehaviour
     private static readonly int ColorId = Shader.PropertyToID("_Color");
 
     public bool IsAttacking => attacking;
-    public float PreferredCombatRange => isForceGuardian ? meleeRange * 0.85f : rangedRange * 0.65f;
+    public float PreferredCombatRange => isForceGuardian ? meleeRange * 0.85f : EffectiveRangedRange * 0.65f;
+
+    private float EffectiveRangedRange => Mathf.Min(Mathf.Max(0.1f, rangedRange), MaxEffectiveRangedRange);
 
     private void Awake()
     {
@@ -96,7 +101,7 @@ public class GuardianAttackController : MonoBehaviour
         }
 
         bool canUseRanged = !isForceGuardian || phaseTwo;
-        if (canUseRanged && distance <= rangedRange && Time.time >= nextRangedTime && HasLineOfSight())
+        if (canUseRanged && distance <= EffectiveRangedRange && Time.time >= nextRangedTime && HasLineOfSight())
         {
             StartCoroutine(RangedRoutine());
         }
@@ -125,7 +130,7 @@ public class GuardianAttackController : MonoBehaviour
         SetTint(new Color(0.35f, 0.75f, 1f, 1f));
         yield return new WaitForSeconds(rangedTelegraphSeconds);
 
-        if (playerHealth != null && HasLineOfSight() && playerHealth.ApplyDamage(rangedDamage, gameObject))
+        if (playerHealth != null && IsTargetInRangedRange() && HasLineOfSight() && playerHealth.ApplyDamage(rangedDamage, gameObject))
         {
             arena?.NotifyPlayerDamaged(playerHealth);
         }
@@ -151,6 +156,16 @@ public class GuardianAttackController : MonoBehaviour
     {
         if (target == null) return false;
         return Mathf.Abs(target.position.y - transform.position.y) <= maxMeleeHeightDifference;
+    }
+
+    private bool IsTargetInRangedRange()
+    {
+        if (target == null) return false;
+
+        Vector3 toTarget = target.position - transform.position;
+        toTarget.y = 0f;
+        float allowedRange = EffectiveRangedRange + RangedHitGrace;
+        return toTarget.sqrMagnitude <= allowedRange * allowedRange;
     }
 
     private bool HasLineOfSight()

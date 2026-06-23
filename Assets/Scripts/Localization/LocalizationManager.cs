@@ -137,6 +137,7 @@ public class LocalizationManager : MonoBehaviour
         AddBuiltInEntry("hud.boss.phase2", "СТРАЖИ {0}%  ФАЗА 2", "GUARDIANS {0}%  PHASE 2", "GUARDIOES {0}%  FASE 2");
         AddBuiltInEntry("hud.damage", "Страж попал. Устойчивость {0}/{1}", "Guardian hit. Stability {0}/{1}", "O guardiao acertou. Estabilidade {0}/{1}");
         AddBuiltInEntry("hud.exterior.stability_lost", "Фрагмент выпал из тебя. Первый квадрат возвращает тебя к старту.", "The fragment falls out of you. The first square returns you to the start.", "O fragmento cai de ti. O primeiro quadrado devolve-te ao inicio.");
+        AddBuiltInEntry("hud.exterior.retry_keep_fragment", "Фрагмент остается с тобой. Первый квадрат отбрасывает тебя назад.", "The fragment stays with you. The first square throws you back.", "O fragmento fica contigo. O primeiro quadrado atira-te para tras.");
         AddBuiltInEntry("boss.intro", "Стражи проснулись. Выживи в суде.", "The guardians wake. Survive the judgement.", "Os guardioes acordaram. Sobrevive ao julgamento.");
         AddBuiltInEntry("boss.phase2", "Врата отвечают силой.", "The gate answers with force.", "Os portoes respondem com forca.");
         AddBuiltInEntry("hud.shadow_guardian_promoted", "Тень стала стражем. Ей нужно больше одного удара.", "A shadow hardens into a guardian. It takes more than one strike.", "Uma sombra endurece num guardiao. Precisa de mais de um golpe.");
@@ -218,11 +219,14 @@ public class LocalizationManager : MonoBehaviour
         AddBuiltInEntry("speaker.price_altar", "АЛТАРЬ ЦЕНЫ", "PRICE ALTAR", "ALTAR DO PRECO");
         AddBuiltInEntry("hud.health", "УСТОЙЧИВОСТЬ {0}/{1}", "STABILITY {0}/{1}", "ESTABILIDADE {0}/{1}");
         AddBuiltInEntry("hud.damage", "Страж попал. Устойчивость {0}/{1}", "Guardian hit. Stability {0}/{1}", "O guardiao acertou. Estabilidade {0}/{1}");
+        AddBuiltInEntry("hud.exterior.retry_keep_fragment", "Фрагмент остается с тобой. Первый квадрат отбрасывает тебя назад.", "The fragment stays with you. The first square throws you back.", "O fragmento fica contigo. O primeiro quadrado atira-te para tras.");
         AddBuiltInEntry("dialogue.continue", "Продолжить", "Continue", "Continuar");
         AddBuiltInEntry("dialogue.next", "Далее ({0}/{1})", "Next ({0}/{1})", "Seguinte ({0}/{1})");
         AddBuiltInEntry("raw.nonstep", "Действие зарегистрировано. Ввод корректен. Результат отклонён. Ты сделал всё правильно, но проход всё равно не открылся.", "Action registered. Input correct. Result denied. You did everything right, but the passage still did not open.", "Acao registada. Entrada correta. Resultado recusado. Fizeste tudo certo, mas a passagem nao abriu.");
         AddBuiltInEntry("raw.night.training.release", "Ночь признала твою силу. Теперь двигайся: живые тени услышали удар.", "The night recognized your force. Move now: the living shadows heard the strike.", "A noite reconheceu a tua forca. Mexe-te: as sombras vivas ouviram o golpe.");
         AddBuiltInEntry("raw.night.fragment.ready", "Фрагмент появился на дороге. Подбери его, прежде чем идти к Вратам.", "The fragment appeared on the road. Pick it up before going to the Gate.", "O fragmento apareceu na estrada. Apanha-o antes de ires aos Portoes.");
+        AddBuiltInEntry("raw.gate.violent", "Ночь записала путь силы. Защитники не примут цену словами. Выживи и открой Врата силой.", "The night recorded a path of force. The defenders will not accept words as a price. Survive and open the Gate by force.", "A noite registou um caminho de forca. Os defensores nao aceitarao palavras como preco. Sobrevive e abre os Portoes pela forca.");
+        AddBuiltInEntry("raw.guardian.violent", "Ночь записала силу. Теперь проход придется отстоять.", "The night recorded force. Now passage must be claimed by force.", "A noite registou forca. Agora a passagem tera de ser reclamada pela forca.");
     }
 
     private void AddBuiltInEntry(string key, string russian, string english, string portuguese)

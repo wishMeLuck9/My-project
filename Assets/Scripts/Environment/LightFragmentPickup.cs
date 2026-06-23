@@ -16,9 +16,20 @@ public class LightFragmentPickup : Interactable
 
     public FragmentKind Kind => fragmentKind;
 
+    private void OnEnable()
+    {
+        SyncCollectedState();
+    }
+
+    private void Start()
+    {
+        SyncCollectedState();
+    }
+
     public void Configure(FragmentKind kind)
     {
         fragmentKind = kind;
+        SyncCollectedState();
     }
 
     public override void Interact()
@@ -28,7 +39,7 @@ public class LightFragmentPickup : Interactable
         WorldState state = WorldState.Instance;
         if (state.HasFragment(fragmentKind))
         {
-            gameObject.SetActive(false);
+            SyncCollectedState();
             return;
         }
 
@@ -49,12 +60,19 @@ public class LightFragmentPickup : Interactable
 
     public void RestoreForRetry()
     {
-        if (fragmentKind == FragmentKind.Exterior) gameObject.SetActive(true);
+        if (fragmentKind != FragmentKind.Exterior) return;
+        if (SyncCollectedState()) return;
+        gameObject.SetActive(true);
     }
 
     private void Collect()
     {
-        if (WorldState.Instance == null || WorldState.Instance.HasFragment(fragmentKind)) return;
+        if (WorldState.Instance == null) return;
+        if (WorldState.Instance.HasFragment(fragmentKind))
+        {
+            gameObject.SetActive(false);
+            return;
+        }
 
         WorldState.Instance.AcquireFragment(fragmentKind);
         FragmentCollected?.Invoke(fragmentKind);
@@ -71,5 +89,13 @@ public class LightFragmentPickup : Interactable
         {
             DialogueController.Instance?.ShowDialogue("SYSTEM", localizer.Get("raw.fragment.night.collected"));
         }
+    }
+
+    private bool SyncCollectedState()
+    {
+        if (WorldState.Instance == null || !WorldState.Instance.HasFragment(fragmentKind)) return false;
+
+        gameObject.SetActive(false);
+        return true;
     }
 }

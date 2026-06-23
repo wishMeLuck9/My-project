@@ -11,6 +11,7 @@ public class NightFragmentEncounter : MonoBehaviour
     [SerializeField] private PrototypeShadowActor[] allShadows;
     [SerializeField] private LightFragmentPickup innerNightFragment;
     [SerializeField] private Transform mercyDropPoint;
+    [SerializeField] private Transform violenceDropPoint;
     [SerializeField] private SquarePortalController exitPortal;
     [SerializeField] private float runSpeed = 3.2f;
     [SerializeField] private float helperTravelTimeout = 3f;
@@ -18,6 +19,7 @@ public class NightFragmentEncounter : MonoBehaviour
     [SerializeField] private bool waitForTrainingBeforeAggro = true;
     [SerializeField] private CorruptionTrainingTarget[] trainingTargets;
     [SerializeField] private float initialAggroFallbackDelay = 24f;
+    [SerializeField] private float releaseHintSeconds = 2f;
 
     private bool mercyStarted;
     private bool routeCompleted;
@@ -56,9 +58,13 @@ public class NightFragmentEncounter : MonoBehaviour
         ResolveTrainingTargets();
 
         WorldState state = WorldState.Instance;
-        if (state != null &&
-            state.nightFragmentRoute != WorldState.NightFragmentRoute.None &&
-            !state.hasInnerNightFragment)
+        if (state != null && state.hasInnerNightFragment)
+        {
+            routeCompleted = true;
+            if (innerNightFragment != null) innerNightFragment.gameObject.SetActive(false);
+        }
+        else if (state != null &&
+                 state.nightFragmentRoute != WorldState.NightFragmentRoute.None)
         {
             routeCompleted = true;
             RevealNightFragment(state.nightFragmentRoute);
@@ -156,7 +162,7 @@ public class NightFragmentEncounter : MonoBehaviour
 
     private void StartInitialEnemyAggro()
     {
-        if (initialAggroStarted) return;
+        if (initialAggroStarted || routeCompleted) return;
         initialAggroStarted = true;
 
         ResolveReferences();
@@ -186,49 +192,37 @@ public class NightFragmentEncounter : MonoBehaviour
 
             while (!AreTrainingTargetsComplete() && Time.time - startedAt < initialAggroFallbackDelay)
             {
+                if (routeCompleted) yield break;
                 if (WorldState.Instance != null && WorldState.Instance.nightViolenceAttempted) break;
                 yield return null;
             }
         }
 
-        yield return ReleaseAggroAfterDialogue();
+        if (routeCompleted) yield break;
+        yield return ReleaseAggroAfterHint();
     }
 
     private void HandleTrainingTargetCompleted(CorruptionTrainingTarget target)
     {
-        if (!waitForTrainingBeforeAggro || initialAggroStarted) return;
+        if (!waitForTrainingBeforeAggro || initialAggroStarted || routeCompleted) return;
         if (AreTrainingTargetsComplete())
         {
-            StartCoroutine(ReleaseAggroAfterDialogue());
+            StartCoroutine(ReleaseAggroAfterHint());
         }
     }
 
-    private IEnumerator ReleaseAggroAfterDialogue()
+    private IEnumerator ReleaseAggroAfterHint()
     {
+        if (routeCompleted) yield break;
         if (releaseSequenceStarted) yield break;
         releaseSequenceStarted = true;
 
         LocalizationManager localizer = LocalizationManager.EnsureInstance();
-        DialogueController dialogue = DialogueController.Instance;
-        if (dialogue != null)
-        {
-            bool completed = false;
-            dialogue.ShowDialogue(
-                localizer.Get("speaker.system", "SYSTEM"),
-                localizer.Get("raw.night.training.release"),
-                () => completed = true);
+        float hintSeconds = Mathf.Max(0.1f, releaseHintSeconds);
+        RuntimeHudController.Instance?.ShowSystemMessage(localizer.Get("raw.night.training.release"), hintSeconds);
+        yield return new WaitForSecondsRealtime(hintSeconds);
 
-            while (!completed && dialogue.IsDialogueOpen)
-            {
-                yield return null;
-            }
-        }
-        else
-        {
-            RuntimeHudController.Instance?.ShowSystemMessage(localizer.Get("raw.night.training.release"), 5f);
-            yield return new WaitForSecondsRealtime(1.2f);
-        }
-
+        if (routeCompleted) yield break;
         StartInitialEnemyAggro();
     }
 
@@ -291,10 +285,23 @@ public class NightFragmentEncounter : MonoBehaviour
     {
         if (innerNightFragment == null) return;
 
-        innerNightFragment.Configure(LightFragmentPickup.FragmentKind.InnerNight);
-        if (mercyDropPoint != null)
+        WorldState state = WorldState.Instance;
+        if (state != null && state.hasInnerNightFragment)
         {
-            innerNightFragment.transform.SetPositionAndRotation(mercyDropPoint.position, mercyDropPoint.rotation);
+            innerNightFragment.gameObject.SetActive(false);
+            return;
+        }
+
+        innerNightFragment.Configure(LightFragmentPickup.FragmentKind.InnerNight);
+        Transform dropPoint = route == WorldState.NightFragmentRoute.Mercy
+            ? mercyDropPoint
+            : route == WorldState.NightFragmentRoute.Violence
+                ? violenceDropPoint
+                : null;
+
+        if (dropPoint != null)
+        {
+            innerNightFragment.transform.SetPositionAndRotation(dropPoint.position, dropPoint.rotation);
         }
 
         innerNightFragment.gameObject.SetActive(true);

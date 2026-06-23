@@ -24,9 +24,6 @@ public class DialogueController : MonoBehaviour
     private const float BaseDialogueFontSize = 22f;
     private const float HeldSubmitDelay = 0.65f;
     private const float HeldSubmitInterval = 0.28f;
-    private const float MinDialoguePageSeconds = 0.3f;
-    private const float MaxDialoguePageSeconds = 0.6f;
-    private const float DialogueSecondsPerCharacter = 0.035f;
     private const int PreferredReadablePageCharacters = 190;
     private const int HardReadablePageCharacters = 260;
 
@@ -50,9 +47,6 @@ public class DialogueController : MonoBehaviour
     private List<string> pages = new List<string>();
     private string currentSpeaker;
     private float nextHeldSubmitAt;
-    private float currentPageCanAdvanceAt;
-    private bool currentButtonsArePageAdvance;
-    private Button currentAdvanceButton;
 
     public bool IsDialogueOpen => dialoguePanel != null && dialoguePanel.activeSelf;
 
@@ -111,7 +105,6 @@ public class DialogueController : MonoBehaviour
     {
         if (!IsDialogueOpen || activeButtons.Count == 0) return;
 
-        UpdateAdvanceButtonReadiness();
         HandleChoiceNavigation();
 
         if (Time.frameCount <= ignoreSubmitUntilFrame) return;
@@ -214,10 +207,6 @@ public class DialogueController : MonoBehaviour
         speakerText.text = speaker;
         dialogueText.text = text;
         onDialogueComplete = null;
-        currentButtonsArePageAdvance = true;
-        currentAdvanceButton = null;
-        currentPageCanAdvanceAt = 0f;
-
         ClearChoices();
 
         if (choices != null)
@@ -332,9 +321,6 @@ public class DialogueController : MonoBehaviour
         if (currentPage < 0 || currentPage >= pages.Count) return;
 
         dialogueText.text = pages[currentPage];
-        currentPageCanAdvanceAt = Time.unscaledTime + ResolveMinimumReadSeconds(pages[currentPage]);
-        currentButtonsArePageAdvance = true;
-
         ClearChoices();
 
         bool isLastPage = currentPage >= pages.Count - 1;
@@ -343,31 +329,17 @@ public class DialogueController : MonoBehaviour
         if (isLastPage)
         {
             ConfigureChoiceButton(button, LocalizationManager.EnsureInstance().Get("dialogue.continue", "Продолжить"));
-            button.onClick.AddListener(TryCompleteDialogue);
+            button.onClick.AddListener(CompleteDialogue);
         }
         else
         {
             string label = LocalizationManager.EnsureInstance().Format("dialogue.next", currentPage + 1, pages.Count);
             ConfigureChoiceButton(button, label);
-            button.onClick.AddListener(TryNextPage);
+            button.onClick.AddListener(NextPage);
         }
 
         activeButtons.Add(button);
-        currentAdvanceButton = button;
-        UpdateAdvanceButtonReadiness();
         SelectButton(0);
-    }
-
-    private void TryNextPage()
-    {
-        if (!CanAdvanceCurrentPage()) return;
-        NextPage();
-    }
-
-    private void TryCompleteDialogue()
-    {
-        if (!CanAdvanceCurrentPage()) return;
-        CompleteDialogue();
     }
 
     private void NextPage()
@@ -375,36 +347,6 @@ public class DialogueController : MonoBehaviour
         currentPage++;
         ignoreSubmitUntilFrame = Time.frameCount + 1;
         ShowCurrentPage();
-    }
-
-    private bool CanAdvanceCurrentPage()
-    {
-        return true;
-    }
-
-    private void UpdateAdvanceButtonReadiness()
-    {
-        if (!currentButtonsArePageAdvance || currentAdvanceButton == null) return;
-
-        bool canAdvance = CanAdvanceCurrentPage();
-        if (currentAdvanceButton.interactable != canAdvance)
-        {
-            currentAdvanceButton.interactable = canAdvance;
-        }
-    }
-
-    private static float ResolveMinimumReadSeconds(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return MinDialoguePageSeconds;
-
-        int readableCharacters = 0;
-        for (int i = 0; i < text.Length; i++)
-        {
-            if (!char.IsWhiteSpace(text[i])) readableCharacters++;
-        }
-
-        float byLength = MinDialoguePageSeconds + readableCharacters * DialogueSecondsPerCharacter;
-        return Mathf.Clamp(byLength, MinDialoguePageSeconds, MaxDialoguePageSeconds);
     }
 
     private void SplitLongPagesForReadability()
@@ -867,9 +809,6 @@ public class DialogueController : MonoBehaviour
             dialoguePanel.SetActive(false);
         }
 
-        currentButtonsArePageAdvance = false;
-        currentAdvanceButton = null;
-        currentPageCanAdvanceAt = 0f;
         ClearChoices();
         SetPlayerControl(true);
         Action complete = onDialogueComplete;

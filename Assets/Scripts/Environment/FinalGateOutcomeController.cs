@@ -362,9 +362,9 @@ public class FinalGateOutcomeController : MonoBehaviour, IPlayerDeathHandler
 
     private static bool HasViolentRoute(WorldState state)
     {
-        return state.enemyShadowsDefeated > 0 ||
-               state.nightViolenceAttempted ||
-               state.nightFragmentRoute == WorldState.NightFragmentRoute.Violence;
+        return state != null &&
+               (state.enemyShadowsDefeated > 0 ||
+                state.nightFragmentRoute == WorldState.NightFragmentRoute.Violence);
     }
 
     private static bool HasCompletedNightRoute(WorldState state)

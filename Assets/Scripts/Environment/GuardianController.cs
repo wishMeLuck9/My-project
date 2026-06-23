@@ -183,7 +183,7 @@ public class GuardianController : Interactable
         WorldState state = WorldState.Instance;
         LocalizationManager localizer = LocalizationManager.EnsureInstance();
         if (state == null) return localizer.Get("raw.guardian.missing");
-        if (state.enemyShadowsDefeated > 0 || state.nightViolenceAttempted) return localizer.Get("raw.guardian.violent");
+        if (state.enemyShadowsDefeated > 0 || state.nightFragmentRoute == WorldState.NightFragmentRoute.Violence) return localizer.Get("raw.guardian.violent");
         return isForceGuardian
             ? localizer.Get("raw.guardian.mercy")
             : localizer.Get("raw.guardian.price");

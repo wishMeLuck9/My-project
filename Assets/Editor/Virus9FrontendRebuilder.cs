@@ -676,6 +676,10 @@ public static class Virus9FrontendRebuilder
         Upsert(entries, "speaker.price_altar", "АЛТАРЬ ЦЕНЫ", "PRICE ALTAR", "ALTAR DO PRECO");
         Upsert(entries, "dialogue.continue", "Продолжить", "Continue", "Continuar");
         Upsert(entries, "dialogue.next", "Далее ({0}/{1})", "Next ({0}/{1})", "Seguinte ({0}/{1})");
+        Upsert(entries, "hud.exterior.retry_keep_fragment",
+            "Фрагмент остается с тобой. Первый квадрат отбрасывает тебя назад.",
+            "The fragment stays with you. The first square throws you back.",
+            "O fragmento fica contigo. O primeiro quadrado atira-te para tras.");
 
         Upsert(entries, "intro.gameplay.1",
             "ANTBORN // зона до рождения.\nЗдесь тени ждут, пока мир признает их существование.",
@@ -812,6 +816,14 @@ public static class Virus9FrontendRebuilder
             "Маршрут неполный. Вернись и забери недостающий фрагмент.",
             "The route is incomplete. Go back and take the missing fragment.",
             "A rota esta incompleta. Volta e apanha o fragmento em falta.");
+        Upsert(entries, "raw.gate.violent",
+            "Ночь записала путь силы. Защитники не примут цену словами. Выживи и открой Врата силой.",
+            "The night recorded a path of force. The defenders will not accept words as a price. Survive and open the Gate by force.",
+            "A noite registou um caminho de forca. Os defensores nao aceitarao palavras como preco. Sobrevive e abre os Portoes pela forca.");
+        Upsert(entries, "raw.guardian.violent",
+            "Ночь записала силу. Теперь проход придется отстоять.",
+            "The night recorded force. Now passage must be claimed by force.",
+            "A noite registou forca. Agora a passagem tera de ser reclamada pela forca.");
         Upsert(entries, "raw.gate.recovery.exterior",
             "Маршрут не записан. Тело не выдерживает третий квадрат. Врата возвращают тебя в начало.",
             "The route is not recorded. Your body cannot hold the third square. The Gate returns you to the beginning.",
