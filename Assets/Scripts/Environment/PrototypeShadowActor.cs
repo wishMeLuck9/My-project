@@ -238,9 +238,7 @@ public class PrototypeShadowActor : MonoBehaviour
         healthComponent.Configure(health);
         SetHunting(true);
         ApplyRoleColor();
-        RuntimeHudController.Instance?.ShowSystemMessage(
-            LocalizationManager.EnsureInstance().Get("hud.shadow_guardian_promoted"),
-            3.2f);
+
     }
 
     private void Start()
@@ -332,10 +330,7 @@ public class PrototypeShadowActor : MonoBehaviour
         else
         {
             PlayHitScaleFeedback();
-            if (role == ShadowRole.GuardianProxy)
-            {
-                ShowGuardianProxyHitFeedback();
-            }
+
         }
 
         if (!isGuardianProxy && !nowDefeated)
