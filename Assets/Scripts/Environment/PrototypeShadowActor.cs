@@ -344,10 +344,7 @@ public class PrototypeShadowActor : MonoBehaviour
         }
 
         ApplyRoleColor();
-        if (role != ShadowRole.GuardianProxy || nowDefeated)
-        {
-            ShowReaction(nowDefeated);
-        }
+
     }
 
     private void ShowGuardianProxyHitFeedback()
