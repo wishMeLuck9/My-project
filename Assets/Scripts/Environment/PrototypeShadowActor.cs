@@ -51,6 +51,7 @@ public class PrototypeShadowActor : MonoBehaviour
     private float nextNavRecoveryTime;
     private float nextReactionTime;
     private float nextDestinationUpdateTime;
+    private float staggeredUntil = -1f;
     private float stuckStartedAt = -1f;
     private float formationAngle;
     private Vector3 currentDestination;
@@ -59,6 +60,8 @@ public class PrototypeShadowActor : MonoBehaviour
     private bool defeated;
     private bool hunting;
     private bool fleeing;
+    private bool resumeHuntingAfterStagger;
+    private bool resumeFleeingAfterStagger;
     private float nextGuardianProxyHitFeedbackTime;
     private Renderer roleRenderer;
     private MaterialPropertyBlock propertyBlock;
@@ -142,6 +145,36 @@ public class PrototypeShadowActor : MonoBehaviour
         }
     }
 
+    public void ForceStagger(Vector3 origin, float duration, float pushDistance)
+    {
+        if (defeated) return;
+
+        resumeHuntingAfterStagger = hunting;
+        resumeFleeingAfterStagger = fleeing;
+        hunting = false;
+        fleeing = false;
+        fearUntil = -1f;
+        staggeredUntil = Time.time + Mathf.Max(0.1f, duration);
+        hasCurrentDestination = false;
+        stuckStartedAt = -1f;
+
+        if (agent != null && agent.enabled)
+        {
+            if (!agent.isOnNavMesh)
+            {
+                EnsureAgentOnNavMesh();
+            }
+
+            if (agent.isOnNavMesh)
+            {
+                agent.ResetPath();
+                agent.isStopped = true;
+            }
+        }
+
+        TryPushAwayFrom(origin, pushDistance);
+    }
+
     public static void FearNearby(Vector3 origin, Transform source, float radius, float duration, bool includeEnemies)
     {
         if (radius <= 0f) return;
@@ -165,6 +198,35 @@ public class PrototypeShadowActor : MonoBehaviour
 
             shadow.ForceFearFrom(source, duration);
         }
+    }
+
+    public static int StaggerNearby(Vector3 origin, float radius, float duration, float pushDistance, bool includeGuardianProxy)
+    {
+        if (radius <= 0f) return 0;
+
+        int staggered = 0;
+        float radiusSqr = radius * radius;
+        for (int i = activeShadows.Count - 1; i >= 0; i--)
+        {
+            PrototypeShadowActor shadow = activeShadows[i];
+            if (shadow == null)
+            {
+                activeShadows.RemoveAt(i);
+                continue;
+            }
+
+            if (shadow.IsDefeated) continue;
+            if (!includeGuardianProxy && shadow.Role == ShadowRole.GuardianProxy) continue;
+
+            Vector3 delta = shadow.transform.position - origin;
+            delta.y = 0f;
+            if (delta.sqrMagnitude > radiusSqr) continue;
+
+            shadow.ForceStagger(origin, duration, pushDistance);
+            staggered++;
+        }
+
+        return staggered;
     }
 
     public void PromoteToGuardianProxy()
@@ -192,6 +254,17 @@ public class PrototypeShadowActor : MonoBehaviour
     private void Update()
     {
         if (defeated || player == null) return;
+        if (staggeredUntil > 0f)
+        {
+            if (Time.time < staggeredUntil)
+            {
+                if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
+                return;
+            }
+
+            CompleteStagger();
+        }
+
         if (DialogueController.Instance != null && DialogueController.Instance.IsDialogueOpen) return;
 
         if (hunting)
@@ -205,6 +278,30 @@ public class PrototypeShadowActor : MonoBehaviour
         if (fleeing || Time.time <= fearUntil)
         {
             TickFlee();
+        }
+    }
+
+    private void CompleteStagger()
+    {
+        staggeredUntil = -1f;
+
+        bool shouldResumeHunt = resumeHuntingAfterStagger;
+        bool shouldResumeFlee = resumeFleeingAfterStagger;
+        resumeHuntingAfterStagger = false;
+        resumeFleeingAfterStagger = false;
+
+        if (shouldResumeHunt)
+        {
+            SetHunting(true);
+        }
+        else if (shouldResumeFlee)
+        {
+            SetFleeingFromPlayer(true);
+            if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = false;
+        }
+        else if (agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            agent.isStopped = true;
         }
     }
 
@@ -264,6 +361,9 @@ public class PrototypeShadowActor : MonoBehaviour
         WasAttacked = false;
         hunting = false;
         fleeing = false;
+        staggeredUntil = -1f;
+        resumeHuntingAfterStagger = false;
+        resumeFleeingAfterStagger = false;
         if (hitScaleRoutine != null)
         {
             StopCoroutine(hitScaleRoutine);
@@ -487,6 +587,27 @@ public class PrototypeShadowActor : MonoBehaviour
         agent.speed = fearMoveSpeed;
         agent.isStopped = false;
         agent.SetDestination(destination.position);
+    }
+
+    private void TryPushAwayFrom(Vector3 origin, float pushDistance)
+    {
+        if (pushDistance <= 0f) return;
+
+        Vector3 away = transform.position - origin;
+        away.y = 0f;
+        if (away.sqrMagnitude <= 0.001f) away = transform.forward;
+
+        Vector3 desired = transform.position + away.normalized * pushDistance;
+        if (!NavMesh.SamplePosition(desired, out NavMeshHit hit, pushDistance + 1.5f, NavMesh.AllAreas)) return;
+
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            agent.Warp(hit.position);
+        }
+        else
+        {
+            transform.position = hit.position;
+        }
     }
 
     private void ApplyRoleColor()

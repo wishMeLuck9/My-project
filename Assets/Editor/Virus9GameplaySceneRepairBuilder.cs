@@ -735,14 +735,14 @@ public static class Virus9GameplaySceneRepairBuilder
 
     private static GameObject ResolveNightHelperShadowObject()
     {
-        GameObject helper = FindSceneGameObject("SHADOW_Ally_01");
-        return helper != null ? helper : FindSceneGameObject("SHADOW_Pleading_01");
+        GameObject helper = FindSceneGameObject("SHADOW_Pleading_01");
+        return helper != null ? helper : FindSceneGameObject("SHADOW_Ally_01");
     }
 
     private static PrototypeShadowActor ResolveNightHelperShadowActor()
     {
-        PrototypeShadowActor helper = FindNightShadowActor("SHADOW_Ally_01");
-        return helper != null ? helper : FindNightShadowActor("SHADOW_Pleading_01");
+        PrototypeShadowActor helper = FindNightShadowActor("SHADOW_Pleading_01");
+        return helper != null ? helper : FindNightShadowActor("SHADOW_Ally_01");
     }
 
     private static PrototypeShadowActor FindNightShadowActor(string objectName)

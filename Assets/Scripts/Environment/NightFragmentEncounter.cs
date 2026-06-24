@@ -20,6 +20,11 @@ public class NightFragmentEncounter : MonoBehaviour
     [SerializeField] private CorruptionTrainingTarget[] trainingTargets;
     [SerializeField] private float initialAggroFallbackDelay = 24f;
     [SerializeField] private float releaseHintSeconds = 2f;
+    [Header("Mercy Witness Staging")]
+    [SerializeField] private float mercyHelperStopDistance = 1.2f;
+    [SerializeField] private float mercyHelperApproachDistance = 2.1f;
+    [SerializeField] private float mercyWitnessLockSeconds = 1.25f;
+    [SerializeField] private float mercyPreRevealDelay = 1.25f;
 
     private bool mercyStarted;
     private bool routeCompleted;
@@ -107,7 +112,6 @@ public class NightFragmentEncounter : MonoBehaviour
         if (WorldState.Instance.nightViolenceAttempted) return;
 
         mercyStarted = true;
-        SetPeacefulFleeing(true);
         StartCoroutine(PlayMercyWitnessEvent());
     }
 
@@ -120,15 +124,35 @@ public class NightFragmentEncounter : MonoBehaviour
         }
 
         LocalizationManager localizer = LocalizationManager.EnsureInstance();
+        SetPlayerControl(false);
+        SetPeacefulFleeing(true);
+        RuntimeHudController.EnsureInstance().ShowSystemMessage(
+            "\u0421\u0418\u0421\u0422\u0415\u041C\u0410:\n\u0421\u0432\u0438\u0434\u0435\u0442\u0435\u043B\u044C \u043E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D.\n\u041D\u0435 \u0432\u043C\u0435\u0448\u0438\u0432\u0430\u0439\u0442\u0435\u0441\u044C.",
+            2.6f);
         DialogueController.Instance?.ShowDialogue("SHADOW", localizer.Get("raw.night.observe"));
 
+        Vector3 target = ResolveMercyHelperTarget();
+        Vector3 start = ResolveMercyHelperStart(target);
+        helper.transform.position = start;
+        FacePosition(helper.transform, afraid.transform.position);
         helper.gameObject.SetActive(true);
         helper.RestoreForEvent();
+        helper.transform.position = start;
+        FacePosition(helper.transform, afraid.transform.position);
+        helper.SetHunting(false);
         helper.SetFleeingFromPlayer(false);
+
+        yield return new WaitForSeconds(Mathf.Max(0.1f, mercyWitnessLockSeconds));
+        if (WorldState.Instance == null || WorldState.Instance.nightViolenceAttempted)
+        {
+            RestoreMercyActors();
+            SetPlayerControl(true);
+            yield break;
+        }
+
         afraid.transform.rotation = Quaternion.Euler(0f, afraid.transform.eulerAngles.y, 72f);
         afraid.transform.localScale = new Vector3(afraidOriginalScale.x, afraidOriginalScale.y * 0.65f, afraidOriginalScale.z);
 
-        Vector3 target = afraid.transform.position + Vector3.back * 1.2f;
         bool hasPath = PrepareHelperPath(target);
         float startedAt = Time.time;
         while ((helper.transform.position - target).sqrMagnitude > 0.09f)
@@ -136,6 +160,7 @@ public class NightFragmentEncounter : MonoBehaviour
             if (WorldState.Instance == null || WorldState.Instance.nightViolenceAttempted)
             {
                 RestoreMercyActors();
+                SetPlayerControl(true);
                 yield break;
             }
 
@@ -148,16 +173,19 @@ public class NightFragmentEncounter : MonoBehaviour
             yield return null;
         }
 
-        yield return new WaitForSeconds(0.75f);
+        FacePosition(helper.transform, afraid.transform.position);
+        yield return new WaitForSeconds(Mathf.Max(0.15f, mercyPreRevealDelay));
         if (WorldState.Instance == null || WorldState.Instance.nightViolenceAttempted)
         {
             RestoreMercyActors();
+            SetPlayerControl(true);
             yield break;
         }
 
         afraid.transform.rotation = afraidOriginalRotation;
         afraid.transform.localScale = afraidOriginalScale;
         CompleteRoute(WorldState.NightFragmentRoute.Mercy, GetHelperSpeakerName(), "raw.night.mercy");
+        SetPlayerControl(true);
     }
 
     private void StartInitialEnemyAggro()
@@ -263,6 +291,7 @@ public class NightFragmentEncounter : MonoBehaviour
         foreach (PrototypeShadowActor shadow in allShadows)
         {
             if (shadow == null || shadow.IsDefeated) continue;
+            if (shadow == helper || shadow == afraid) continue;
             shadow.SetFleeingFromPlayer(state);
         }
     }
@@ -332,6 +361,64 @@ public class NightFragmentEncounter : MonoBehaviour
         SetPeacefulFleeing(false);
     }
 
+    private Vector3 ResolveMercyHelperTarget()
+    {
+        Vector3 awayFromPlayer = Vector3.back;
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null && afraid != null)
+        {
+            awayFromPlayer = afraid.transform.position - player.transform.position;
+            awayFromPlayer.y = 0f;
+        }
+
+        if (awayFromPlayer.sqrMagnitude <= 0.001f) awayFromPlayer = Vector3.back;
+
+        Vector3 target = afraid.transform.position + awayFromPlayer.normalized * Mathf.Max(0.5f, mercyHelperStopDistance);
+        return SampleNavMeshPosition(target, 2f, out Vector3 sampled) ? sampled : target;
+    }
+
+    private Vector3 ResolveMercyHelperStart(Vector3 target)
+    {
+        Vector3 awayFromAfraid = target - afraid.transform.position;
+        awayFromAfraid.y = 0f;
+        if (awayFromAfraid.sqrMagnitude <= 0.001f) awayFromAfraid = Vector3.back;
+
+        Vector3 start = target + awayFromAfraid.normalized * Mathf.Max(0.5f, mercyHelperApproachDistance);
+        return SampleNavMeshPosition(start, 3f, out Vector3 sampled) ? sampled : start;
+    }
+
+    private static bool SampleNavMeshPosition(Vector3 position, float maxDistance, out Vector3 sampled)
+    {
+        if (NavMesh.SamplePosition(position, out NavMeshHit hit, maxDistance, NavMesh.AllAreas))
+        {
+            sampled = hit.position;
+            return true;
+        }
+
+        sampled = position;
+        return false;
+    }
+
+    private static void FacePosition(Transform actor, Vector3 target)
+    {
+        if (actor == null) return;
+
+        Vector3 direction = target - actor.position;
+        direction.y = 0f;
+        if (direction.sqrMagnitude <= 0.001f) return;
+
+        actor.rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
+    }
+
+    private static void SetPlayerControl(bool state)
+    {
+        PlayerController3D player = FindFirstObjectByType<PlayerController3D>();
+        if (player != null) player.SetCanMove(state);
+
+        PlayerAttackController attack = FindFirstObjectByType<PlayerAttackController>();
+        if (attack != null) attack.SetCanAttack(state);
+    }
+
     private bool PrepareHelperPath(Vector3 target)
     {
         if (helperAgent == null || !helperAgent.enabled) return false;
@@ -355,6 +442,21 @@ public class NightFragmentEncounter : MonoBehaviour
     private void ResolveReferences()
     {
         if (innerNightFragment == null) innerNightFragment = FindFirstObjectByType<LightFragmentPickup>(FindObjectsInactive.Include);
+        if (helper == null || helper.name.Contains("Ally"))
+        {
+            PrototypeShadowActor previousHelper = helper;
+            PrototypeShadowActor preferredHelper = FindShadowActorByName("SHADOW_Pleading_01");
+            if (preferredHelper != null && preferredHelper != helper)
+            {
+                if (previousHelper != null) previousHelper.gameObject.SetActive(false);
+                helper = preferredHelper;
+            }
+        }
+
+        if (helper != null && (helperAgent == null || helperAgent.gameObject != helper.gameObject))
+        {
+            helperAgent = helper.GetComponent<NavMeshAgent>();
+        }
 
         PrototypeShadowActor[] discovered = FindObjectsByType<PrototypeShadowActor>(FindObjectsInactive.Include, FindObjectsSortMode.None)
             .Where(shadow => shadow != null && shadow.Role == PrototypeShadowActor.ShadowRole.Enemy)
@@ -366,6 +468,12 @@ public class NightFragmentEncounter : MonoBehaviour
             .Concat(discovered)
             .Distinct()
             .ToArray();
+    }
+
+    private static PrototypeShadowActor FindShadowActorByName(string objectName)
+    {
+        return FindObjectsByType<PrototypeShadowActor>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(shadow => shadow != null && shadow.name == objectName);
     }
 
     private void ResolveTrainingTargets()

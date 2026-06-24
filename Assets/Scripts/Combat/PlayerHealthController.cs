@@ -86,6 +86,17 @@ public class PlayerHealthController : MonoBehaviour
         SetControlState(true);
     }
 
+    public void GrantTemporaryInvulnerability(float seconds)
+    {
+        if (seconds <= 0f) return;
+        invulnerableUntil = Mathf.Max(invulnerableUntil, Time.time + seconds);
+    }
+
+    public void SetControlEnabled(bool state)
+    {
+        SetControlState(state);
+    }
+
     public void RespawnAtCheckpoint()
     {
         if (respawning) return;
