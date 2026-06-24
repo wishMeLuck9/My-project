@@ -7,18 +7,24 @@ public class GameplayMusicController : MonoBehaviour
     [SerializeField] private AudioClip sceneClip;
     [SerializeField] private AudioClip exteriorCalmClip;
     [SerializeField] private AudioClip exteriorEscapeClip;
+    [SerializeField] private AudioClip finalPhaseTwoClip;
+    [SerializeField] private AudioClip finalPhaseThreeClip;
+    [SerializeField, Range(0f, 1f)] private float finalPhaseThreeHealthRatio = 0.25f;
     [SerializeField, Range(0f, 1f)] private float volumeScale = 0.62f;
     [SerializeField] private float crossfadeSeconds = 1.15f;
 
     private AudioSource audioSource;
     private AudioClip desiredClip;
     private float currentVolume;
+    private FinalBossDirector finalBossDirector;
 
-    public void Configure(AudioClip clip, AudioClip calmClip, AudioClip escapeClip)
+    public void Configure(AudioClip clip, AudioClip calmClip, AudioClip escapeClip, AudioClip phaseTwoClip = null, AudioClip phaseThreeClip = null)
     {
         sceneClip = clip;
         exteriorCalmClip = calmClip;
         exteriorEscapeClip = escapeClip;
+        finalPhaseTwoClip = phaseTwoClip;
+        finalPhaseThreeClip = phaseThreeClip;
     }
 
     private void Awake()
@@ -96,7 +102,31 @@ public class GameplayMusicController : MonoBehaviour
                 : exteriorCalmClip != null ? exteriorCalmClip : sceneClip;
         }
 
+        if (sceneName == SceneIds.Final)
+        {
+            FinalBossDirector bossDirector = ResolveFinalBossDirector();
+            if (bossDirector != null && bossDirector.IsFightActive && bossDirector.IsPhaseTwo)
+            {
+                if (finalPhaseThreeClip != null && bossDirector.NormalizedBossHealth <= finalPhaseThreeHealthRatio)
+                {
+                    return finalPhaseThreeClip;
+                }
+
+                return finalPhaseTwoClip != null ? finalPhaseTwoClip : sceneClip;
+            }
+        }
+
         return sceneClip;
+    }
+
+    private FinalBossDirector ResolveFinalBossDirector()
+    {
+        if (finalBossDirector == null)
+        {
+            finalBossDirector = FindFirstObjectByType<FinalBossDirector>();
+        }
+
+        return finalBossDirector;
     }
 
     private void RefreshAudioState()
